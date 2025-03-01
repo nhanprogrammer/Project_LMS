@@ -1,0 +1,56 @@
+# Visual Studio specific
+.vs/
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build output
+bin/
+obj/
+out/
+*.exe
+*.dll
+*.pdb
+*.appx
+*.appxbundle
+*.msix
+*.msixbundle
+*.nupkg
+*.snupkg
+*.zip
+*.tar.gz
+
+# Package dependencies
+packages/
+*.nupkg
+project.lock.json
+
+# Entity Framework Migrations
+Migrations/
+
+# Database files
+*.mdf
+*.ldf
+*.sqlite
+
+# Logs and debug
+*.log
+*.tlog
+
+# Rider files
+.idea/
+*.iml
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Linux
+*~
