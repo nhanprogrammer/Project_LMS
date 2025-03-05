@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace LMS.Models
+namespace Project_LMS.Models
 {
     public partial class GroupModulePermisson
     {

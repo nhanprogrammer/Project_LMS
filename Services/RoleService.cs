@@ -44,8 +44,6 @@ namespace Project_LMS.Services
             }
 
             var role = _mapper.Map<Role>(request);
-            role.UserCreate = 1;
-            role.IsDelete = false;
 
             await _roleRepository.AddAsync(role);
 
@@ -66,7 +64,6 @@ namespace Project_LMS.Services
             }
 
             _mapper.Map(request, role);
-            role.UserUpdate = 1;
 
             await _roleRepository.UpdateAsync(role);
 
@@ -80,9 +77,6 @@ namespace Project_LMS.Services
             {
                 throw new NotFoundException("Không tìm thấy vai trò");
             }
-
-            role.IsDelete = true;
-            role.UserUpdate = 1;
 
             await _roleRepository.UpdateAsync(role);
 

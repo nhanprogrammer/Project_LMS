@@ -98,8 +98,8 @@ public class TestExamTypeService : ITestExamTypeService
         return new TestExamTypeResponse
         {
             Id = testExam.Id,
-            Name = testExam.Name,
-            Description = testExam.Description
+            // Name = testExam.Name,
+            // Description = testExam.Description
         };
     }
 
@@ -107,8 +107,8 @@ public class TestExamTypeService : ITestExamTypeService
     {
         return new TestExamType
         {
-            Name = request.Name,
-            Description = request.Description
+            // Name = request.Name,
+            // Description = request.Description
         };
     }
 
@@ -119,8 +119,8 @@ public class TestExamTypeService : ITestExamTypeService
         {
             try
             {
-                testExamType.Name = request.Name;
-                testExamType.Description = request.Description;
+                // testExamType.Name = request.Name; Sửa code ở đây
+                // testExamType.Description = request.Description;
                 await _context.SaveChangesAsync();
                 return new ApiResponse<TestExamTypeResponse>(0, "Update TestExamType success.")
                 {

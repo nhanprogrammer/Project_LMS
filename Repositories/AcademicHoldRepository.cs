@@ -18,12 +18,12 @@ public class AcademicHoldRepository : IAcademicHoldRepository
     {
         return await _context.AcademicHolds
              .Include(a => a.User)
-             .ThenInclude(u => u.Students)
-             .ThenInclude(s => s.ClassStudents)
-             .ThenInclude(cs => cs.Class)
-             .Include(u => u.User.Students)
-             .ThenInclude(s => s.AcademicYear)
-             .ThenInclude(ay => ay.Semesters)
+            //  .ThenInclude(u => u.Students)
+            //  .ThenInclude(s => s.ClassStudents)
+            //  .ThenInclude(cs => cs.Class)
+            //  .Include(u => u.User.Students)
+            //  .ThenInclude(s => s.AcademicYear)
+            //  .ThenInclude(ay => ay.Semesters)
              .FirstOrDefaultAsync(a => a.Id == id);
     }
 
@@ -31,12 +31,12 @@ public class AcademicHoldRepository : IAcademicHoldRepository
     {
         return await _context.AcademicHolds
             .Include(a => a.User)
-            .ThenInclude(u => u.Students)
-            .ThenInclude(s => s.ClassStudents)
-            .ThenInclude(cs => cs.Class)
-            .Include(u => u.User.Students)
-            .ThenInclude(s => s.AcademicYear)
-            .ThenInclude(ay => ay.Semesters)
+            // .ThenInclude(u => u.Students)
+            // .ThenInclude(s => s.ClassStudents)
+            // .ThenInclude(cs => cs.Class)
+            // .Include(u => u.User.Students)
+            // .ThenInclude(s => s.AcademicYear)
+            // .ThenInclude(ay => ay.Semesters)
             .ToListAsync();
     }
 
@@ -65,7 +65,7 @@ public class AcademicHoldRepository : IAcademicHoldRepository
     public async Task<AcademicHold> GetByStudentIdAsync(int studentId)
     {
         return await _context.AcademicHolds
-            .FirstOrDefaultAsync(ah => ah.StudentId == studentId);  // Sử dụng StudentId để tìm kiếm
+            .FirstOrDefaultAsync(ah => ah.UserId == studentId);  // Sử dụng StudentId để tìm kiếm
     }
 
 }

@@ -25,10 +25,10 @@ namespace Project_LMS.Services
             var data = classes.Select(c => new ClassOnlineResponse
             {
                 Id = c.Id,
-                TeacherName = c.Teacher.FullName,
+                // TeacherName = c.Teacher.FullName, Sửa code chỗ này
                 ClassCode = c.ClassCode,
                 ClassDescription = c.ClassDescription,
-                ClassLink = c.ClassLink,
+                // ClassLink = c.ClassLink,
                 ClassStatus = c.ClassStatus,
                 ClassTitle = c.ClassTitle,
                 MaxStudents = c.MaxStudents,
@@ -53,7 +53,7 @@ namespace Project_LMS.Services
                 ClassStatus = createClassStudentRequest.ClassStatus,
                 ClassLink = createClassStudentRequest.ClassLink,
                 ClassPassword = createClassStudentRequest.ClassPassword,
-                TeacherId = createClassStudentRequest.TeacherId,
+                UserId = createClassStudentRequest.TeacherId,
                 CreateAt = DateTime.Now,
             };
             await _classOnlineRepository.AddAsync(classOnline);
@@ -61,7 +61,7 @@ namespace Project_LMS.Services
             var response = new ClassOnlineResponse
             {
                 Id = classOnline.Id,
-                TeacherName = classOnline.Teacher.FullName,
+                // TeacherName = classOnline.Teacher.FullName, Sửa code chỗ này
                 ClassCode = classOnline.ClassCode,
                 ClassDescription = classOnline.ClassDescription,
                 ClassLink = classOnline.ClassLink,
@@ -90,12 +90,12 @@ namespace Project_LMS.Services
             classOnline.ClassStatus = updateClassStudentRequest.ClassStatus;
             classOnline.ClassLink = updateClassStudentRequest.ClassLink;
             classOnline.ClassPassword = updateClassStudentRequest.ClassPassword;
-            classOnline.TeacherId = updateClassStudentRequest.TeacherId;
+            // classOnline.TeacherId = updateClassStudentRequest.TeacherId; Sửa code chỗ này
             await _classOnlineRepository.UpdateAsync(classOnline);
             var response = new ClassOnlineResponse
             {
                 Id = classOnline.Id,
-                TeacherName = classOnline.Teacher.FullName,
+                // TeacherName = classOnline.Teacher.FullName, Sửa code chỗ này
                 ClassCode = classOnline.ClassCode,
                 ClassDescription = classOnline.ClassDescription,
                 ClassLink = classOnline.ClassLink,

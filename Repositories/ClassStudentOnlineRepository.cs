@@ -21,7 +21,7 @@ public class ClassStudentOnlineRepository : IClassStudentOnlineRepository
 
     public async Task<IEnumerable<ClassStudentsOnline>> GetAllAsync()
     {
-        return await _context.ClassStudentsOnlines.Where(ah => (bool)!ah.IsDelete).ToListAsync();
+        return await _context.ClassStudentsOnlines.ToListAsync();
     }
 
     public async Task AddAsync(ClassStudentsOnline entity)
@@ -41,7 +41,7 @@ public class ClassStudentOnlineRepository : IClassStudentOnlineRepository
         var entity = await _context.ClassStudentsOnlines.FindAsync(id);
         if (entity != null)
         {
-            entity.IsDelete = true;
+            // entity.IsDelete = true;
             _context.ClassStudentsOnlines.Update(entity);
             await _context.SaveChangesAsync();
         }

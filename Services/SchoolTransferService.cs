@@ -16,28 +16,16 @@ namespace Project_LMS.Services
     public class SchoolTransferService : ISchoolTransferService
     {
         private readonly ISchoolTransferRepository _schoolTransferRepository;
-        private readonly IStudentRepository _studentRepository;
         private readonly ISchoolBranchRepository _schoolBranchRepository;
-        private readonly IProvinceRepository _provinceRepository;
-        private readonly IDistrictRepository _districtRepository;
-        private readonly IWardRepository _wardRepository;
         private readonly IMapper _mapper;
 
         public SchoolTransferService(
             ISchoolTransferRepository schoolTransferRepository,
-            IStudentRepository studentRepository,
             ISchoolBranchRepository schoolBranchRepository,
-            IProvinceRepository provinceRepository,
-            IDistrictRepository districtRepository,
-            IWardRepository wardRepository,
             IMapper mapper)
         {
             _schoolTransferRepository = schoolTransferRepository;
-            _studentRepository = studentRepository;
             _schoolBranchRepository = schoolBranchRepository;
-            _provinceRepository = provinceRepository;
-            _districtRepository = districtRepository;
-            _wardRepository = wardRepository;
             _mapper = mapper;
         }
 
@@ -85,11 +73,11 @@ namespace Project_LMS.Services
                 throw new BadRequestException("Validation failed.", errors);
             }
 
-            var student = await _studentRepository.GetByIdAsync(transferRequest.StudentId ?? 0);
-            if (student == null)
-            {
-                throw new NotFoundException("Không tìm thấy học sinh với ID đã cho");
-            }
+            // var student = await _studentRepository.GetByIdAsync(transferRequest.StudentId ?? 0);
+            // if (student == null)
+            // {
+            //     throw new NotFoundException("Không tìm thấy học sinh với ID đã cho");
+            // }
 
             var schoolBranch = await _schoolBranchRepository.GetByIdAsync(transferRequest.SchoolBranchesId ?? 0);
             if (schoolBranch == null)
@@ -97,23 +85,23 @@ namespace Project_LMS.Services
                 throw new NotFoundException("Không tìm thấy chi nhánh trường với ID đã cho");
             }
 
-            var province = await _provinceRepository.GetByIdAsync(transferRequest.ProvinceId ?? 0);
-            if (province == null)
-            {
-                throw new NotFoundException("Không tìm thấy tỉnh với ID đã cho");
-            }
+            // var province = await _provinceRepository.GetByIdAsync(transferRequest.ProvinceId ?? 0);
+            // if (province == null)
+            // {
+            //     throw new NotFoundException("Không tìm thấy tỉnh với ID đã cho");
+            // }
 
-            var district = await _districtRepository.GetByIdAsync(transferRequest.DistrictId ?? 0);
-            if (district == null)
-            {
-                throw new NotFoundException("Không tìm thấy huyện với ID đã cho");
-            }
+            // var district = await _districtRepository.GetByIdAsync(transferRequest.DistrictId ?? 0);
+            // if (district == null)
+            // {
+            //     throw new NotFoundException("Không tìm thấy huyện với ID đã cho");
+            // }
 
-            var ward = await _wardRepository.GetByIdAsync(transferRequest.WardId ?? 0);
-            if (ward == null)
-            {
-                throw new NotFoundException("Không tìm thấy xã với ID đã cho");
-            }
+            // var ward = await _wardRepository.GetByIdAsync(transferRequest.WardId ?? 0);
+            // if (ward == null)
+            // {
+            //     throw new NotFoundException("Không tìm thấy xã với ID đã cho");
+            // }
 
             var transfer = _mapper.Map<SchoolTransfer>(transferRequest);
             transfer.UserCreate = 1;
@@ -157,11 +145,11 @@ namespace Project_LMS.Services
                 throw new NotFoundException("Không tìm thấy thông tin chuyển trường.");
             }
 
-            var student = await _studentRepository.GetByIdAsync(transferRequest.StudentId ?? 0);
-            if (student == null)
-            {
-                throw new NotFoundException("Không tìm thấy học sinh với ID đã cho");
-            }
+            // var student = await _studentRepository.GetByIdAsync(transferRequest.StudentId ?? 0);
+            // if (student == null)
+            // {
+            //     throw new NotFoundException("Không tìm thấy học sinh với ID đã cho");
+            // }
 
             var schoolBranch = await _schoolBranchRepository.GetByIdAsync(transferRequest.SchoolBranchesId ?? 0);
             if (schoolBranch == null)
@@ -169,23 +157,23 @@ namespace Project_LMS.Services
                 throw new NotFoundException("Không tìm thấy chi nhánh trường với ID đã cho");
             }
 
-            var province = await _provinceRepository.GetByIdAsync(transferRequest.ProvinceId ?? 0);
-            if (province == null)
-            {
-                throw new NotFoundException("Không tìm thấy tỉnh với ID đã cho");
-            }
+            // var province = await _provinceRepository.GetByIdAsync(transferRequest.ProvinceId ?? 0);
+            // if (province == null)
+            // {
+            //     throw new NotFoundException("Không tìm thấy tỉnh với ID đã cho");
+            // }
 
-            var district = await _districtRepository.GetByIdAsync(transferRequest.DistrictId ?? 0);
-            if (district == null)
-            {
-                throw new NotFoundException("Không tìm thấy huyện với ID đã cho");
-            }
+            // var district = await _districtRepository.GetByIdAsync(transferRequest.DistrictId ?? 0);
+            // if (district == null)
+            // {
+            //     throw new NotFoundException("Không tìm thấy huyện với ID đã cho");
+            // }
 
-            var ward = await _wardRepository.GetByIdAsync(transferRequest.WardId ?? 0);
-            if (ward == null)
-            {
-                throw new NotFoundException("Không tìm thấy xã với ID đã cho");
-            }
+            // var ward = await _wardRepository.GetByIdAsync(transferRequest.WardId ?? 0);
+            // if (ward == null)
+            // {
+            //     throw new NotFoundException("Không tìm thấy xã với ID đã cho");
+            // }
 
             _mapper.Map(transferRequest, transfer);
             transfer.UserUpdate = 1;

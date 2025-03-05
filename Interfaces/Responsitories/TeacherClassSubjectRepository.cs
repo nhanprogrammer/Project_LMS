@@ -36,8 +36,7 @@ namespace Project_LMS.Interfaces.Responsitories
             var existing = await _context.TeacherClassSubjects.FindAsync(id);
             if (existing == null) return null;
 
-            existing.TeacherId = teacherClassSubject.TeacherId;
-            existing.ClassId = teacherClassSubject.ClassId;
+            existing.UserId = teacherClassSubject.UserId;
             existing.SubjectsId = teacherClassSubject.SubjectsId;
             existing.IsPrimary = teacherClassSubject.IsPrimary;
 

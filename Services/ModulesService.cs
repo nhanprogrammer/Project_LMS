@@ -25,7 +25,7 @@ namespace Project_LMS.Services
             var data = modules.Select(c => new ModuleResponse
             {
                Name = c.Name,
-               Description = c.Description,
+            //    Description = c.Description,
             }).ToList();
 
     
@@ -37,7 +37,7 @@ namespace Project_LMS.Services
             var module = new Module
             {
                 Name = createModuleRequest.Name,
-                Description = createModuleRequest.Description,
+                // Description = createModuleRequest.Description, 
                 CreateAt = DateTime.Now,
             };
             await _moduleRepository.AddAsync(module);
@@ -45,7 +45,7 @@ namespace Project_LMS.Services
             var response = new ModuleResponse
             {
                 Name = module.Name,
-                Description = module.Description,
+                // Description = module.Description,
                 
          
             };
@@ -69,13 +69,13 @@ namespace Project_LMS.Services
             }
             
              module.Name = updateModuleRequest.Name;
-             module.Description = updateModuleRequest.Description;
+             module.Name = updateModuleRequest.Description; // Sửa chỗ này lại, Name chứ không phải Description
              module.UpdateAt = DateTime.Now;
              await _moduleRepository.UpdateAsync(module);
              var response = new ModuleResponse
              {
                  Name = module.Name,
-                 Description = module.Description,
+                 Description = module.Name, // Sửa chỗ này lại Name chứ không phải Description
                 
          
              };
