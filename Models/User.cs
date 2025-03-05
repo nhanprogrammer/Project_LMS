@@ -107,6 +107,8 @@ namespace Project_LMS.Models
         public virtual ICollection<TeachingAssignment> TeachingAssignments { get; set; }
         public virtual ICollection<TestExam> TestExams { get; set; }
         public virtual ICollection<Topic> Topics { get; set; }
-        public virtual ICollection<UserTrainingRank> UserTrainingRanks { get; set; }
+        public virtual ICollection<UserTrainingRank> UserTrainingRanks { get; set; } 
+        // Department Navigation property
+        public virtual ICollection<Department> Departments { get; set; }
     }
 }

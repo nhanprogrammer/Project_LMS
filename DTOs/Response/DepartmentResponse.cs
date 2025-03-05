@@ -2,7 +2,10 @@
 {
     public class DepartmentResponse
     {
-        public int DepartmentCode { get; set; }
+        public int DepartmentID { get; set; }
+        public string DepartmentCode { get; set; }
         public string DepartmentName { get; set; }
+        public int UserId { get; set; }
+        public string? UserName { get; set; }
     }
 }
