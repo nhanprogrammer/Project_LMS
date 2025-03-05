@@ -22,11 +22,116 @@ namespace Project_LMS.Services
             _mapper = mapper;
         }
 
-        public async Task<ApiResponse<List<DepartmentResponse>>> GetAllCoursesAsync()
+        public async Task<ApiResponse<PaginatedResponse<DepartmentResponse>>> GetAllCoursesAsync(
+            int? pageNumber,
+            int? pageSize,
+            string? sortDirection // "asc" hoặc "desc"
+        )
         {
-            var departments = await _departmentRepository.GetAllAsync();
-            var data = _mapper.Map<List<DepartmentResponse>>(departments);
-            return new ApiResponse<List<DepartmentResponse>>(0, "Fill dữ liệu thành công ", data);
+            // 0. Kiểm tra dữ liệu đầu vào
+            if (pageNumber.HasValue && pageNumber <= 0)
+            {
+                return new ApiResponse<PaginatedResponse<DepartmentResponse>>(
+                    1,
+                    "Giá trị pageNumber phải lớn hơn 0",
+                    null
+                );
+            }
+
+            if (pageSize.HasValue && pageSize <= 0)
+            {
+                return new ApiResponse<PaginatedResponse<DepartmentResponse>>(
+                    1,
+                    "Giá trị pageSize phải lớn hơn 0",
+                    null
+                );
+            }
+
+            // Nếu bạn muốn trả về lỗi khi sortDirection không đúng:
+            // (nếu chỉ muốn mặc định 'asc' thì bạn có thể bỏ đoạn này)
+            if (!string.IsNullOrEmpty(sortDirection) &&
+                !sortDirection.Equals("asc", StringComparison.OrdinalIgnoreCase) &&
+                !sortDirection.Equals("desc", StringComparison.OrdinalIgnoreCase))
+            {
+                return new ApiResponse<PaginatedResponse<DepartmentResponse>>(
+                    1,
+                    "Giá trị sortDirection phải là 'asc' hoặc 'desc'",
+                    null
+                );
+            }
+
+            try
+            {
+                // 1. Xác định pageNumber, pageSize mặc định 
+                var currentPage = pageNumber ?? 1;
+                var currentPageSize = pageSize ?? 10;
+
+                // 2. Lấy danh sách departments
+                var departments = await _departmentRepository.GetAllAsync();
+                var queryableDepartments = departments.AsQueryable();
+
+                // 3. Nếu không nhập sortDirection, mặc định là "asc"
+                if (string.IsNullOrEmpty(sortDirection))
+                {
+                    sortDirection = "asc";
+                }
+
+                // 4. Áp dụng sắp xếp dựa trên sortDirection
+                //    Ở đây luôn sắp xếp theo cột Name, sau đó ThenByDescending DepartmentCode
+                if (sortDirection.Equals("desc", StringComparison.OrdinalIgnoreCase))
+                {
+                    queryableDepartments = queryableDepartments
+                        .OrderByDescending(d => d.Name)
+                        .ThenByDescending(d => d.DepartmentCode);
+                }
+                else
+                {
+                    // Mặc định là asc
+                    queryableDepartments = queryableDepartments
+                        .OrderBy(d => d.Name)
+                        .ThenByDescending(d => d.DepartmentCode);
+                }
+
+                // 5. Tính toán tổng số dòng, số trang
+                var totalItems = queryableDepartments.Count();
+                var totalPages = (int)Math.Ceiling((double)totalItems / currentPageSize);
+
+                // 6. Phân trang
+                var pagedDepartments = queryableDepartments
+                    .Skip((currentPage - 1) * currentPageSize)
+                    .Take(currentPageSize)
+                    .ToList();
+
+                // 7. Map sang DTO
+                var mappedData = _mapper.Map<List<DepartmentResponse>>(pagedDepartments);
+
+                // 8. Tạo đối tượng phân trang
+                var paginatedResponse = new PaginatedResponse<DepartmentResponse>
+                {
+                    Items = mappedData,
+                    PageNumber = currentPage,
+                    PageSize = currentPageSize,
+                    TotalItems = totalItems,
+                    TotalPages = totalPages,
+                    HasPreviousPage = currentPage > 1,
+                    HasNextPage = currentPage < totalPages
+                };
+
+                // 9. Trả về
+                return new ApiResponse<PaginatedResponse<DepartmentResponse>>(
+                    0,
+                    "Lấy dữ liệu thành công",
+                    paginatedResponse
+                );
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<PaginatedResponse<DepartmentResponse>>(
+                    1,
+                    $"Lỗi: {ex.Message}",
+                    null
+                );
+            }
         }
 
         public async Task<ApiResponse<DepartmentResponse>> CreateDepartmentAsync(
@@ -67,8 +172,8 @@ namespace Project_LMS.Services
             }
         }
 
-        public async Task<ApiResponse<DepartmentResponse>> UpdateDepartmentAsync(
-            int id, UpdateDepartmentRequest updateDepartmentRequest)
+        public async Task<ApiResponse<DepartmentResponse>> UpdateDepartmentAsync(int id,
+            UpdateDepartmentRequest updateDepartmentRequest)
         {
             try
             {
@@ -80,39 +185,54 @@ namespace Project_LMS.Services
                     return new ApiResponse<DepartmentResponse>(1, "Department không tìm thấy", null);
                 }
 
-                // 2. Sử dụng AutoMapper để cập nhật các thuộc tính của department từ updateDepartmentRequest
+                // 2. Kiểm tra giá trị userUpdate (nếu cần)
+                if (updateDepartmentRequest.UserUpdate.HasValue && updateDepartmentRequest.UserUpdate < 0)
+                {
+                    // Trả về lỗi do giá trị âm
+                    return new ApiResponse<DepartmentResponse>(1, "UserUpdate không hợp lệ (phải >= 0)", null);
+                }
+
+                // 3. Sử dụng AutoMapper để cập nhật các thuộc tính của department từ updateDepartmentRequest
                 _mapper.Map(updateDepartmentRequest, department);
 
-                // 3. Cập nhật thời gian cập nhật (UpdateAt)
+                // 4. Cập nhật thời gian cập nhật (UpdateAt)
                 //    Nếu updateDepartmentRequest.UpdateAt là null, sử dụng thời gian hiện tại (DateTime.Now)
-                //    DateTime.SpecifyKind giúp đặt DateTimeKind cho giá trị UpdateAt (ở đây là Unspecified)
                 department.UpdateAt = DateTime.SpecifyKind(
                     updateDepartmentRequest.UpdateAt ?? DateTime.Now,
                     DateTimeKind.Unspecified);
 
-                // 4. Lưu các thay đổi vào cơ sở dữ liệu thông qua repository
+                // 5. Lưu các thay đổi vào cơ sở dữ liệu thông qua repository
                 await _departmentRepository.UpdateAsync(department);
 
-                // 5. Chuyển đổi đối tượng Department đã cập nhật sang DepartmentResponse dùng AutoMapper
+                // 6. Chuyển đổi đối tượng Department đã cập nhật sang DepartmentResponse dùng AutoMapper
                 var response = _mapper.Map<DepartmentResponse>(department);
 
-                // 6. Lấy thông tin của User (người cập nhật) từ bảng Users dựa trên updateDepartmentRequest.UserUpdate
+                // 7. Lấy thông tin của User (người cập nhật) từ bảng Users dựa trên updateDepartmentRequest.UserUpdate
                 //    và gán tên của User vào thuộc tính UserName trong response
-                var updatingUser = _context.Users.FirstOrDefault(x => x.Id == updateDepartmentRequest.UserUpdate);
-                response.UserName = updatingUser?.FullName;
+                if (updateDepartmentRequest.UserUpdate.HasValue && updateDepartmentRequest.UserUpdate > 0)
+                {
+                    var updatingUser = _context.Users.FirstOrDefault(x => x.Id == updateDepartmentRequest.UserUpdate);
+                    response.UserName = updatingUser?.FullName;
+                }
+                else
+                {
+                    // Trường hợp UserUpdate = 0 hoặc null, có thể bỏ qua hoặc gán chuỗi trống
+                    response.UserName = null;
+                }
 
-                // 7. Trả về phản hồi thành công kèm dữ liệu DepartmentResponse đã được cập nhật
+                // 8. Trả về phản hồi thành công kèm dữ liệu DepartmentResponse đã được cập nhật
                 return new ApiResponse<DepartmentResponse>(0, "Department đã cập nhật thành công", response);
             }
             catch (Exception ex)
             {
-                // 8. Trong trường hợp xảy ra lỗi, lấy thông báo lỗi chi tiết (ưu tiên InnerException nếu có)
+                // 9. Trong trường hợp xảy ra lỗi, lấy thông báo lỗi chi tiết (ưu tiên InnerException nếu có)
                 var innerExceptionMessage = ex.InnerException?.Message ?? ex.Message;
                 // Trả về phản hồi lỗi với mã lỗi 1 và thông báo lỗi
                 return new ApiResponse<DepartmentResponse>(1, $"Lỗi khi cập nhật department: {innerExceptionMessage}",
                     null);
             }
         }
+
         public async Task<ApiResponse<DepartmentResponse>> DeleteDepartmentAsync(string id)
         {
             // 1. Kiểm tra định dạng ID (chuỗi) có hợp lệ hay không, nếu không hợp lệ trả về lỗi.
@@ -132,7 +252,7 @@ namespace Project_LMS.Services
             {
                 // 3. Đánh dấu phòng ban là đã xóa (soft delete)
                 department.IsDelete = true;
-        
+
                 // 4. Lưu thay đổi vào cơ sở dữ liệu thông qua repository
                 await _departmentRepository.UpdateAsync(department);
 
@@ -146,5 +266,40 @@ namespace Project_LMS.Services
             }
         }
 
+        public async Task<ApiResponse<IEnumerable<DepartmentResponse>>> SearchDepartmentsAsync(string? keyword)
+        {
+            try
+            {
+                // 1. Lấy danh sách departments từ repository
+                var departments = await _departmentRepository.GetAllAsync();
+
+                // 2. Nếu không có keyword, trả về tất cả departments
+                if (string.IsNullOrEmpty(keyword))
+                {
+                    var allDepartments = _mapper.Map<List<DepartmentResponse>>(departments);
+                    return new ApiResponse<IEnumerable<DepartmentResponse>>(0, "Lấy tất cả departments thành công",
+                        allDepartments);
+                }
+
+                // 3. Lọc danh sách departments dựa trên keyword
+                var filteredDepartments = departments
+                    .Where(d => d.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+                                d.DepartmentCode.ToString().Contains(keyword, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+                // 4. Map danh sách departments đã lọc sang DTO
+                var mappedData = _mapper.Map<List<DepartmentResponse>>(filteredDepartments);
+
+                // 5. Trả về phản hồi thành công với danh sách departments đã lọc
+                return new ApiResponse<IEnumerable<DepartmentResponse>>(0, "Tìm kiếm thành công", mappedData);
+            }
+            catch (Exception ex)
+            {
+                // 6. Nếu có lỗi, trả về phản hồi lỗi với thông báo lỗi chi tiết
+                var innerExceptionMessage = ex.InnerException?.Message ?? ex.Message;
+                return new ApiResponse<IEnumerable<DepartmentResponse>>(1,
+                    $"Lỗi khi tìm kiếm departments: {innerExceptionMessage}", null);
+            }
+        }
     }
 }

@@ -17,17 +17,36 @@ namespace Project_LMS.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllDepartment()
+        public async Task<IActionResult> GetAllDepartment([FromQuery] int? pageNumber, [FromQuery] int? pageSize,
+            [FromQuery] string? sortDirection)
         {
-            var response = await _departmentsService.GetAllCoursesAsync();
+            // Gọi service để lấy danh sách phòng ban
+            var response = await _departmentsService.GetAllCoursesAsync(pageNumber, pageSize, sortDirection);
 
+            // Nếu có lỗi (Status = 1), trả về BadRequest với thông báo và dữ liệu tương ứng
             if (response.Status == 1)
             {
-                return BadRequest(
-                    new ApiResponse<List<DepartmentResponse>>(response.Status, response.Message, response.Data));
+                return BadRequest(new ApiResponse<PaginatedResponse<DepartmentResponse>>(
+                    response.Status,
+                    response.Message,
+                    response.Data
+                ));
             }
 
-            return Ok(new ApiResponse<List<DepartmentResponse>>(response.Status, response.Message, response.Data));
+            // Nếu thành công, trả về Ok với thông báo và dữ liệu
+            return Ok(new ApiResponse<PaginatedResponse<DepartmentResponse>>(
+                response.Status,
+                response.Message,
+                response.Data
+            ));
+        }
+
+        [HttpGet("search")]
+        public async Task<IActionResult> SearchDepartments([FromQuery] string? keyword)
+        {
+            var search = await _departmentsService.SearchDepartmentsAsync(keyword);
+
+            return Ok(new ApiResponse<ApiResponse<IEnumerable<DepartmentResponse>>>(0, "Success", search));
         }
 
         [HttpPost]
