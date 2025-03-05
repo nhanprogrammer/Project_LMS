@@ -1,4 +1,4 @@
-namespace Project_LMS.DTOs.Response
+﻿namespace Project_LMS.DTOs.Response
 {
     public class PaginatedResponse<T>
     {

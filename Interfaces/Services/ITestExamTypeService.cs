@@ -6,11 +6,10 @@ namespace Project_LMS.Interfaces.Services;
 public interface ITestExamTypeService
 {
     
-    Task<ApiResponse<PaginatedResponse<TestExamTypeResponse>>> GetAll(int pageNumber = 1, int pageSize = 10);
+    Task<ApiResponse<List<TestExamTypeResponse>>> GetAll();
     Task<ApiResponse<TestExamTypeResponse>> Create(TestExamTypeRequest request);
     Task<ApiResponse<TestExamTypeResponse>> Update(int id, TestExamTypeRequest request);
     Task<ApiResponse<TestExamTypeResponse>> Delete(int id);
     Task<ApiResponse<TestExamTypeResponse>> Search(int id);
-    Task<ApiResponse<List<int>>> GetCoefficients();
     
 }
