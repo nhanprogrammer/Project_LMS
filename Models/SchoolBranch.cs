@@ -5,6 +5,11 @@ namespace Project_LMS.Models
 {
     public partial class SchoolBranch
     {
+        public SchoolBranch()
+        {
+            SchoolTransfers = new HashSet<SchoolTransfer>();
+        }
+
         public int Id { get; set; }
         public int SchoolId { get; set; }
         public string BranchName { get; set; } = null!;
@@ -19,5 +24,6 @@ namespace Project_LMS.Models
         public bool? IsDelete { get; set; }
 
         public virtual School School { get; set; } = null!;
+        public virtual ICollection<SchoolTransfer> SchoolTransfers { get; set; }
     }
 }

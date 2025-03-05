@@ -26,8 +26,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Data\" />
-    <Folder Include="Models\" />
     <Folder Include="Interfaces\" />
     <Folder Include="Configurations\" />
     <Folder Include="Middleware\" />

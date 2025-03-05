@@ -3,15 +3,15 @@ using System.Collections.Generic;
 
 namespace Project_LMS.Models
 {
-    public partial class Role
+    public partial class StudentStatus
     {
-        public Role()
+        public StudentStatus()
         {
             Users = new HashSet<User>();
         }
 
         public int Id { get; set; }
-        public string Name { get; set; } = null!;
+        public string? StatusName { get; set; }
 
         public virtual ICollection<User> Users { get; set; }
     }

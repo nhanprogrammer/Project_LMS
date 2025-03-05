@@ -7,7 +7,6 @@ namespace Project_LMS.Models
     {
         public int Id { get; set; }
         public int AssignmentId { get; set; }
-        public int QuestionId { get; set; }
         public int AnswerId { get; set; }
         public bool? IsCorrect { get; set; }
         public bool? IsDelete { get; set; }
@@ -18,6 +17,5 @@ namespace Project_LMS.Models
 
         public virtual Answer Answer { get; set; } = null!;
         public virtual Assignment Assignment { get; set; } = null!;
-        public virtual Question Question { get; set; } = null!;
     }
 }
