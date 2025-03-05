@@ -112,14 +112,12 @@ public class TestExamService : ITestExamService
             Topic = testExam.Topic,
             Form = testExam.Form,
             Duration = testExam.Duration,
-            Classify = testExam.Classify,
+            // Classify = testExam.Classify, //Sửa code ở đây 
             StartDate = testExam.StartDate,
             EndDate = testExam.EndDate,
             Description = testExam.Description,
             Attachment = testExam.Attachment,
-            SubmissionFormat = testExam.SubmissionFormat,
-            UserCreate = testExam.UserCreate,
-            UserUpdate = testExam.UserUpdate
+            // SubmissionFormat = testExam.SubmissionFormat,
 
         };
     }
@@ -133,15 +131,12 @@ public class TestExamService : ITestExamService
             Topic = testExam.Topic,
             Form = testExam.Form,
             Duration = testExam.Duration,
-            Classify = testExam.Classify,
+            // Classify = testExam.Classify, //Sửa code ở đây
             StartDate = testExam.StartDate,
             EndDate = testExam.EndDate,
             Description = testExam.Description,
             Attachment = testExam.Attachment,
-            SubmissionFormat = testExam.SubmissionFormat,
-            UserCreate = testExam.UserCreate,
-            UserUpdate = testExam.UserUpdate
-
+            // SubmissionFormat = testExam.SubmissionFormat,
         };
     }
 
@@ -158,13 +153,12 @@ public class TestExamService : ITestExamService
                 testExam.Topic = request.Topic;
                 testExam.Form = request.Form;
                 testExam.Duration = request.Duration;
-                testExam.Classify = request.Classify;
+                // testExam.Classify = request.Classify; //Sửa code ở đây
                 testExam.StartDate = request.StartDate;
                 testExam.EndDate = request.EndDate;
                 testExam.Description = request.Description;
                 testExam.Attachment = request.Attachment;
-                testExam.SubmissionFormat = request.SubmissionFormat;
-                testExam.UserUpdate = request.UserUpdate;
+                // testExam.SubmissionFormat = request.SubmissionFormat;
 
                 var department = await _context.Departments.FindAsync(request.DepartmentId);
                 testExam.Department = department;

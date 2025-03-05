@@ -32,7 +32,7 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddDbContext<MyDbContext>(options =>
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<ValidationFilter>();
 
@@ -42,11 +42,9 @@ builder.Services.AddScoped<ISchoolService, SchoolService>();
 builder.Services.AddScoped<ISchoolBranchService, SchoolBranchService>();
 builder.Services.AddScoped<ISchoolTransferService, SchoolTransferService>();
 builder.Services.AddScoped<ISemesterService, SemesterService>();
-builder.Services.AddScoped<IWardService, WardService>();
 builder.Services.AddScoped<IDistrictsService, DistrictsService>();
 builder.Services.AddScoped<IProvincesService, ProvincesService>();
 builder.Services.AddScoped<IStudentService, StudentService>();
-builder.Services.AddScoped<IClassStudentsService, ClassStudentsService>();
 builder.Services.AddScoped<IClassService, ClassService>();
 builder.Services.AddScoped<ILessonsService, LessonsService>();
 builder.Services.AddScoped<IFavouritesService, FavouritesService>();
@@ -58,10 +56,7 @@ builder.Services.AddScoped<IClassTypeService, ClassTypeService>();
 builder.Services.AddScoped<IClassOnlineService, ClassOnlineService>();
 builder.Services.AddScoped<IQuestionsService, QuestionService>();
 builder.Services.AddScoped<IQuestionsAnswerTopicViewService, QuestionsAnswerTopicViewService>();
-builder.Services.AddScoped<IRegistrationContactsService, RegistrationContactsService>();
-builder.Services.AddScoped<IRegistrationService, RegistrationService>();
 builder.Services.AddScoped<IRewardService, RewardService>();
-builder.Services.AddScoped<IRolePermissionService, RolePermissionService>();
 builder.Services.AddScoped<IAcademicHoldsService, AcademicHoldsService>();
 builder.Services.AddScoped<IAcademicYearsService, AcademicYearsService>();
 builder.Services.AddScoped<IAnswersService, AnswersService>();
@@ -75,10 +70,6 @@ builder.Services.AddScoped<ISchoolRepository, SchoolRepository>();
 builder.Services.AddScoped<ISchoolBranchRepository, SchoolBranchRepository>();
 builder.Services.AddScoped<ISchoolTransferRepository, SchoolTransferRepository>();
 builder.Services.AddScoped<ISemesterRepository, SemesterRepository>();
-builder.Services.AddScoped<IWardRepository, WardRepository>();
-builder.Services.AddScoped<IStudentRepository, StudentRepository>();
-builder.Services.AddScoped<IDistrictRepository, DistrictRepository>();
-builder.Services.AddScoped<IProvinceRepository, ProvinceRepository>();
 builder.Services.AddScoped<IClassStudentOnlineRepository, ClassStudentOnlineRepository>();
 builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
 builder.Services.AddScoped<IDisciplineRepository, DisciplineRepository>();
@@ -86,15 +77,11 @@ builder.Services.AddScoped<IFavouriteRepository, FavouriteRepository>();
 builder.Services.AddScoped<ILessonRepository, LessonRepository>();
 builder.Services.AddScoped<IModuleRepository, ModuleRepository>();
 builder.Services.AddScoped<IClassRepository, ClassRepository>();
-builder.Services.AddScoped<IClassStudentRepository, ClassStudentRepository>();
 builder.Services.AddScoped<IClassTypeRepository, ClassTypeRepository>();
 builder.Services.AddScoped<IClassOnlineRepository, ClassOnlineRepository>();
 builder.Services.AddScoped<IQuestionRepository, QuestionRepository>();
 builder.Services.AddScoped<IQuestionsAnswerTopicViewRepository, QuestionsAnswerTopicViewRepository>();
-builder.Services.AddScoped<IRegistrationContactRepository, RegistrationContactRepository>();
-builder.Services.AddScoped<IRegistrationRepository, RegistrationRepository>();
 builder.Services.AddScoped<IRewardRepository, RewardRepository>();
-builder.Services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
 builder.Services.AddScoped<IAcademicHoldRepository, AcademicHoldRepository>();
 builder.Services.AddScoped<IAcademicYearRepository, AcademicYearRepository>();
 builder.Services.AddScoped<IAnswerRepository, AnswerRepository>();

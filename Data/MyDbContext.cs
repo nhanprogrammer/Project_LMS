@@ -6,13 +6,13 @@ using Project_LMS.Models;
 
 namespace Project_LMS.Data
 {
-    public partial class MyDbContext : DbContext
+    public partial class ApplicationDbContext : DbContext
     {
-        public MyDbContext()
+        public ApplicationDbContext()
         {
         }
 
-        public MyDbContext(DbContextOptions<MyDbContext> options)
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
         }

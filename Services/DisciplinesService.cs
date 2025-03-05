@@ -36,7 +36,7 @@ namespace Project_LMS.Services
         {
             var discipline = new Discipline
             {
-                StudentId = createDisciplineRequest.StudentId,
+                UserId = createDisciplineRequest.StudentId,
                 SemesterId = createDisciplineRequest.SemesterId,
                 DisciplineCode = createDisciplineRequest.DisciplineCode,
                 DisciplineContent = createDisciplineRequest.DisciplineContent,
@@ -68,7 +68,7 @@ namespace Project_LMS.Services
             }
             discipline.DisciplineContent = updateDisciplineRequest.DisciplineContent;
             discipline.Name = updateDisciplineRequest.Name;
-            discipline.StudentId = updateDisciplineRequest.StudentId;
+            discipline.UserId = updateDisciplineRequest.StudentId;
             discipline.SemesterId = updateDisciplineRequest.SemesterId;
             discipline.UpdateAt = DateTime.Now;
             discipline.UserUpdate = null;

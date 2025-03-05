@@ -101,10 +101,10 @@ namespace Project_LMS.Services
 
             }
 
-            if (request.DateStart.HasValue && request.DateStart < semester.DateStart)
-            {
-                errors.Add(new ValidationError { Field = "DateStart", Error = "Ngày bắt đầu không thể nhỏ hơn ngày bắt đầu trước đó." });
-            }
+            // if (request.DateStart.HasValue && request.DateStart < semester.DateStart)
+            // {
+            //     errors.Add(new ValidationError { Field = "DateStart", Error = "Ngày bắt đầu không thể nhỏ hơn ngày bắt đầu trước đó." });
+            // }
 
             if (errors.Any())
             {

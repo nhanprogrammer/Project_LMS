@@ -19,9 +19,9 @@ namespace Project_LMS.Repositories
             return await _context.Notifications
                 .Where(n => n.IsDelete == false || n.IsDelete == null)
                 .Include(n => n.Sender)
-                .Include(n => n.Class)
-                .Include(n => n.TestExam)
-                .Include(n => n.NotificationsReceivers)
+                // .Include(n => n.Class)
+                // .Include(n => n.TestExam)
+                // .Include(n => n.NotificationsReceivers)
                 .ToListAsync();
         }
 
@@ -29,9 +29,9 @@ namespace Project_LMS.Repositories
         {
             return await _context.Notifications
                 .Include(n => n.Sender)
-                .Include(n => n.Class)
-                .Include(n => n.TestExam)
-                .Include(n => n.NotificationsReceivers)
+                // .Include(n => n.Class)
+                // .Include(n => n.TestExam)
+                // .Include(n => n.NotificationsReceivers)
                 .FirstOrDefaultAsync(n => n.Id == id && (n.IsDelete == false || n.IsDelete == null));
         }
 

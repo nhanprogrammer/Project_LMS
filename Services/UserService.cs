@@ -25,7 +25,7 @@ public class UserService : IUserService
         try
         {
             var configuration = await _context.SystemSettings.FindAsync(user.ConfigurationId);
-            _user.Configuration = configuration;
+            // _user.Configuration = configuration;  sửa code chỗ này
             await _context.Users.AddAsync(_user);
             await _context.SaveChangesAsync();
             return new ApiResponse<UserResponse>(0, "Create User success")
@@ -101,8 +101,8 @@ public class UserService : IUserService
         return new UserResponse
         {
             Id = user.Id,
-            ConfigurationId = user.ConfigurationId,
-            Role = user.Role,
+            // ConfigurationId = user.ConfigurationId, Cả 2 dòng này 
+            // Role = user.Role,
             Username = user.Username,
             Password = user.Password,
             FullName = user.FullName,
@@ -121,8 +121,8 @@ public class UserService : IUserService
     {
         return new User
         {
-            ConfigurationId = user.ConfigurationId,
-            Role = user.Role,
+            // ConfigurationId = user.ConfigurationId, Cả 2 dòng này 
+            // Role = user.Role,
             Username = user.Username,
             Password = user.Password,
             FullName = user.FullName,
@@ -141,9 +141,9 @@ public class UserService : IUserService
             try
             {
                 _user.UpdateAt = DateTime.Now;
-                var configuraton = await _context.SystemSettings.FindAsync(_user.ConfigurationId);
-                _user.Configuration = configuraton;
-                _user.Role = user.Role;
+                // var configuraton = await _context.SystemSettings.FindAsync(_user.ConfigurationId); Cả 3 dòng này 
+                // _user.Configuration = configuraton;
+                // _user.Role = user.Role;
                 _user.Username = user.Username;
                 _user.Password = user.Password;
                 _user.FullName = user.FullName;

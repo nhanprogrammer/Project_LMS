@@ -7,16 +7,16 @@ public class MappingProfile : Profile
 {
     public MappingProfile()
     {
-        CreateMap<AcademicHold, AcademicHoldResponse>()
-                .ForMember(ah => ah.StudentCode, opt => opt.MapFrom(src => src.User.Students.FirstOrDefault().StudentCode))
-                .ForMember(ah => ah.StudentName, opt => opt.MapFrom(src => src.User.Students.FirstOrDefault().FullName))
-                .ForMember(ah => ah.BirthDate, opt => opt.MapFrom(src => src.User.Students.FirstOrDefault().BirthDate))
-                .ForMember(ah => ah.Gender, opt => opt.MapFrom(src => src.User.Students.FirstOrDefault().Gender))
-                .ForMember(ah => ah.ClassCode, opt => opt.MapFrom(src => src.User.Students.FirstOrDefault().ClassStudents.FirstOrDefault().Class.ClassCode))
-                .ForMember(ah => ah.SemesterName, opt => opt.MapFrom(src => src.User.Students.FirstOrDefault().AcademicYear.Semesters.FirstOrDefault().Name));
+        // CreateMap<AcademicHold, AcademicHoldResponse>()
+        //         .ForMember(ah => ah.StudentCode, opt => opt.MapFrom(src => src.User.Students.FirstOrDefault().StudentCode))
+        //         .ForMember(ah => ah.StudentName, opt => opt.MapFrom(src => src.User.Students.FirstOrDefault().FullName))
+        //         .ForMember(ah => ah.BirthDate, opt => opt.MapFrom(src => src.User.Students.FirstOrDefault().BirthDate))
+        //         .ForMember(ah => ah.Gender, opt => opt.MapFrom(src => src.User.Students.FirstOrDefault().Gender))
+        //         .ForMember(ah => ah.ClassCode, opt => opt.MapFrom(src => src.User.Students.FirstOrDefault().ClassStudents.FirstOrDefault().Class.ClassCode))
+        //         .ForMember(ah => ah.SemesterName, opt => opt.MapFrom(src => src.User.Students.FirstOrDefault().AcademicYear.Semesters.FirstOrDefault().Name));
 
         CreateMap<CreateAcademicHoldRequest, AcademicHold>()
-            .ForMember(dest => dest.StudentId, opt => opt.MapFrom(src => src.StudentId))
+            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.StudentId))
             .ForMember(dest => dest.HoldDate, opt => opt.MapFrom(src => src.HoldDate))
             .ForMember(dest => dest.HoldDuration, opt => opt.MapFrom(src => src.HoldDuration))
             .ForMember(dest => dest.Reason, opt => opt.MapFrom(src => src.Reason))
@@ -25,7 +25,7 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.UserCreate, opt => opt.MapFrom(src => src.UserCreate));
 
         CreateMap<UpdateAcademicHoldRequest, AcademicHold>()
-            .ForMember(dest => dest.StudentId, opt => opt.MapFrom(src => src.StudentId))
+            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.StudentId))
             .ForMember(dest => dest.HoldDate, opt => opt.MapFrom(src => src.HoldDate))
             .ForMember(dest => dest.HoldDuration, opt => opt.MapFrom(src => src.HoldDuration))
             .ForMember(dest => dest.Reason, opt => opt.MapFrom(src => src.Reason))
@@ -72,10 +72,6 @@ public class MappingProfile : Profile
         CreateMap<Semester, SemesterResponse>().ReverseMap();
         CreateMap<SemesterRequest, Semester>().ReverseMap();
 
-        CreateMap<ClassStudent, ClassStudentOnlineResponse>()
-          .ForMember(dest => dest.StudentName, opt => opt.MapFrom(src => src.Student.FullName));
-        CreateMap<CreateClassStudentRequest, ClassStudent>();
-        CreateMap<ClassStudent, UpdateClassStudentRequest>();
 
         CreateMap<Class, ClassResponse>()
                .ForMember(dest => dest.AcademicYear, opt => opt.MapFrom(src => src.AcademicYearId))
@@ -89,7 +85,7 @@ public class MappingProfile : Profile
         CreateMap<UpdateClassRequest, Class>();
 
         CreateMap<ClassOnline, ClassOnlineResponse>()
-           .ForMember(dest => dest.TeacherName, opt => opt.MapFrom(src => src.Teacher.FullName))
+        //    .ForMember(dest => dest.TeacherName, opt => opt.MapFrom(src => src..FullName))
            .ForMember(dest => dest.ClassCode, opt => opt.MapFrom(src => src.ClassCode))
            .ForMember(dest => dest.ClassTitle, opt => opt.MapFrom(src => src.ClassTitle))
            .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
@@ -102,8 +98,8 @@ public class MappingProfile : Profile
         CreateMap<CreateClassOnlineRequest, ClassOnline>();
         CreateMap<UpdateClassOnlineRequest, ClassOnline>();
 
-        CreateMap<ClassStudentsOnline, ClassStudentOnlineResponse>()
-       .ForMember(dest => dest.StudentName, opt => opt.MapFrom(src => src.Student.FullName));
+        CreateMap<ClassStudentsOnline, ClassStudentOnlineResponse>();
+    //    .ForMember(dest => dest.StudentName, opt => opt.MapFrom(src => src.Student.FullName));
 
         CreateMap<ClassStudentsOnline, CreateClassStudentOnlineRequest>();
         CreateMap<ClassStudentsOnline, UpdateClassStudentOnlineRequest>();
@@ -136,14 +132,14 @@ public class MappingProfile : Profile
 
         CreateMap<Lesson, LessonResponse>()
            .ForMember(dest => dest.ClassId, opt => opt.MapFrom(src => src.ClassId))  // Map ClassId
-           .ForMember(dest => dest.TeacherId, opt => opt.MapFrom(src => src.TeacherId))  // Map TeacherId
+        //    .ForMember(dest => dest.TeacherId, opt => opt.MapFrom(src => src.TeacherId))  // Map TeacherId
            .ForMember(dest => dest.ClassLessonCode, opt => opt.MapFrom(src => src.ClassLessonCode))  // Map ClassLessonCode
            .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))  // Map Description
            .ForMember(dest => dest.Topic, opt => opt.MapFrom(src => src.Topic))  // Map Topic
            .ForMember(dest => dest.Duration, opt => opt.MapFrom(src => src.Duration))  // Map Duration
            .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))  // Map StartDate
            .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate))  // Map EndDate
-           .ForMember(dest => dest.Password, opt => opt.MapFrom(src => src.Password))  // Map Password
+        //    .ForMember(dest => dest.Password, opt => opt.MapFrom(src => src.Password))  // Map Password
            .ForMember(dest => dest.IsResearchable, opt => opt.MapFrom(src => src.IsResearchable))  // Map IsResearchable
            .ForMember(dest => dest.IsAutoStart, opt => opt.MapFrom(src => src.IsAutoStart))  // Map IsAutoStart
            .ForMember(dest => dest.IsSave, opt => opt.MapFrom(src => src.IsSave));  // Map IsSave3
@@ -151,8 +147,8 @@ public class MappingProfile : Profile
         CreateMap<Lesson, UpdateLessonRequest>();
 
         CreateMap<Module, ModuleResponse>()
-          .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
-          .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description));
+          .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name));
+        //   .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description));
         CreateMap<Module, CreateModuleRequest>();
         CreateMap<Module, UpdateModuleRequest>();
     }

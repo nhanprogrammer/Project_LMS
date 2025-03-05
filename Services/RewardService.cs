@@ -22,10 +22,10 @@ namespace Project_LMS.Services
             return rewards.Select(r => new RewardResponse
             {
                 Id = r.Id,
-                StudentId = r.StudentId,
+                StudentId = r.UserId,
                 SemesterId = r.SemesterId,
                 RewardCode = r.RewardCode,
-                Name = r.Name,
+                Name = r.RewardName,
                 RewardContent = r.RewardContent,
                 IsDelete = r.IsDelete,
                 CreateAt = r.CreateAt,
@@ -45,10 +45,10 @@ namespace Project_LMS.Services
             return new RewardResponse
             {
                 Id = reward.Id,
-                StudentId = reward.StudentId,
+                StudentId = reward.UserId,
                 SemesterId = reward.SemesterId,
                 RewardCode = reward.RewardCode,
-                Name = reward.Name,
+                Name = reward.RewardName,
                 RewardContent = reward.RewardContent,
                 IsDelete = reward.IsDelete,
                 CreateAt = reward.CreateAt,
@@ -66,10 +66,10 @@ namespace Project_LMS.Services
             }
             var reward = new Reward
             {
-                StudentId = request.StudentId.Value,
+                UserId = request.StudentId.Value,
                 SemesterId = request.SemesterId.Value,
                 RewardCode = request.RewardCode.Value,
-                Name = request.Name,
+                RewardName = request.Name,
                 RewardContent = request.RewardContent,
                 UserCreate = 1,
                 IsDelete = false,
@@ -78,10 +78,10 @@ namespace Project_LMS.Services
             return new RewardResponse
             {
                 Id = reward.Id,
-                StudentId = reward.StudentId,
+                StudentId = reward.UserId,
                 SemesterId = reward.SemesterId,
                 RewardCode = reward.RewardCode,
-                Name = reward.Name,
+                Name = reward.RewardName,
                 RewardContent = reward.RewardContent,
                 IsDelete = reward.IsDelete,
                 CreateAt = reward.CreateAt,
@@ -102,10 +102,10 @@ namespace Project_LMS.Services
             {
                 throw new ArgumentNullException("Data cannot be null.");
             }
-            reward.StudentId = request.StudentId.Value;
+            reward.UserId = request.StudentId.Value;
             reward.SemesterId = request.SemesterId.Value;
             reward.RewardCode = request.RewardCode.Value;
-            reward.Name = request.Name;
+            reward.RewardName = request.Name;
             reward.RewardContent = request.RewardContent;
             reward.UserUpdate = 1;
 
@@ -113,10 +113,10 @@ namespace Project_LMS.Services
             return new RewardResponse
             {
                 Id = reward.Id,
-                StudentId = reward.StudentId,
+                StudentId = reward.UserId,
                 SemesterId = reward.SemesterId,
                 RewardCode = reward.RewardCode,
-                Name = reward.Name,
+                Name = reward.RewardName,
                 RewardContent = reward.RewardContent,
                 IsDelete = reward.IsDelete,
                 CreateAt = reward.CreateAt,
@@ -140,10 +140,10 @@ namespace Project_LMS.Services
             return new RewardResponse
             {
                 Id = reward.Id,
-                StudentId = reward.StudentId,
+                StudentId = reward.UserId,
                 SemesterId = reward.SemesterId,
                 RewardCode = reward.RewardCode,
-                Name = reward.Name,
+                Name = reward.RewardName,
                 RewardContent = reward.RewardContent,
                 IsDelete = reward.IsDelete,
                 CreateAt = reward.CreateAt,

@@ -24,14 +24,14 @@ namespace Project_LMS.Services
             var data = lessons.Select(c => new LessonResponse
             {
                 ClassId = c.ClassId,
-                TeacherId = c.TeacherId,
+                TeacherId = c.UserId,
                 ClassLessonCode = c.ClassLessonCode,
                 Description = c.Description,
                 Topic = c.Topic,
                 StartDate = c.StartDate,
                 EndDate = c.EndDate,
                 Duration = c.Duration,
-                Password = c.Password,
+                Password = c.PaswordLeassons,
                 IsSave = c.IsSave,
                 IsAutoStart = c.IsAutoStart,
                 IsResearchable = c.IsResearchable,
@@ -45,14 +45,14 @@ namespace Project_LMS.Services
             var lesson = new Lesson
             {
                 ClassId = createLessonRequest.ClassId,
-                TeacherId = createLessonRequest.TeacherId,
+                UserId = createLessonRequest.TeacherId,
                 ClassLessonCode = createLessonRequest.ClassLessonCode,
                 Description = createLessonRequest.Description,
                 Topic = createLessonRequest.Topic,
                 StartDate = DateTime.SpecifyKind(createLessonRequest.StartDate, DateTimeKind.Unspecified),
                 EndDate = DateTime.SpecifyKind(createLessonRequest.EndDate, DateTimeKind.Unspecified),
                 Duration = createLessonRequest.Duration,
-                Password = createLessonRequest.Password,
+                PaswordLeassons = createLessonRequest.Password,
                 IsSave = createLessonRequest.IsSave,
                 IsAutoStart = createLessonRequest.IsAutoStart,
                 IsResearchable = createLessonRequest.IsResearchable,
@@ -63,14 +63,14 @@ namespace Project_LMS.Services
             var response = new LessonResponse
             {
                 ClassId = lesson.ClassId,
-                TeacherId = lesson.TeacherId,
+                TeacherId = lesson.UserId,
                 ClassLessonCode = lesson.ClassLessonCode,
                 Description = lesson.Description,
                 Topic = lesson.Topic,
                 StartDate = lesson.StartDate,
                 EndDate = lesson.EndDate,
                 Duration = lesson.Duration,
-                Password = lesson.Password,
+                Password = lesson.PaswordLeassons,
                 IsSave = lesson.IsSave,
                 IsAutoStart = lesson.IsAutoStart,
                 IsResearchable = lesson.IsResearchable,
@@ -92,14 +92,14 @@ namespace Project_LMS.Services
             }
 
             lesson.ClassId = updateLessonRequest.ClassId;
-            lesson.TeacherId = updateLessonRequest.TeacherId;
+            lesson.UserId = updateLessonRequest.TeacherId;
             lesson.ClassLessonCode = updateLessonRequest.ClassLessonCode;
             lesson.Description = updateLessonRequest.Description;
             lesson.Topic = updateLessonRequest.Topic;
             lesson.StartDate = DateTime.SpecifyKind(updateLessonRequest.StartDate, DateTimeKind.Unspecified);
             lesson.EndDate = DateTime.SpecifyKind(updateLessonRequest.EndDate, DateTimeKind.Unspecified);
             lesson.Duration = updateLessonRequest.Duration;
-            lesson.Password = updateLessonRequest.Password;
+            lesson.PaswordLeassons = updateLessonRequest.Password;
             lesson.IsSave = updateLessonRequest.IsSave;
             lesson.IsAutoStart = updateLessonRequest.IsAutoStart;
             lesson.IsResearchable = updateLessonRequest.IsResearchable;
@@ -109,14 +109,14 @@ namespace Project_LMS.Services
             var response = new LessonResponse
             {
                 ClassId = lesson.ClassId,
-                TeacherId = lesson.TeacherId,
+                TeacherId = lesson.UserId,
                 ClassLessonCode = lesson.ClassLessonCode,
                 Description = lesson.Description,
                 Topic = lesson.Topic,
                 StartDate = lesson.StartDate,
                 EndDate = lesson.EndDate,
                 Duration = lesson.Duration,
-                Password = lesson.Password,
+                Password = lesson.PaswordLeassons,
                 IsSave = lesson.IsSave,
                 IsAutoStart = lesson.IsAutoStart,
                 IsResearchable = lesson.IsResearchable,

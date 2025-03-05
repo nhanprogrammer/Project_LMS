@@ -25,7 +25,7 @@ namespace Project_LMS.Services
             {
                 Id = c.Id,
                 ClassId = c.ClassId,
-                StudentName = c.Student.FullName,
+                // StudentName = c.Student.FullName, Sửa code chỗ này
                 IsCamera = c.IsCamera,
                 IsMuted = c.IsMuted,
                 IsAdmin = c.IsAdmin,
@@ -43,12 +43,11 @@ namespace Project_LMS.Services
             var classStudentOnline = new ClassStudentsOnline
             {
                 ClassId = createClassStudentOnlineRequest.ClassId,
-                StudentId = createClassStudentOnlineRequest.StudentId,
+                UserId = createClassStudentOnlineRequest.StudentId,
                 IsCamera = createClassStudentOnlineRequest.IsCamera,
                  IsMuted = createClassStudentOnlineRequest.IsMuted,
                  IsAdmin = createClassStudentOnlineRequest.IsAdmin,
                  JoinTime = DateTime.Now,
-                CreateAt = DateTime.Now,
             };
             await _classStudentOnlineRepository.AddAsync(classStudentOnline);
 
@@ -56,7 +55,7 @@ namespace Project_LMS.Services
             {
                 Id = classStudentOnline.Id,
                 ClassId = classStudentOnline.ClassId,
-                StudentName = classStudentOnline.Student.FullName,
+                // StudentName = classStudentOnline.Student.FullName,
                 IsCamera = classStudentOnline.IsCamera,
                 IsMuted = classStudentOnline.IsMuted,
                 IsAdmin = classStudentOnline.IsAdmin,
@@ -84,13 +83,12 @@ namespace Project_LMS.Services
              classStudentOnline.IsMuted = updateClassStudentOnlineRequest.IsMuted;
              classStudentOnline.IsAdmin = updateClassStudentOnlineRequest.IsAdmin;
              classStudentOnline.LeaveTime = DateTime.Now;
-         classStudentOnline.UpdateAt = DateTime.Now;
              await _classStudentOnlineRepository.UpdateAsync(classStudentOnline);
              var response = new ClassStudentOnlineResponse
              {
                  Id = classStudentOnline.Id,
                  ClassId = classStudentOnline.ClassId,
-                 StudentName = classStudentOnline.Student.FullName,
+                //  StudentName = classStudentOnline.Student.FullName, Sửa code chỗ này
                  IsCamera = classStudentOnline.IsCamera,
                  IsMuted = classStudentOnline.IsMuted,
                  IsAdmin = classStudentOnline.IsAdmin,
@@ -117,7 +115,6 @@ namespace Project_LMS.Services
             }
             
             
-            classStudentOnline.IsDelete = true;
             await _classStudentOnlineRepository.UpdateAsync(classStudentOnline);
 
             return new ApiResponse<ClassStudentOnlineResponse>(0, "đã xóa thành công ");
