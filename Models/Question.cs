@@ -8,7 +8,6 @@ namespace Project_LMS.Models
         public Question()
         {
             Answers = new HashSet<Answer>();
-            AssignmentDetails = new HashSet<AssignmentDetail>();
         }
 
         public int Id { get; set; }
@@ -21,6 +20,5 @@ namespace Project_LMS.Models
 
         public virtual TestExam TestExam { get; set; } = null!;
         public virtual ICollection<Answer> Answers { get; set; }
-        public virtual ICollection<AssignmentDetail> AssignmentDetails { get; set; }
     }
 }

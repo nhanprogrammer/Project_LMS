@@ -7,7 +7,6 @@ namespace Project_LMS.Models
     {
         public TrainingRank()
         {
-            Students = new HashSet<Student>();
             UserTrainingRanks = new HashSet<UserTrainingRank>();
         }
 
@@ -27,7 +26,6 @@ namespace Project_LMS.Models
         public int? UserCreate { get; set; }
         public int? UserUpdate { get; set; }
 
-        public virtual ICollection<Student> Students { get; set; }
         public virtual ICollection<UserTrainingRank> UserTrainingRanks { get; set; }
     }
 }

@@ -7,7 +7,6 @@ namespace Project_LMS.Models
     {
         public School()
         {
-            Registrations = new HashSet<Registration>();
             SchoolBranches = new HashSet<SchoolBranch>();
         }
 
@@ -16,6 +15,7 @@ namespace Project_LMS.Models
         public string Name { get; set; } = null!;
         public string Principal { get; set; } = null!;
         public string PrincipalPhone { get; set; } = null!;
+        public string? Image { get; set; }
         public string Email { get; set; } = null!;
         public string Website { get; set; } = null!;
         public string Province { get; set; } = null!;
@@ -29,7 +29,6 @@ namespace Project_LMS.Models
         public int? UserUpdate { get; set; }
         public bool? IsDelete { get; set; }
 
-        public virtual ICollection<Registration> Registrations { get; set; }
         public virtual ICollection<SchoolBranch> SchoolBranches { get; set; }
     }
 }

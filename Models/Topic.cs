@@ -9,15 +9,14 @@ namespace Project_LMS.Models
         {
             Favourites = new HashSet<Favourite>();
             InverseTopicNavigation = new HashSet<Topic>();
-            QuestionsAnswerTopicViews = new HashSet<QuestionsAnswerTopicView>();
         }
 
         public int Id { get; set; }
         public int? TeachingAssignmentId { get; set; }
         public int? UserId { get; set; }
         public int? TopicId { get; set; }
-        public DateTime? UpdateAt { get; set; }
         public DateTime? CreateAt { get; set; }
+        public DateTime? UpdateAt { get; set; }
         public int? UserCreate { get; set; }
         public int? UserUpdate { get; set; }
         public bool? IsDelete { get; set; }
@@ -31,6 +30,5 @@ namespace Project_LMS.Models
         public virtual User? User { get; set; }
         public virtual ICollection<Favourite> Favourites { get; set; }
         public virtual ICollection<Topic> InverseTopicNavigation { get; set; }
-        public virtual ICollection<QuestionsAnswerTopicView> QuestionsAnswerTopicViews { get; set; }
     }
 }

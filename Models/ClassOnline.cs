@@ -6,7 +6,7 @@ namespace Project_LMS.Models
     public partial class ClassOnline
     {
         public int Id { get; set; }
-        public int TeacherId { get; set; }
+        public int UserId { get; set; }
         public string ClassCode { get; set; } = null!;
         public string ClassTitle { get; set; } = null!;
         public DateTime? StartDate { get; set; }
@@ -19,10 +19,9 @@ namespace Project_LMS.Models
         public string? ClassPassword { get; set; }
         public DateTime? CreateAt { get; set; }
         public DateTime? UpdateAt { get; set; }
+        public DateTime? DeletedAt { get; set; }
         public bool? IsDelete { get; set; }
         public int? UserCreate { get; set; }
         public int? UserUpdate { get; set; }
-
-        public virtual Teacher Teacher { get; set; } = null!;
     }
 }

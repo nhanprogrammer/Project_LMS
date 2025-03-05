@@ -12,7 +12,7 @@ namespace Project_LMS.Models
 
         public int Id { get; set; }
         public int UserId { get; set; }
-        public int DepartmentId { get; set; }
+        public int SubjectId { get; set; }
         public string Name { get; set; } = null!;
         public bool? IsDelete { get; set; }
         public DateTime? CreateAt { get; set; }
@@ -20,7 +20,8 @@ namespace Project_LMS.Models
         public int? UserCreate { get; set; }
         public int? UserUpdate { get; set; }
 
-        public virtual Department Department { get; set; } = null!;
+        public virtual Subject Subject { get; set; } = null!;
+        public virtual User User { get; set; } = null!;
         public virtual ICollection<Subject> Subjects { get; set; }
     }
 }

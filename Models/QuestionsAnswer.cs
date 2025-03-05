@@ -9,7 +9,6 @@ namespace Project_LMS.Models
         {
             Favourites = new HashSet<Favourite>();
             InverseQuestionsAnswerNavigation = new HashSet<QuestionsAnswer>();
-            QuestionsAnswerTopicViews = new HashSet<QuestionsAnswerTopicView>();
         }
 
         public int Id { get; set; }
@@ -29,6 +28,5 @@ namespace Project_LMS.Models
         public virtual User? User { get; set; }
         public virtual ICollection<Favourite> Favourites { get; set; }
         public virtual ICollection<QuestionsAnswer> InverseQuestionsAnswerNavigation { get; set; }
-        public virtual ICollection<QuestionsAnswerTopicView> QuestionsAnswerTopicViews { get; set; }
     }
 }

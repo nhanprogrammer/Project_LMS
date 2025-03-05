@@ -7,8 +7,8 @@ namespace Project_LMS.Models
     {
         public AcademicYear()
         {
+            Classes = new HashSet<Class>();
             Semesters = new HashSet<Semester>();
-            Students = new HashSet<Student>();
         }
 
         public int Id { get; set; }
@@ -22,7 +22,7 @@ namespace Project_LMS.Models
         public int? UserUpdate { get; set; }
         public bool? IsDelete { get; set; }
 
+        public virtual ICollection<Class> Classes { get; set; }
         public virtual ICollection<Semester> Semesters { get; set; }
-        public virtual ICollection<Student> Students { get; set; }
     }
 }
