@@ -63,6 +63,7 @@ builder.Services.AddScoped<IAnswersService, AnswersService>();
 builder.Services.AddScoped<IAssignmentsService, AssignmentsService>();
 builder.Services.AddScoped<IAssignmentDetailsService, AssignmentDetailsService>();
 builder.Services.AddScoped<IChatMessagesService, ChatMessagesService>();
+builder.Services.AddScoped<ITestExamTypeService, TestExamTypeService>();
 
 // Repositories
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
@@ -88,6 +89,7 @@ builder.Services.AddScoped<IAnswerRepository, AnswerRepository>();
 builder.Services.AddScoped<IAssignmentRepository, AssignmentRepository>();
 builder.Services.AddScoped<IAssignmentDetailRepository, AssignmentDetailRepository>();
 builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
+builder.Services.AddScoped<ITestExamTypeRepository, TestExamTypeRepository>();
 
 builder.Services.AddAutoMapper(typeof(MappingProfile));
 
