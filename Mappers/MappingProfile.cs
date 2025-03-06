@@ -154,5 +154,11 @@ public class MappingProfile : Profile
 
         CreateMap<TestExamType, TestExamTypeResponse>();
         CreateMap<TestExamTypeRequest, TestExamType>();
+
+        CreateMap<Subject, SubjectResponse>();
+        CreateMap<SubjectRequest, Subject>();
+
+        CreateMap<SubjectsGroup, SubjectsGroupResponse>();
+        CreateMap<SubjectsGroupRequest, SubjectsGroup>();
     }
 }
