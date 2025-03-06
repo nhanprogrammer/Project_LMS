@@ -20,9 +20,10 @@ namespace Project_LMS.Controllers
         [HttpGet]
         public Task<ApiResponse<PaginatedResponse<TestExamTypeResponse>>> GetAll(
             [FromQuery, Range(1, int.MaxValue)] int pageNumber = 1,
-            [FromQuery, Range(1, int.MaxValue)] int pageSize = 10)
+            [FromQuery, Range(1, int.MaxValue)] int pageSize = 10,
+            [FromQuery] string? keyword = null)
         {
-            return _service.GetAll(pageNumber, pageSize);
+            return _service.GetAll(pageNumber, pageSize,keyword);
         }
 
         [HttpGet("coefficients")]
@@ -47,12 +48,6 @@ namespace Project_LMS.Controllers
         public Task<ApiResponse<TestExamTypeResponse>> Delete(int id)
         {
             return _service.Delete(id);
-        }
-
-        [HttpGet("{id}")]
-        public Task<ApiResponse<TestExamTypeResponse>> Search(int id)
-        {
-            return _service.Search(id);
         }
     }
 }

@@ -19,7 +19,7 @@ namespace Project_LMS.Services
             _mapper = mapper;
         }
 
-        public async Task<ApiResponse<PaginatedResponse<TestExamTypeResponse>>> GetAll(int pageNumber = 1, int pageSize = 10)
+        public async Task<ApiResponse<PaginatedResponse<TestExamTypeResponse>>> GetAll(int pageNumber = 1, int pageSize = 10,string? keyword = null)
         {
             if (pageNumber < 1)
             {
@@ -30,8 +30,15 @@ namespace Project_LMS.Services
             {
                 pageSize = 10;
             }
+            Console.WriteLine(keyword + "Keyword");
+           IQueryable<TestExamType> query = _context.TestExamTypes;
 
-            var totalItems = await _context.TestExamTypes.CountAsync();
+            if (!string.IsNullOrWhiteSpace(keyword))
+            {
+                query = query.Where(t => t.PointTypeName.Contains(keyword));
+            }
+
+            var totalItems = await query.CountAsync();
             var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
 
             if (pageNumber > totalPages && totalPages > 0)
@@ -39,7 +46,7 @@ namespace Project_LMS.Services
                 pageNumber = totalPages;
             }
 
-            var testExamTypes = await _context.TestExamTypes
+            var testExamTypes = await query
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -107,6 +114,13 @@ namespace Project_LMS.Services
             if (testExamType == null)
             {
                 return new ApiResponse<TestExamTypeResponse>(1, "Loại bài kiểm tra không tồn tại.");
+            }
+            var isUsedInTestExams = await _context.TestExams
+                .AnyAsync(te => te.TestExamTypeId == id);
+
+            if (isUsedInTestExams)
+            {
+                return new ApiResponse<TestExamTypeResponse>(1, "Không thể xóa loại bài kiểm tra vì đang được sử dụng trong các bài kiểm tra.");
             }
 
             _context.TestExamTypes.Remove(testExamType);
