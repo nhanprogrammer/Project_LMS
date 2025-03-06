@@ -26,7 +26,7 @@ builder.Services.AddCors(options =>
 });
 builder.Services.AddControllers(options =>
 {
-    options.Filters.Add<ValidationFilter>(); 
+    options.Filters.Add<ValidationFilter>();
 });
 
 // Tắt tự động kiểm tra ModelState trong API behavior để sử dụng ValidationFilter
@@ -70,6 +70,9 @@ builder.Services.AddScoped<IAssignmentsService, AssignmentsService>();
 builder.Services.AddScoped<IAssignmentDetailsService, AssignmentDetailsService>();
 builder.Services.AddScoped<IChatMessagesService, ChatMessagesService>();
 builder.Services.AddScoped<ITestExamTypeService, TestExamTypeService>();
+builder.Services.AddScoped<ISubjectService, SubjectService>();
+builder.Services.AddScoped<ISubjectTypeService, SubjectTypeService>();
+builder.Services.AddScoped<ISubjectsGroupService, SubjectsGroupService>();
 
 // Repositories
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
@@ -96,6 +99,9 @@ builder.Services.AddScoped<IAssignmentRepository, AssignmentRepository>();
 builder.Services.AddScoped<IAssignmentDetailRepository, AssignmentDetailRepository>();
 builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
 builder.Services.AddScoped<ITestExamTypeRepository, TestExamTypeRepository>();
+builder.Services.AddScoped<ISubjectRepository, SubjectRepository>();
+builder.Services.AddScoped<ISubjectTypeRepository, SubjectTypeRepository>();
+builder.Services.AddScoped<ISubjectsGroupRepository, SubjectsGroupRepository>();
 
 builder.Services.AddAutoMapper(typeof(MappingProfile));
 

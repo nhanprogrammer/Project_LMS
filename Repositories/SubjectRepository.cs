@@ -1,11 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Project_LMS.Data;
-using Project_LMS.Interfaces.Services;
+using Project_LMS.Interfaces.Repositories;
 using Project_LMS.Models;
 
-namespace Project_LMS.Interfaces.Responsitories
+namespace Project_LMS.Repositories
 {
-    public class SubjectRepository: ISubjectService
+    public class SubjectRepository : ISubjectRepository
     {
         private readonly ApplicationDbContext _context;
 
@@ -14,27 +14,29 @@ namespace Project_LMS.Interfaces.Responsitories
             _context = context;
         }
 
-        public async Task<IEnumerable<Subject>> GetAllSubjects()
+        public async Task<IEnumerable<Subject>> GetAllSubjects(int pageNumber, int pageSize)
         {
             return await _context.Subjects
-                // .Include(s => s.TypeSubject) Sửa code chỗ này
+                .Where(s => !s.IsDelete.HasValue || !s.IsDelete.Value)
+                .Include(s => s.SubjectType)
                 .Include(s => s.SubjectGroup)
-                .Where(s => s.IsDelete == false || s.IsDelete == null) // Lọc những môn chưa bị xóa
+                .Include(s => s.TeachingAssignment)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
         }
 
         public async Task<Subject?> GetSubjectById(int id)
         {
             return await _context.Subjects
-                // .Include(s => s.TypeSubject) Sửa code chỗ này
+                .Include(s => s.SubjectType)
                 .Include(s => s.SubjectGroup)
-                .FirstOrDefaultAsync(s => s.Id == id && (s.IsDelete == false || s.IsDelete == null)); // Lọc những môn chưa bị xóa
+                .Include(s => s.TeachingAssignment)
+                .FirstOrDefaultAsync(s => s.Id == id && (!s.IsDelete.HasValue || !s.IsDelete.Value));
         }
 
         public async Task<Subject> AddSubject(Subject subject)
         {
-            subject.CreateAt = DateTime.UtcNow;
-            subject.IsDelete = false;
             _context.Subjects.Add(subject);
             await _context.SaveChangesAsync();
             return subject;
@@ -43,14 +45,20 @@ namespace Project_LMS.Interfaces.Responsitories
         public async Task<Subject?> UpdateSubject(int id, Subject subject)
         {
             var existingSubject = await _context.Subjects.FindAsync(id);
-            if (existingSubject == null) return null;
+            if (existingSubject == null || existingSubject.IsDelete == true)
+                return null;
 
-            // existingSubject.TypeSubjectId = subject.TypeSubjectId; Sửa code chỗ này
+            existingSubject.SubjectTypeId = subject.SubjectTypeId;
+            existingSubject.TeachingAssignmentId = subject.TeachingAssignmentId;
             existingSubject.SubjectGroupId = subject.SubjectGroupId;
             existingSubject.IsStatus = subject.IsStatus;
+            existingSubject.SubjectCode = subject.SubjectCode;
+            existingSubject.SubjectName = subject.SubjectName;
             existingSubject.Description = subject.Description;
-            existingSubject.UserUpdate = subject.UserUpdate;
+            existingSubject.Semester1PeriodCount = subject.Semester1PeriodCount;
+            existingSubject.Semester2PeriodCount = subject.Semester2PeriodCount;
             existingSubject.UpdateAt = DateTime.UtcNow;
+            existingSubject.UserUpdate = subject.UserUpdate;
 
             await _context.SaveChangesAsync();
             return existingSubject;
@@ -59,9 +67,12 @@ namespace Project_LMS.Interfaces.Responsitories
         public async Task<bool> DeleteSubject(int id)
         {
             var subject = await _context.Subjects.FindAsync(id);
-            if (subject == null) return false;
+            if (subject == null || subject.IsDelete == true)
+                return false;
 
             subject.IsDelete = true;
+            subject.UpdateAt = DateTime.UtcNow;
+            
             await _context.SaveChangesAsync();
             return true;
         }
