@@ -6,7 +6,7 @@ namespace Project_LMS.Interfaces
     public interface IDepartmentsService
     {
         Task<ApiResponse<PaginatedResponse<DepartmentResponse>>> GetAllCoursesAsync(
-            int? pageNumber, 
+            int? pageNumber,
             int? pageSize,
             string? sortDirection
             );
@@ -17,7 +17,9 @@ namespace Project_LMS.Interfaces
             UpdateDepartmentRequest updateDepartmentRequest);
 
         Task<ApiResponse<DepartmentResponse>> DeleteDepartmentAsync(string id);
-        Task<ApiResponse<IEnumerable<DepartmentResponse>>> SearchDepartmentsAsync(string? keyword);
+        Task <ApiResponse<PaginatedResponse<DepartmentResponse>>> SearchDepartmentsAsync(string? keyword, int? pageNumber,
+            int? pageSize,
+            string? sortDirection);
         Task<ApiResponse<IEnumerable<object>>> GetAllClassesAsync(int DeparmentId);
         Task<ApiResponse<string>> DeleteClassById(List<int> classId);
 

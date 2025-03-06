@@ -267,44 +267,136 @@ namespace Project_LMS.Services
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<DepartmentResponse>>> SearchDepartmentsAsync(string? keyword)
+        public async Task<ApiResponse<PaginatedResponse<DepartmentResponse>>> SearchDepartmentsAsync
+        (
+            string? keyword, int? pageNumber, int? pageSize, string? sortDirection
+        )
         {
+            // 0. Kiểm tra dữ liệu đầu vào
+            if (pageNumber.HasValue && pageNumber <= 0)
+            {
+                return new ApiResponse<PaginatedResponse<DepartmentResponse>>(
+                    1,
+                    "Giá trị pageNumber phải lớn hơn 0",
+                    null
+                );
+            }
+
+            if (pageSize.HasValue && pageSize <= 0)
+            {
+                return new ApiResponse<PaginatedResponse<DepartmentResponse>>(
+                    1,
+                    "Giá trị pageSize phải lớn hơn 0",
+                    null
+                );
+            }
+
+            if (!string.IsNullOrEmpty(sortDirection) &&
+                !sortDirection.Equals("asc", StringComparison.OrdinalIgnoreCase) &&
+                !sortDirection.Equals("desc", StringComparison.OrdinalIgnoreCase))
+            {
+                return new ApiResponse<PaginatedResponse<DepartmentResponse>>(
+                    1,
+                    "Giá trị sortDirection phải là 'asc' hoặc 'desc'",
+                    null
+                );
+            }
+
             try
             {
-                // 1. Lấy danh sách departments từ repository
-                var departments = await _departmentRepository.GetAllAsync();
+                // 1. Xác định pageNumber, pageSize mặc định 
+                var currentPage = pageNumber ?? 1;
+                var currentPageSize = pageSize ?? 10;
 
-                // 2. Nếu không có keyword, trả về tất cả departments
-                if (string.IsNullOrEmpty(keyword))
+                // 2. Lấy danh sách departments từ repository
+                var departments = await _departmentRepository.GetAllAsync();
+                var queryableDepartments = departments.AsQueryable();
+
+                // 3. Nếu có keyword, lọc danh sách departments dựa trên keyword
+                if (!string.IsNullOrEmpty(keyword))
                 {
-                    var allDepartments = _mapper.Map<List<DepartmentResponse>>(departments);
-                    return new ApiResponse<IEnumerable<DepartmentResponse>>(0, "Lấy tất cả departments thành công",
-                        allDepartments);
+                    queryableDepartments = queryableDepartments
+                        .Where(d => d.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+                                    d.DepartmentCode.ToString().Contains(keyword, StringComparison.OrdinalIgnoreCase));
                 }
 
-                // 3. Lọc danh sách departments dựa trên keyword
-                var filteredDepartments = departments
-                    .Where(d => d.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
-                                d.DepartmentCode.ToString().Contains(keyword, StringComparison.OrdinalIgnoreCase))
+                // 4. Nếu không nhập sortDirection, mặc định là "asc"
+                if (string.IsNullOrEmpty(sortDirection))
+                {
+                    sortDirection = "asc";
+                }
+
+                // 5. Áp dụng sắp xếp dựa trên sortDirection
+                if (sortDirection.Equals("desc", StringComparison.OrdinalIgnoreCase))
+                {
+                    queryableDepartments = queryableDepartments
+                        .OrderByDescending(d => d.Name)
+                        .ThenByDescending(d => d.DepartmentCode);
+                }
+                else
+                {
+                    queryableDepartments = queryableDepartments
+                        .OrderBy(d => d.Name)
+                        .ThenByDescending(d => d.DepartmentCode);
+                }
+
+                // 6. Tính toán tổng số dòng, số trang
+                var totalItems = queryableDepartments.Count();
+                var totalPages = (int)Math.Ceiling((double)totalItems / currentPageSize);
+
+                // 7. Phân trang
+                var pagedDepartments = queryableDepartments
+                    .Skip((currentPage - 1) * currentPageSize)
+                    .Take(currentPageSize)
                     .ToList();
 
-                // 4. Map danh sách departments đã lọc sang DTO
-                var mappedData = _mapper.Map<List<DepartmentResponse>>(filteredDepartments);
+                // 8. Map sang DTO
+                var mappedData = _mapper.Map<List<DepartmentResponse>>(pagedDepartments);
 
-                // 5. Trả về phản hồi thành công với danh sách departments đã lọc
-                return new ApiResponse<IEnumerable<DepartmentResponse>>(0, "Tìm kiếm thành công", mappedData);
+                // 9. Tạo đối tượng phân trang
+                var paginatedResponse = new PaginatedResponse<DepartmentResponse>
+                {
+                    Items = mappedData,
+                    PageNumber = currentPage,
+                    PageSize = currentPageSize,
+                    TotalItems = totalItems,
+                    TotalPages = totalPages,
+                    HasPreviousPage = currentPage > 1,
+                    HasNextPage = currentPage < totalPages
+                };
+
+                // 10. Trả về
+                return new ApiResponse<PaginatedResponse<DepartmentResponse>>(
+                    0,
+                    "Tìm kiếm thành công",
+                    paginatedResponse
+                );
             }
             catch (Exception ex)
             {
-                // 6. Nếu có lỗi, trả về phản hồi lỗi với thông báo lỗi chi tiết
-                var innerExceptionMessage = ex.InnerException?.Message ?? ex.Message;
-                return new ApiResponse<IEnumerable<DepartmentResponse>>(1,
-                    $"Lỗi khi tìm kiếm departments: {innerExceptionMessage}", null);
+                return new ApiResponse<PaginatedResponse<DepartmentResponse>>(
+                    1,
+                    $"Lỗi: {ex.Message}",
+                    null
+                );
             }
         }
 
         public async Task<ApiResponse<IEnumerable<object>>> GetAllClassesAsync(int departmentId)
         {
+            // Kiểm tra id hợp lệ
+            if (departmentId <= 0)
+            {
+                return new ApiResponse<IEnumerable<object>>(1, "ID không hợp lệ. Vui lòng kiểm tra lại.", null);
+            }
+
+            // Kiểm tra departmentId có tồn tại hay không
+            var departmentExists = await _context.Departments.AnyAsync(d => d.Id == departmentId);
+            if (!departmentExists)
+            {
+                return new ApiResponse<IEnumerable<object>>(1, "Department không tồn tại.", null);
+            }
+
             var result = await _context.Classes
                 .Where(c => c.IsDelete == false && c.DepartmentId == departmentId)
                 .Select(c => new
@@ -315,7 +407,7 @@ namespace Project_LMS.Services
                 })
                 .ToListAsync();
 
-            return new ApiResponse<IEnumerable<object>>(200, "Lấy thông tin lớp học thành công!", result);
+            return new ApiResponse<IEnumerable<object>>(0, "Lấy thông tin lớp học thành công!", result);
         }
 
         public async Task<ApiResponse<string>> DeleteClassById(List<int> classIds)
