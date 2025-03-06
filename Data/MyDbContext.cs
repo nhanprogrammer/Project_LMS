@@ -70,7 +70,7 @@ namespace Project_LMS.Data
         {
             if (!optionsBuilder.IsConfigured)
             {
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https: //go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
                 optionsBuilder.UseNpgsql("Host=localhost;Database=postgres;Username=postgres;Password=123456");
             }
         }
@@ -641,6 +641,12 @@ namespace Project_LMS.Data
                 entity.Property(e => e.UserCreate).HasColumnName("user_create");
 
                 entity.Property(e => e.UserUpdate).HasColumnName("user_update");
+                
+                entity.HasOne(d => d.User)
+                    .WithMany(p => p.Departments)
+                    .HasForeignKey(d => d.UserId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("fk_departments_user");
             });
 
             modelBuilder.Entity<Dependent>(entity =>

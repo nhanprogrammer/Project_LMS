@@ -11,6 +11,5 @@ public interface ITestExamTypeService
     Task<ApiResponse<TestExamTypeResponse>> Update(int id, TestExamTypeRequest request);
     Task<ApiResponse<TestExamTypeResponse>> Delete(int id);
     Task<ApiResponse<TestExamTypeResponse>> Search(int id);
-    Task<ApiResponse<List<int>>> GetCoefficients();
     
 }
