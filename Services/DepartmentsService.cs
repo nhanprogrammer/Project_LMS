@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using Project_LMS.Data;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
@@ -299,6 +300,57 @@ namespace Project_LMS.Services
                 var innerExceptionMessage = ex.InnerException?.Message ?? ex.Message;
                 return new ApiResponse<IEnumerable<DepartmentResponse>>(1,
                     $"Lỗi khi tìm kiếm departments: {innerExceptionMessage}", null);
+            }
+        }
+
+        public async Task<ApiResponse<IEnumerable<object>>> GetAllClassesAsync(int departmentId)
+        {
+            var result = await _context.Classes
+                .Where(c => c.IsDelete == false && c.DepartmentId == departmentId)
+                .Select(c => new
+                {
+                    ClassId = c.Id,
+                    DepartmentName = c.Department.Name,
+                    ClassName = c.Name,
+                })
+                .ToListAsync();
+
+            return new ApiResponse<IEnumerable<object>>(200, "Lấy thông tin lớp học thành công!", result);
+        }
+
+        public async Task<ApiResponse<string>> DeleteClassById(List<int> classIds)
+        {
+            try
+            {
+                if (classIds == null || classIds.Count == 0)
+                {
+                    return new ApiResponse<string>(1, "Danh sách ID không hợp lệ! Vui lòng nhập danh sách số nguyên.");
+                }
+
+                if (classIds.Any(id => id <= 0))
+                {
+                    return new ApiResponse<string>(1, "Danh sách ID không hợp lệ! Chỉ chấp nhận số nguyên dương.");
+                }
+
+                var classesToDelete = await _context.Classes
+                    .Where(c => classIds.Contains(c.Id) && c.IsDelete == false)
+                    .ToListAsync();
+
+                if (!classesToDelete.Any())
+                {
+                    return new ApiResponse<string>(1, "Không có lớp hợp lệ để xóa!");
+                }
+
+                // Soft-delete
+                classesToDelete.ForEach(c => c.IsDelete = true);
+
+                await _context.SaveChangesAsync();
+                return new ApiResponse<string>(0, "Xóa lớp thành công!");
+            }
+            catch (Exception ex)
+            {
+                var innerExceptionMessage = ex.InnerException?.Message ?? ex.Message;
+                return new ApiResponse<string>(1, $"Lỗi khi xóa lớp: {innerExceptionMessage}");
             }
         }
     }

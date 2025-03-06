@@ -46,8 +46,16 @@ namespace Project_LMS.Controllers
         {
             var search = await _departmentsService.SearchDepartmentsAsync(keyword);
 
-            return Ok(new ApiResponse<ApiResponse<IEnumerable<DepartmentResponse>>>(0, "Success", search));
+            return Ok(search);
         }
+
+        [HttpGet("departments/{id:int}/classes")]
+        public async Task<IActionResult> GetClassesByDepartmentId([FromRoute] int id)
+        {
+            var listClass = await _departmentsService.GetAllClassesAsync(id);
+            return Ok(listClass);
+        }
+
 
         [HttpPost]
         public async Task<IActionResult> CreateDepartment([FromBody] CreateDepartmentRequest request)
@@ -90,5 +98,13 @@ namespace Project_LMS.Controllers
 
             return Ok(new ApiResponse<DepartmentResponse>(response.Status, response.Message, response.Data));
         }
+        
+        [HttpDelete("batch-delete")]
+        public async Task<IActionResult> DeleteClasses([FromBody] List<int> classIds)
+        {
+            var response = await _departmentsService.DeleteClassById(classIds);
+            return response.Status == 0 ? Ok(response) : BadRequest(response);
+        }
+
     }
 }

@@ -18,5 +18,8 @@ namespace Project_LMS.Interfaces
 
         Task<ApiResponse<DepartmentResponse>> DeleteDepartmentAsync(string id);
         Task<ApiResponse<IEnumerable<DepartmentResponse>>> SearchDepartmentsAsync(string? keyword);
+        Task<ApiResponse<IEnumerable<object>>> GetAllClassesAsync(int DeparmentId);
+        Task<ApiResponse<string>> DeleteClassById(List<int> classId);
+
     }
 }
