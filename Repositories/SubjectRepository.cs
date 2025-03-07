@@ -20,7 +20,6 @@ namespace Project_LMS.Repositories
                 .Where(s => !s.IsDelete.HasValue || !s.IsDelete.Value)
                 .Include(s => s.SubjectType)
                 .Include(s => s.SubjectGroup)
-                .Include(s => s.TeachingAssignment)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -31,7 +30,6 @@ namespace Project_LMS.Repositories
             return await _context.Subjects
                 .Include(s => s.SubjectType)
                 .Include(s => s.SubjectGroup)
-                .Include(s => s.TeachingAssignment)
                 .FirstOrDefaultAsync(s => s.Id == id && (!s.IsDelete.HasValue || !s.IsDelete.Value));
         }
 
@@ -49,7 +47,6 @@ namespace Project_LMS.Repositories
                 return null;
 
             existingSubject.SubjectTypeId = subject.SubjectTypeId;
-            existingSubject.TeachingAssignmentId = subject.TeachingAssignmentId;
             existingSubject.SubjectGroupId = subject.SubjectGroupId;
             existingSubject.IsStatus = subject.IsStatus;
             existingSubject.SubjectCode = subject.SubjectCode;

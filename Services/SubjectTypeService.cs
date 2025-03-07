@@ -20,21 +20,30 @@ namespace Project_LMS.Services
 
         public async Task<ApiResponse<PaginatedResponse<SubjectTypeResponse>>> GetAllSubjectTypesAsync(int pageNumber, int pageSize)
         {
-            var subjectTypes = await _repository.GetAll(pageNumber, pageSize);
-            var responses = _mapper.Map<List<SubjectTypeResponse>>(subjectTypes);
-            
-            var paginatedResponse = new PaginatedResponse<SubjectTypeResponse>
+            try
             {
-                Items = responses,
-                PageNumber = pageNumber,
-                PageSize = pageSize,
-                TotalItems = responses.Count,
-                TotalPages = (int)Math.Ceiling(responses.Count / (double)pageSize),
-                HasPreviousPage = pageNumber > 1,
-                HasNextPage = responses.Count == pageSize
-            };
+                var subjectTypes = await _repository.GetAll(pageNumber, pageSize);
+                var responses = _mapper.Map<List<SubjectTypeResponse>>(subjectTypes)
+                    .OrderByDescending(s => s.Id)
+                    .ToList();
+                
+                var paginatedResponse = new PaginatedResponse<SubjectTypeResponse>
+                {
+                    Items = responses,
+                    PageNumber = pageNumber,
+                    PageSize = pageSize,
+                    TotalItems = responses.Count,
+                    TotalPages = (int)Math.Ceiling(responses.Count / (double)pageSize),
+                    HasPreviousPage = pageNumber > 1,
+                    HasNextPage = responses.Count == pageSize
+                };
 
-            return new ApiResponse<PaginatedResponse<SubjectTypeResponse>>(0, "Success", paginatedResponse);
+                return new ApiResponse<PaginatedResponse<SubjectTypeResponse>>(0, "Success", paginatedResponse);
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<PaginatedResponse<SubjectTypeResponse>>(1, $"Error getting subject types: {ex.Message}", null);
+            }
         }
 
         public async Task<ApiResponse<SubjectTypeResponse>> GetSubjectTypeByIdAsync(int id)

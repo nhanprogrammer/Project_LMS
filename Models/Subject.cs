@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Project_LMS.Models
 {
@@ -7,14 +9,11 @@ namespace Project_LMS.Models
     {
         public Subject()
         {
-            SubjectsGroups = new HashSet<SubjectsGroup>();
             TeacherClassSubjects = new HashSet<TeacherClassSubject>();
             TeachingAssignments = new HashSet<TeachingAssignment>();
         }
-
         public int Id { get; set; }
         public int SubjectTypeId { get; set; }
-        public int TeachingAssignmentId { get; set; }
         public int SubjectGroupId { get; set; }
         public bool? IsStatus { get; set; }
         public string? SubjectCode { get; set; }
@@ -30,8 +29,6 @@ namespace Project_LMS.Models
 
         public virtual SubjectsGroup SubjectGroup { get; set; } = null!;
         public virtual SubjectType SubjectType { get; set; } = null!;
-        public virtual TeachingAssignment TeachingAssignment { get; set; } = null!;
-        public virtual ICollection<SubjectsGroup> SubjectsGroups { get; set; }
         public virtual ICollection<TeacherClassSubject> TeacherClassSubjects { get; set; }
         public virtual ICollection<TeachingAssignment> TeachingAssignments { get; set; }
     }

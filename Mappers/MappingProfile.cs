@@ -99,7 +99,7 @@ public class MappingProfile : Profile
         CreateMap<UpdateClassOnlineRequest, ClassOnline>();
 
         CreateMap<ClassStudentsOnline, ClassStudentOnlineResponse>();
-    //    .ForMember(dest => dest.StudentName, opt => opt.MapFrom(src => src.Student.FullName));
+        //    .ForMember(dest => dest.StudentName, opt => opt.MapFrom(src => src.Student.FullName));
 
         CreateMap<ClassStudentsOnline, CreateClassStudentOnlineRequest>();
         CreateMap<ClassStudentsOnline, UpdateClassStudentOnlineRequest>();
@@ -160,5 +160,8 @@ public class MappingProfile : Profile
 
         CreateMap<SubjectsGroup, SubjectsGroupResponse>();
         CreateMap<SubjectsGroupRequest, SubjectsGroup>();
+
+        CreateMap<SubjectType, SubjectTypeResponse>();
+        CreateMap<SubjectTypeRequest, SubjectType>();
     }
 }

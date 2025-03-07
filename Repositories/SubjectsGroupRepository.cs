@@ -44,7 +44,6 @@ namespace Project_LMS.Repositories
             if (existing == null || (existing.IsDelete ?? false))
                 return null;
 
-            existing.SubjectId = subjectsGroup.SubjectId;
             existing.Name = subjectsGroup.Name;
             existing.UpdateAt = DateTime.UtcNow.ToLocalTime();
             existing.UserUpdate = subjectsGroup.UserUpdate;
