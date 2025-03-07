@@ -6,7 +6,6 @@ public partial class Subject
     {
         SubjectsGroups = new HashSet<SubjectsGroup>();
         TeacherClassSubjects = new HashSet<TeacherClassSubject>();
-        TeachingAssignments = new HashSet<TeachingAssignment>();
         ClassSubjects = new HashSet<ClassSubject>();
     }
 
@@ -28,7 +27,6 @@ public partial class Subject
     public virtual TeachingAssignment TeachingAssignment { get; set; } = null!;
     public virtual ICollection<SubjectsGroup> SubjectsGroups { get; set; }
     public virtual ICollection<TeacherClassSubject> TeacherClassSubjects { get; set; }
-    public virtual ICollection<TeachingAssignment> TeachingAssignments { get; set; }
     public virtual ICollection<ClassSubject> ClassSubjects { get; set; }
     public virtual ICollection<SubjectGroupSubject> SubjectGroupSubjects { get; set; }
 }

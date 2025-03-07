@@ -16,7 +16,6 @@ public partial class SubjectsGroup
     public int? UserCreate { get; set; }
     public int? UserUpdate { get; set; }
 
-
     public virtual ICollection<SubjectGroupSubject> SubjectGroupSubjects { get; set; }
     public virtual User User { get; set; } = null!;
 }
