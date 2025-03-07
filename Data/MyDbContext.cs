@@ -57,7 +57,6 @@ namespace Project_LMS.Data
         public virtual DbSet<SystemSetting> SystemSettings { get; set; } = null!;
         public virtual DbSet<TeacherClassSubject> TeacherClassSubjects { get; set; } = null!;
         public virtual DbSet<TeacherStatus> TeacherStatuses { get; set; } = null!;
-        public virtual DbSet<TeachingAssgnment> TeachingAssgnments { get; set; } = null!;
         public virtual DbSet<TeachingAssignment> TeachingAssignments { get; set; } = null!;
         public virtual DbSet<TestExam> TestExams { get; set; } = null!;
         public virtual DbSet<TestExamType> TestExamTypes { get; set; } = null!;
@@ -1470,7 +1469,7 @@ namespace Project_LMS.Data
             {
                 entity.ToTable("subjects");
 
-                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.Id).HasColumnName("id").UseIdentityAlwaysColumn();
 
                 entity.Property(e => e.CreateAt)
                     .HasColumnType("timestamp without time zone")
@@ -1503,8 +1502,6 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.SubjectTypeId).HasColumnName("subject_type_id");
 
-                entity.Property(e => e.TeachingAssignmentId).HasColumnName("teaching_assignment_id");
-
                 entity.Property(e => e.UpdateAt)
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("update_at")
@@ -1525,12 +1522,6 @@ namespace Project_LMS.Data
                     .HasForeignKey(d => d.SubjectTypeId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("fk_subjects_subject_type");
-
-                entity.HasOne(d => d.TeachingAssignment)
-                    .WithMany(p => p.Subjects)
-                    .HasForeignKey(d => d.TeachingAssignmentId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("fk_subjects_teaching_assignment");
             });
 
             modelBuilder.Entity<SubjectType>(entity =>
@@ -1581,8 +1572,6 @@ namespace Project_LMS.Data
                     .HasMaxLength(255)
                     .HasColumnName("name");
 
-                entity.Property(e => e.SubjectId).HasColumnName("subject_id");
-
                 entity.Property(e => e.UpdateAt)
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("update_at")
@@ -1593,12 +1582,6 @@ namespace Project_LMS.Data
                 entity.Property(e => e.UserId).HasColumnName("user_id");
 
                 entity.Property(e => e.UserUpdate).HasColumnName("user_update");
-
-                entity.HasOne(d => d.Subject)
-                    .WithMany(p => p.SubjectsGroups)
-                    .HasForeignKey(d => d.SubjectId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("fk_subjects_group_subject");
 
                 entity.HasOne(d => d.User)
                     .WithMany(p => p.SubjectsGroups)
@@ -1701,101 +1684,56 @@ namespace Project_LMS.Data
                     .HasColumnName("status_name");
             });
 
-            modelBuilder.Entity<TeachingAssgnment>(entity =>
-            {
-                entity.ToTable("teaching_assgnments");
-
-                entity.Property(e => e.Id).HasColumnName("id");
-
-                entity.Property(e => e.ClassId).HasColumnName("class_id");
-
-                entity.Property(e => e.CreateAt)
-                    .HasColumnType("timestamp without time zone")
-                    .HasColumnName("create_at")
-                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                entity.Property(e => e.EndDate)
-                    .HasColumnType("timestamp without time zone")
-                    .HasColumnName("end_date");
-
-                entity.Property(e => e.IsDelete)
-                    .HasColumnName("is_delete")
-                    .HasDefaultValueSql("false");
-
-                entity.Property(e => e.StartDate)
-                    .HasColumnType("timestamp without time zone")
-                    .HasColumnName("start_date");
-
-                entity.Property(e => e.SubjectId).HasColumnName("subject_id");
-
-                entity.Property(e => e.UpdateAt)
-                    .HasColumnType("timestamp without time zone")
-                    .HasColumnName("update_at")
-                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                entity.Property(e => e.UserCreate).HasColumnName("user_create");
-
-                entity.Property(e => e.UserId).HasColumnName("user_id");
-
-                entity.Property(e => e.UserUpdate).HasColumnName("user_update");
-            });
-
             modelBuilder.Entity<TeachingAssignment>(entity =>
-            {
-                entity.ToTable("teaching_assignments");
+                  {
+                      entity.ToTable("teaching_assignments");
 
-                entity.Property(e => e.Id).HasColumnName("id");
+                      entity.Property(e => e.Id).HasColumnName("id");
 
-                entity.Property(e => e.ClassId).HasColumnName("class_id");
+                      entity.Property(e => e.ClassId).HasColumnName("class_id");
 
-                entity.Property(e => e.CreateAt)
-                    .HasColumnType("timestamp without time zone")
-                    .HasColumnName("create_at")
-                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                      entity.Property(e => e.CreateAt)
+                          .HasColumnType("timestamp without time zone")
+                          .HasColumnName("create_at")
+                          .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                entity.Property(e => e.EndDate)
-                    .HasColumnType("timestamp without time zone")
-                    .HasColumnName("end_date");
+                      entity.Property(e => e.EndDate)
+                          .HasColumnType("timestamp without time zone")
+                          .HasColumnName("end_date");
 
-                entity.Property(e => e.IsDelete)
-                    .HasColumnName("is_delete")
-                    .HasDefaultValueSql("false");
+                      entity.Property(e => e.IsDelete)
+                          .HasColumnName("is_delete")
+                          .HasDefaultValueSql("false");
 
-                entity.Property(e => e.StartDate)
-                    .HasColumnType("timestamp without time zone")
-                    .HasColumnName("start_date");
+                      entity.Property(e => e.StartDate)
+                          .HasColumnType("timestamp without time zone")
+                          .HasColumnName("start_date");
 
-                entity.Property(e => e.SubjectId).HasColumnName("subject_id");
+                      entity.Property(e => e.SubjectId).HasColumnName("subject_id");
 
-                entity.Property(e => e.UpdateAt)
-                    .HasColumnType("timestamp without time zone")
-                    .HasColumnName("update_at")
-                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                      entity.Property(e => e.UpdateAt)
+                          .HasColumnType("timestamp without time zone")
+                          .HasColumnName("update_at")
+                          .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                entity.Property(e => e.UserCreate).HasColumnName("user_create");
+                      entity.Property(e => e.UserCreate).HasColumnName("user_create");
 
-                entity.Property(e => e.UserId).HasColumnName("user_id");
+                      entity.Property(e => e.UserId).HasColumnName("user_id");
 
-                entity.Property(e => e.UserUpdate).HasColumnName("user_update");
+                      entity.Property(e => e.UserUpdate).HasColumnName("user_update");
 
-                entity.HasOne(d => d.Class)
-                    .WithMany(p => p.TeachingAssignments)
-                    .HasForeignKey(d => d.ClassId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("fk_teaching_assignments_class");
+                      entity.HasOne(d => d.Class)
+                          .WithMany(p => p.TeachingAssignments)
+                          .HasForeignKey(d => d.ClassId)
+                          .OnDelete(DeleteBehavior.ClientSetNull)
+                          .HasConstraintName("fk_teaching_assignments_class");
 
-                entity.HasOne(d => d.Subject)
-                    .WithMany(p => p.TeachingAssignments)
-                    .HasForeignKey(d => d.SubjectId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("fk_teaching_assignments_subject");
-
-                entity.HasOne(d => d.User)
-                    .WithMany(p => p.TeachingAssignments)
-                    .HasForeignKey(d => d.UserId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("fk_teaching_assignments_user");
-            });
+                      entity.HasOne(d => d.User)
+                          .WithMany(p => p.TeachingAssignments)
+                          .HasForeignKey(d => d.UserId)
+                          .OnDelete(DeleteBehavior.ClientSetNull)
+                          .HasConstraintName("fk_teaching_assignments_user");
+                  });
 
             modelBuilder.Entity<TestExam>(entity =>
             {

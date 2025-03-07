@@ -8,7 +8,6 @@ namespace Project_LMS.Models
         public TeachingAssignment()
         {
             QuestionsAnswers = new HashSet<QuestionsAnswer>();
-            Subjects = new HashSet<Subject>();
             Topics = new HashSet<Topic>();
         }
 
@@ -28,7 +27,6 @@ namespace Project_LMS.Models
         public virtual Subject Subject { get; set; } = null!;
         public virtual User User { get; set; } = null!;
         public virtual ICollection<QuestionsAnswer> QuestionsAnswers { get; set; }
-        public virtual ICollection<Subject> Subjects { get; set; }
         public virtual ICollection<Topic> Topics { get; set; }
     }
 }
