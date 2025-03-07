@@ -32,7 +32,6 @@
     <Folder Include="Middleware\" />
 
     <Folder Include="Helpers\" />
-    <Folder Include="Repositories\" />
     <Folder Include="Utils\" />
     <Folder Include="Exceptions\" />
     <Folder Include="Filters\" />
