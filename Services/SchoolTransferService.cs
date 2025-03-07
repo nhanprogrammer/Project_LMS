@@ -50,20 +50,11 @@ namespace Project_LMS.Services
         {
             var errors = new List<ValidationError>();
 
-            if (!IntValidator.IsValid(transferRequest.StudentId.ToString() ?? ""))
+            if (!IntValidator.IsValid(transferRequest.UserId.ToString() ?? ""))
                 errors.Add(new ValidationError { Field = "StudentId", Error = "StudentId phải là số nguyên" });
 
             if (!IntValidator.IsValid(transferRequest.SchoolBranchesId.ToString() ?? ""))
                 errors.Add(new ValidationError { Field = "SchoolBranchesId", Error = "SchoolBranchesId phải là số nguyên" });
-
-            if (!IntValidator.IsValid(transferRequest.ProvinceId.ToString() ?? ""))
-                errors.Add(new ValidationError { Field = "ProvinceId", Error = "ProvinceId phải là số nguyên" });
-
-            if (!IntValidator.IsValid(transferRequest.DistrictId.ToString() ?? ""))
-                errors.Add(new ValidationError { Field = "DistrictId", Error = "DistrictId phải là số nguyên" });
-
-            if (!IntValidator.IsValid(transferRequest.WardId.ToString() ?? ""))
-                errors.Add(new ValidationError { Field = "WardId", Error = "WardId phải là số nguyên" });
 
             if (!DateTimeValidator.IsValidDateTime(transferRequest.TransferDate.ToString() ?? ""))
                 errors.Add(new ValidationError { Field = "TransferDate", Error = "Ngày chuyển trường không hợp lệ" });
@@ -116,20 +107,11 @@ namespace Project_LMS.Services
         {
             var errors = new List<ValidationError>();
 
-            if (!IntValidator.IsValid(transferRequest.StudentId.ToString() ?? ""))
+            if (!IntValidator.IsValid(transferRequest.UserId.ToString() ?? ""))
                 errors.Add(new ValidationError { Field = "StudentId", Error = "StudentId phải là số nguyên" });
 
             if (!IntValidator.IsValid(transferRequest.SchoolBranchesId.ToString() ?? ""))
                 errors.Add(new ValidationError { Field = "SchoolBranchesId", Error = "SchoolBranchesId phải là số nguyên" });
-
-            if (!IntValidator.IsValid(transferRequest.ProvinceId.ToString() ?? ""))
-                errors.Add(new ValidationError { Field = "ProvinceId", Error = "ProvinceId phải là số nguyên" });
-
-            if (!IntValidator.IsValid(transferRequest.DistrictId.ToString() ?? ""))
-                errors.Add(new ValidationError { Field = "DistrictId", Error = "DistrictId phải là số nguyên" });
-
-            if (!IntValidator.IsValid(transferRequest.WardId.ToString() ?? ""))
-                errors.Add(new ValidationError { Field = "WardId", Error = "WardId phải là số nguyên" });
 
             if (!DateTimeValidator.IsValidDateTime(transferRequest.TransferDate.ToString() ?? ""))
                 errors.Add(new ValidationError { Field = "TransferDate", Error = "Ngày chuyển trường không hợp lệ" });
