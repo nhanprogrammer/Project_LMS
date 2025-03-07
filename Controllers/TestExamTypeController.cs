@@ -24,6 +24,12 @@ namespace Project_LMS.Controllers
         {
             return _service.GetAll(pageNumber, pageSize,keyword);
         }
+
+        [HttpGet("coefficients")]
+        public Task<ApiResponse<List<int>>> GetCoefficients()
+        {
+            return _service.GetCoefficients();
+        }
         
         [HttpPost]
         public Task<ApiResponse<TestExamTypeResponse>> Create(TestExamTypeRequest request)
