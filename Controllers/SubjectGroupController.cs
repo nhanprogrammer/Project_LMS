@@ -86,7 +86,7 @@ public class SubjectGroupController : ControllerBase
         return Ok(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
     }
 
-    [HttpDelete ("/SubjectList")]
+    [HttpDelete]
     public async Task<IActionResult> DeleteListSubject([FromBody] List<int> ids)
     {
         var response = await _subjectGroupService.DeleteSubjectGroupSubject(ids);
