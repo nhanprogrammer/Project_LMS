@@ -112,4 +112,24 @@ namespace Project_LMS.Models
         public virtual ICollection<Department> Departments { get; set; }
         public virtual ICollection<ClassStudent> ClassStudents {get; set;}
     }
+
+    public class Jwt
+    {
+        public string Key { get; set; }
+        public string Issuer { get; set; }
+        public string Subject { get; set; }
+        public string Audience { get; set; }
+    }
+
+    public class LoginModel
+    {
+        public string Username { get; set; }
+        public string Password { get; set; }
+    }
+    public class RegisterModel
+    {
+        public string Username { get; set; }
+        public string Password { get; set; }
+        //public string Email { get; set; }
+    }
 }
