@@ -16,9 +16,7 @@ namespace Project_LMS.Interfaces
 
         // Lấy danh sách môn học mà khối này đã sử dụng từ khóa trước
         Task<ApiResponse<List<SubjectListResponse>>> GetInheritedSubjects(int academicYearId, int departmentId);
-
-        Task<bool> DeleteClass(int classId);
-
+        Task<bool> DeleteClass(List<int> classId);
         Task<ApiResponse<ClassDetailResponse>> GetClassDetail(int classId);
         Task<bool> SaveStudentStatus(int studentId, int statusId);
         Task<FileContentResult> ExportClassListToExcel(int academicYearId, int departmentId);

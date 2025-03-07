@@ -34,10 +34,10 @@ namespace Project_LMS.Controllers
             return Ok(new ApiResponse<string>(0, "Lưu lớp học thành công", null));
         }
 
-        [HttpDelete("delete/{classId}")]
-        public async Task<IActionResult> DeleteClass(int classId)
+        [HttpDelete("delete")]
+        public async Task<IActionResult> DeleteClass([FromQuery] List<int> classIds)
         {
-            bool isDeleted = await _classService.DeleteClass(classId);
+            bool isDeleted = await _classService.DeleteClass(classIds);
             if (isDeleted)
                 return Ok(new ApiResponse<string>(0, "Xóa lớp học thành công", null));
             return NotFound(new ApiResponse<string>(1, "Không tìm thấy lớp học", null));

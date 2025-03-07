@@ -168,17 +168,25 @@ namespace Project_LMS.Services
         }
 
 
-        public async Task<bool> DeleteClass(int classId)
+        public async Task<bool> DeleteClass(List<int> classIds)
         {
-            var classEntity = await _context.Classes.FindAsync(classId);
-            if (classEntity != null)
+            var classEntities = await _context.Classes
+                .Where(c => classIds.Contains(c.Id))
+                .ToListAsync();
+
+            if (classEntities.Any())
             {
-                classEntity.IsDelete = true;
+                foreach (var classEntity in classEntities)
+                {
+                    classEntity.IsDelete = true;
+                }
+
                 await _context.SaveChangesAsync();
                 return true;
             }
             return false;
         }
+
 
         public async Task<ApiResponse<ClassDetailResponse>> GetClassDetail(int classId)
         {
