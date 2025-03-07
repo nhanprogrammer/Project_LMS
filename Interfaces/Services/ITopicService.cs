@@ -5,11 +5,9 @@ namespace Project_LMS.Interfaces.Services;
 
 public interface ITopicService
 {
-    
-    Task<ApiResponse<List<TopicResponse>>> GetAll();
-    Task<ApiResponse<TopicResponse>> Create(TopicRequest request);
-    Task<ApiResponse<TopicResponse>> Update(int id, TopicRequest request);
-    Task<ApiResponse<TopicResponse>> Delete(int id);
-    Task<ApiResponse<TopicResponse>> Search(int id);
-    
+    Task<ApiResponse<PaginatedResponse<TopicResponse>>> GetAllTopicsAsync(string? keyword, int pageNumber, int pageSize);
+    Task<ApiResponse<TopicResponse>> GetTopicByIdAsync(int id);
+    Task<ApiResponse<TopicResponse>> CreateTopicAsync(TopicRequest request);
+    Task<ApiResponse<TopicResponse>> UpdateTopicAsync(int id, TopicRequest request);
+    Task<ApiResponse<bool>> DeleteTopicAsync(int id);
 }
