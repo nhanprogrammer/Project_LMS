@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Project_LMS.Data;
 
 using Project_LMS.Interfaces.Services;
@@ -12,7 +12,6 @@ using Project_LMS.Interfaces;
 using Project_LMS.Interfaces.Responsitories;
 using System.Text.Json;
 using Project_LMS.Mappers;
-using Project_LMS.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 // Add CORS
@@ -76,6 +75,8 @@ builder.Services.AddScoped<ISubjectService, SubjectService>();
 builder.Services.AddScoped<ISubjectTypeService, SubjectTypeService>();
 builder.Services.AddScoped<ISubjectGroupService, SubjectGroupService>();
 
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IStudentStatusService, StudentStatusService>();
 // Repositories
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<ISchoolRepository, SchoolRepository>();
@@ -106,8 +107,14 @@ builder.Services.AddScoped<ISubjectTypeRepository, SubjectTypeRepository>();
 builder.Services.AddScoped<ISubjectGroupRepository, SubjectGroupRepository>();
 
 builder.Services.AddScoped<ISubjectGroupRepository, SubjectGroupRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IStudentStatusRepository, StudenStatusRepository>();
+//mapper
 builder.Services.AddAutoMapper(typeof(MappingProfile));
-
+builder.Services.AddAutoMapper(typeof(UserMapper));
+builder.Services.AddAutoMapper(typeof(StudentStatusMapper));
+//loging
+builder.Services.AddLogging(); // Đăng ký logging
 var app = builder.Build();
 app.Use(async (context, next) =>
 {
