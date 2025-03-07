@@ -1505,8 +1505,6 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.SubjectTypeId).HasColumnName("subject_type_id");
 
-                entity.Property(e => e.TeachingAssignmentId).HasColumnName("teaching_assignment_id");
-
                 entity.Property(e => e.UpdateAt)
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("update_at")
@@ -1527,12 +1525,6 @@ namespace Project_LMS.Data
                     .HasForeignKey(d => d.SubjectTypeId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("fk_subjects_subject_type");
-
-                entity.HasOne(d => d.TeachingAssignment)
-                    .WithMany(p => p.Subjects)
-                    .HasForeignKey(d => d.TeachingAssignmentId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("fk_subjects_teaching_assignment");
             });
 
             modelBuilder.Entity<SubjectType>(entity =>

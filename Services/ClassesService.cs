@@ -185,6 +185,7 @@ namespace Project_LMS.Services
             try
             {
                 var classEntity = await _context.Classes
+                    .AsNoTracking()
                     .Include(c => c.AcademicYear)
                     .Include(c => c.Department)
                     .Include(c => c.ClassType)
@@ -197,25 +198,25 @@ namespace Project_LMS.Services
                 }
 
                 var classStudentEntity = await _context.ClassStudents
+                    .AsNoTracking()
                     .Where(cs => cs.ClassId == classId)
                     .Include(cs => cs.User)
                     .ThenInclude(u => u.StudentStatus)
                     .ToListAsync();
 
-                // ✅ Bọc try-catch cho subjectClass
-                List<Subject> subjectClass = null;
+                // ✅ Bọc try-catch cho truy vấn subjectClass
+                List<Subject> subjectClass = new();
                 try
                 {
-                    subjectClass = await _context.TeachingAssignments
-                        .Where(ta => ta.ClassId == classId)
-                        .Include(ta => ta.Subject)
-                        .Select(ta => ta.Subject)
+                    subjectClass = await _context.Subjects
+                        .AsNoTracking()
+                        .Where(s => s.ClassSubjects != null && s.ClassSubjects.Any(cs => cs.ClassId == classId))
                         .ToListAsync();
+
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[WARNING] Lỗi khi lấy danh sách môn học: {ex.Message}");
-                    subjectClass = null;
+                    Console.WriteLine($"[WARNING] Không thể tải danh sách môn học: {ex.Message}");
                 }
 
                 var response = new ClassDetailResponse
@@ -228,9 +229,9 @@ namespace Project_LMS.Services
                     ClassCode = classEntity.ClassCode,
                     ClassName = classEntity.Name,
                     HomeroomTeacher = classEntity.User?.FullName ?? "Chưa có",
-                    StudentCount = classEntity.StudentCount.ToString() ?? "0",
+                    StudentCount = classEntity.StudentCount > 0 ? classEntity.StudentCount.ToString() : "0",
                     ClassType = classEntity.ClassType?.Name ?? "N/A",
-                    SubjectCount = subjectClass?.Count.ToString() ?? "0",
+                    SubjectCount = subjectClass.Any() ? subjectClass.Count.ToString() : "0",
                     Description = classEntity.Description,
 
                     ClassDetailStudentResponse = classStudentEntity.Select(s => new ClassDetailStudentResponse
@@ -248,8 +249,8 @@ namespace Project_LMS.Services
                         StudentStatusId = s.User?.StudentStatusId ?? 0
                     }).ToList(),
 
-                    // ✅ Nếu `subjectClass` bị lỗi, để giá trị `null`
-                    ClassDetailSubjectResponse = subjectClass != null
+                    // ✅ Kiểm tra danh sách môn học
+                    ClassDetailSubjectResponse = subjectClass.Any()
                         ? subjectClass.Select(s => new ClassDetailSubjectResponse
                         {
                             SubjectCode = s.SubjectCode,
@@ -258,7 +259,7 @@ namespace Project_LMS.Services
                             Semester1LessonCount = s.Semester1PeriodCount?.ToString() ?? "0",
                             Semester2LessonCount = s.Semester2PeriodCount?.ToString() ?? "0"
                         }).ToList()
-                        : null
+                        : new List<ClassDetailSubjectResponse>()
                 };
 
                 return new ApiResponse<ClassDetailResponse>(0, "Lấy thông tin chi tiết lớp học thành công", response);
@@ -269,6 +270,7 @@ namespace Project_LMS.Services
                 return new ApiResponse<ClassDetailResponse>(-1, "Lỗi hệ thống, vui lòng thử lại sau");
             }
         }
+
 
 
 
