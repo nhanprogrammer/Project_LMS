@@ -3,7 +3,7 @@ using Project_LMS.DTOs.Response;
 
 namespace Project_LMS.Interfaces
 {
-  public interface IDepartmentsService
+    public interface IDepartmentsService
     {
         Task<ApiResponse<PaginatedResponse<DepartmentResponse>>> GetAllCoursesAsync(
             int? pageNumber,
