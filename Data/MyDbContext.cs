@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -53,6 +53,9 @@ namespace Project_LMS.Data
         public virtual DbSet<Subject> Subjects { get; set; } = null!;
         public virtual DbSet<SubjectType> SubjectTypes { get; set; } = null!;
         public virtual DbSet<SubjectsGroup> SubjectsGroups { get; set; } = null!;
+        
+        public DbSet<SubjectGroupSubject> SubjectGroupsSubjects { get; set; }  
+        
         public virtual DbSet<SubmissionFile> SubmissionFiles { get; set; } = null!;
         public virtual DbSet<SystemSetting> SystemSettings { get; set; } = null!;
         public virtual DbSet<TeacherClassSubject> TeacherClassSubjects { get; set; } = null!;
@@ -1495,7 +1498,7 @@ namespace Project_LMS.Data
                     .HasMaxLength(50)
                     .HasColumnName("subject_code");
 
-                entity.Property(e => e.SubjectGroupId).HasColumnName("subject_group_id");
+               
 
                 entity.Property(e => e.SubjectName)
                     .HasMaxLength(100)
@@ -1503,7 +1506,7 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.SubjectTypeId).HasColumnName("subject_type_id");
 
-                entity.Property(e => e.TeachingAssignmentId).HasColumnName("teaching_assignment_id");
+               
 
                 entity.Property(e => e.UpdateAt)
                     .HasColumnType("timestamp without time zone")
@@ -1514,23 +1517,13 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.UserUpdate).HasColumnName("user_update");
 
-                entity.HasOne(d => d.SubjectGroup)
-                    .WithMany(p => p.Subjects)
-                    .HasForeignKey(d => d.SubjectGroupId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("fk_subjects_subject_group");
+           
 
                 entity.HasOne(d => d.SubjectType)
                     .WithMany(p => p.Subjects)
                     .HasForeignKey(d => d.SubjectTypeId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("fk_subjects_subject_type");
-
-                entity.HasOne(d => d.TeachingAssignment)
-                    .WithMany(p => p.Subjects)
-                    .HasForeignKey(d => d.TeachingAssignmentId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("fk_subjects_teaching_assignment");
             });
 
             modelBuilder.Entity<SubjectType>(entity =>
@@ -1581,8 +1574,7 @@ namespace Project_LMS.Data
                     .HasMaxLength(255)
                     .HasColumnName("name");
 
-                entity.Property(e => e.SubjectId).HasColumnName("subject_id");
-
+               
                 entity.Property(e => e.UpdateAt)
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("update_at")
@@ -1593,12 +1585,7 @@ namespace Project_LMS.Data
                 entity.Property(e => e.UserId).HasColumnName("user_id");
 
                 entity.Property(e => e.UserUpdate).HasColumnName("user_update");
-
-                entity.HasOne(d => d.Subject)
-                    .WithMany(p => p.SubjectsGroups)
-                    .HasForeignKey(d => d.SubjectId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("fk_subjects_group_subject");
+                
 
                 entity.HasOne(d => d.User)
                     .WithMany(p => p.SubjectsGroups)
@@ -1607,6 +1594,31 @@ namespace Project_LMS.Data
                     .HasConstraintName("fk_subjects_group_user");
             });
 
+            modelBuilder.Entity<SubjectGroupSubject>(entity =>
+            {
+                // Đảm bảo Id là khóa chính và tự động tăng
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();  
+                entity.HasKey(e => e.Id);  // Chỉ định Id là khóa chính duy nhất
+
+                entity.ToTable("subject_group_subject");
+
+                // Thiết lập quan hệ với SubjectsGroup
+                entity.HasOne(d => d.SubjectsGroup)
+                    .WithMany(p => p.SubjectGroupSubjects)
+                    .HasForeignKey(d => d.SubjectGroupId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)  // Khi xóa SubjectGroup, không xóa SubjectGroupSubject
+                    .HasConstraintName("fk_subject_group_subject_group");
+
+                // Thiết lập quan hệ với Subject
+                entity.HasOne(d => d.Subject)
+                    .WithMany(p => p.SubjectGroupSubjects)
+                    .HasForeignKey(d => d.SubjectId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)  // Khi xóa Subject, không xóa SubjectGroupSubject
+                    .HasConstraintName("fk_subject_group_subject");
+            });
+
+
+            
             modelBuilder.Entity<SubmissionFile>(entity =>
             {
                 entity.ToTable("submission_files");

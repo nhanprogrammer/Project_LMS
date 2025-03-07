@@ -16,6 +16,8 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using Project_LMS.Interfaces;
 using Project_LMS.Interfaces.Responsitories;
+using Project_LMS.Mappers;
+using Project_LMS.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -63,6 +65,7 @@ builder.Services.AddScoped<IAnswersService, AnswersService>();
 builder.Services.AddScoped<IAssignmentsService, AssignmentsService>();
 builder.Services.AddScoped<IAssignmentDetailsService, AssignmentDetailsService>();
 builder.Services.AddScoped<IChatMessagesService, ChatMessagesService>();
+builder.Services.AddScoped<ISubjectGroupService, SubjectGroupService>();
 
 // Repositories
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
@@ -88,8 +91,9 @@ builder.Services.AddScoped<IAnswerRepository, AnswerRepository>();
 builder.Services.AddScoped<IAssignmentRepository, AssignmentRepository>();
 builder.Services.AddScoped<IAssignmentDetailRepository, AssignmentDetailRepository>();
 builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
-
+builder.Services.AddScoped<ISubjectGroupRepository, SubjectGroupRepository>();
 builder.Services.AddAutoMapper(typeof(MappingProfile));
+builder.Services.AddAutoMapper(typeof(SubjectGroupMapper));
 
 var app = builder.Build();
 app.Use(async (context, next) =>
