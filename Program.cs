@@ -6,28 +6,34 @@ using Project_LMS.Interfaces.Repositories;
 using Project_LMS.Services;
 using Project_LMS.Repositories;
 using Project_LMS.Filters;
-using Microsoft.OpenApi.Models;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using Project_LMS.Interfaces;
 using Project_LMS.Interfaces.Responsitories;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
-
+// Add CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
+    });
+});
 builder.Services.AddControllers(options =>
 {
-    options.Filters.Add<ValidationFilter>(); 
-});
-builder.Services.Configure<ApiBehaviorOptions>(options =>
-{
-    options.SuppressModelStateInvalidFilter = true;
+    options.Filters.Add<ValidationFilter>();
 });
 
+// Tắt tự động kiểm tra ModelState trong API behavior để sử dụng ValidationFilter
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.SuppressModelStateInvalidFilter = true; // Không sử dụng filter ModelState mặc định
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -63,6 +69,10 @@ builder.Services.AddScoped<IAnswersService, AnswersService>();
 builder.Services.AddScoped<IAssignmentsService, AssignmentsService>();
 builder.Services.AddScoped<IAssignmentDetailsService, AssignmentDetailsService>();
 builder.Services.AddScoped<IChatMessagesService, ChatMessagesService>();
+builder.Services.AddScoped<ITestExamTypeService, TestExamTypeService>();
+builder.Services.AddScoped<ISubjectService, SubjectService>();
+builder.Services.AddScoped<ISubjectTypeService, SubjectTypeService>();
+builder.Services.AddScoped<ISubjectsGroupService, SubjectsGroupService>();
 
 // Repositories
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
@@ -88,6 +98,10 @@ builder.Services.AddScoped<IAnswerRepository, AnswerRepository>();
 builder.Services.AddScoped<IAssignmentRepository, AssignmentRepository>();
 builder.Services.AddScoped<IAssignmentDetailRepository, AssignmentDetailRepository>();
 builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
+builder.Services.AddScoped<ITestExamTypeRepository, TestExamTypeRepository>();
+builder.Services.AddScoped<ISubjectRepository, SubjectRepository>();
+builder.Services.AddScoped<ISubjectTypeRepository, SubjectTypeRepository>();
+builder.Services.AddScoped<ISubjectsGroupRepository, SubjectsGroupRepository>();
 
 builder.Services.AddAutoMapper(typeof(MappingProfile));
 
@@ -105,10 +119,21 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+        var error = new { Status = 1, Message = "Lỗi hệ thống không mong muốn.", Details = "Xem log để biết thêm chi tiết." };
+        await context.Response.WriteAsync(JsonSerializer.Serialize(error));
+    });
+});
 
+app.UseCors("AllowFrontend");
 app.UseHttpsRedirection();
 
-
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

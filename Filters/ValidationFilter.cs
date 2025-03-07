@@ -15,11 +15,11 @@ namespace Project_LMS.Filters
                     .Select(ms => new ValidationError
                     {
                         Field = ms.Key,
-                        Error = ms.Value.Errors.FirstOrDefault()?.ErrorMessage ?? "Unknown error"
+                        Error = ms.Value.Errors.FirstOrDefault()?.ErrorMessage ?? "Lỗi không xác định"
                     })
                     .ToList();
 
-                var response = new ApiResponse<List<ValidationError>>(1, "Validation failed.", errors);
+                var response = new ApiResponse<List<ValidationError>>(1, "Dữ liệu không hợp lệ.", errors);
                 context.Result = new BadRequestObjectResult(response);
             }
         }

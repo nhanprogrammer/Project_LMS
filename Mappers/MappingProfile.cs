@@ -169,5 +169,14 @@ public class MappingProfile : Profile
         //   .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description));
         CreateMap<Module, CreateModuleRequest>();
         CreateMap<Module, UpdateModuleRequest>();
+
+        CreateMap<TestExamType, TestExamTypeResponse>();
+        CreateMap<TestExamTypeRequest, TestExamType>();
+
+        CreateMap<Subject, SubjectResponse>();
+        CreateMap<SubjectRequest, Subject>();
+
+        CreateMap<SubjectsGroup, SubjectsGroupResponse>();
+        CreateMap<SubjectsGroupRequest, SubjectsGroup>();
     }
 }
