@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Project_LMS.Data;
 
 using Project_LMS.Interfaces.Services;
@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using Project_LMS.Interfaces;
 using Project_LMS.Interfaces.Responsitories;
+using Project_LMS.Mappers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -63,7 +64,8 @@ builder.Services.AddScoped<IAnswersService, AnswersService>();
 builder.Services.AddScoped<IAssignmentsService, AssignmentsService>();
 builder.Services.AddScoped<IAssignmentDetailsService, AssignmentDetailsService>();
 builder.Services.AddScoped<IChatMessagesService, ChatMessagesService>();
-
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IStudentStatusService, StudentStatusService>();
 // Repositories
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<ISchoolRepository, SchoolRepository>();
@@ -88,9 +90,14 @@ builder.Services.AddScoped<IAnswerRepository, AnswerRepository>();
 builder.Services.AddScoped<IAssignmentRepository, AssignmentRepository>();
 builder.Services.AddScoped<IAssignmentDetailRepository, AssignmentDetailRepository>();
 builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
-
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IStudentStatusRepository, StudenStatusRepository>();
+//mapper
 builder.Services.AddAutoMapper(typeof(MappingProfile));
-
+builder.Services.AddAutoMapper(typeof(UserMapper));
+builder.Services.AddAutoMapper(typeof(StudentStatusMapper));
+//loging
+builder.Services.AddLogging(); // Đăng ký logging
 var app = builder.Build();
 app.Use(async (context, next) =>
 {
