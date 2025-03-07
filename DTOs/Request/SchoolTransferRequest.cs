@@ -7,19 +7,10 @@ namespace Project_LMS.DTOs.Request
         public int Id { get; set; }
 
         [Required(ErrorMessage = "Mã học sinh là bắt buộc")]
-        public int? StudentId { get; set; }
+        public int? UserId { get; set; }
 
         [Required(ErrorMessage = "Mã chi nhánh trường là bắt buộc")]
         public int? SchoolBranchesId { get; set; }
-
-        [Required(ErrorMessage = "Mã tỉnh/thành phố là bắt buộc")]
-        public int? ProvinceId { get; set; }
-
-        [Required(ErrorMessage = "Mã quận/huyện là bắt buộc")]
-        public int? DistrictId { get; set; }
-
-        [Required(ErrorMessage = "Mã phường/xã là bắt buộc")]
-        public int? WardId { get; set; }
 
         [Required(ErrorMessage = "Ngày chuyển trường là bắt buộc")]
         public DateTime? TransferDate { get; set; }

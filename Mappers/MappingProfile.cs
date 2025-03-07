@@ -149,7 +149,7 @@ public class MappingProfile : Profile
 
         CreateMap<Lesson, LessonResponse>()
             .ForMember(dest => dest.ClassId, opt => opt.MapFrom(src => src.ClassId)) // Map ClassId
-            //    .ForMember(dest => dest.TeacherId, opt => opt.MapFrom(src => src.TeacherId))  // Map TeacherId
+                                                                                     //    .ForMember(dest => dest.TeacherId, opt => opt.MapFrom(src => src.TeacherId))  // Map TeacherId
             .ForMember(dest => dest.ClassLessonCode,
                 opt => opt.MapFrom(src => src.ClassLessonCode)) // Map ClassLessonCode
             .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description)) // Map Description
@@ -157,7 +157,7 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.Duration, opt => opt.MapFrom(src => src.Duration)) // Map Duration
             .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate)) // Map StartDate
             .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate)) // Map EndDate
-            //    .ForMember(dest => dest.Password, opt => opt.MapFrom(src => src.Password))  // Map Password
+                                                                                     //    .ForMember(dest => dest.Password, opt => opt.MapFrom(src => src.Password))  // Map Password
             .ForMember(dest => dest.IsResearchable, opt => opt.MapFrom(src => src.IsResearchable)) // Map IsResearchable
             .ForMember(dest => dest.IsAutoStart, opt => opt.MapFrom(src => src.IsAutoStart)) // Map IsAutoStart
             .ForMember(dest => dest.IsSave, opt => opt.MapFrom(src => src.IsSave)); // Map IsSave3
@@ -175,15 +175,16 @@ public class MappingProfile : Profile
 
         CreateMap<Subject, SubjectResponse>();
         CreateMap<SubjectRequest, Subject>();
+        CreateMap<SchoolTransfer, SchoolTransferResponse>();
 
         CreateMap<SubjectsGroup, SubjectGroupResponse>()
             .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
             .ForMember(dest => dest.FullName,
                 opt => opt.MapFrom(src => src.User != null ? src.User.FullName : "Unknown"))
-            .ForMember(dest => dest.Subjects, opt => opt.MapFrom(src => 
+            .ForMember(dest => dest.Subjects, opt => opt.MapFrom(src =>
             src.SubjectGroupSubjects != null && src.SubjectGroupSubjects.Any()
                 ? src.SubjectGroupSubjects
-                    .Where(sgs => sgs.SubjectGroupId == src.Id) 
+                    .Where(sgs => sgs.SubjectGroupId == src.Id)
                     .Select(sgs => new SubjectInfo
                     {
                         Id = sgs.Id,
@@ -205,7 +206,7 @@ public class MappingProfile : Profile
 
 
     }
-    
+
     private List<SubjectGroupSubject> MapSubjectGroupSubjects(List<int> subjectIds)
     {
         var subjectGroupSubjects = new List<SubjectGroupSubject>();
@@ -215,5 +216,6 @@ public class MappingProfile : Profile
         }
 
         return subjectGroupSubjects;
+
     }
 }
