@@ -23,7 +23,7 @@ namespace Project_LMS.Repositories
                 .Include(sg => sg.User)
                 .Include(sg => sg.SubjectGroupSubjects)  
                 .ThenInclude(sgs => sgs.Subject)  
-                .FirstOrDefaultAsync(sg => sg.Id == id);
+                .FirstOrDefaultAsync(sg => sg.Id == id) ?? throw new InvalidOperationException("SubjectGroup not found");
         }
         
       
