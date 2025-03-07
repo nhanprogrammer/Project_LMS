@@ -8,5 +8,7 @@
         public int? AcademicParent { get; set; }
         public DateTime? CreateAt { get; set; }
         public int? UserCreate { get; set; }
+
+        public List<SemesterRequest> Semesters { get; set; }
     }
 }

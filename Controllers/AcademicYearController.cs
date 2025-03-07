@@ -35,10 +35,10 @@ namespace Project_LMS.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<IEnumerable<AcademicYearResponse>>>> GetAll()
+        public async Task<ActionResult<ApiResponse<PaginatedResponse<AcademicYearResponse>>>> GetAll([FromQuery] PaginationRequest request)
         {
-            var result = await _service.GetAllAcademicYears();
-            return Ok(new ApiResponse<IEnumerable<AcademicYearResponse>>(
+            var result = await _service.GetPagedAcademicYears(request);
+            return Ok(new ApiResponse<PaginatedResponse<AcademicYearResponse>>(
                 0,
                 "Success",
                 result));

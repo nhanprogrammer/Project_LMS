@@ -1440,7 +1440,7 @@ namespace Project_LMS.Data
                 entity.HasOne(d => d.AcademicYear)
                     .WithMany(p => p.Semesters)
                     .HasForeignKey(d => d.AcademicYearId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .OnDelete(DeleteBehavior.Cascade) // Delete all semesters when delete academic year
                     .HasConstraintName("fk_semesters_academic_year");
             });
 

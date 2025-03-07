@@ -9,6 +9,11 @@ public class AcademicYearRepository : IAcademicYearRepository
 {
     private readonly ApplicationDbContext _context;
 
+    public AcademicYearRepository(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
     public async Task<IEnumerable<AcademicYear>> GetAllAsync()
     {
         return await _context.AcademicYears.ToListAsync();
@@ -39,5 +44,10 @@ public class AcademicYearRepository : IAcademicYearRepository
             _context.AcademicYears.Remove(academicYear);
             await _context.SaveChangesAsync();
         }
+    }
+
+    public IQueryable<AcademicYear> GetQueryable()
+    {
+        return _context.AcademicYears.AsQueryable();
     }
 }
