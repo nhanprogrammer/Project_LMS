@@ -49,7 +49,7 @@ namespace Project_LMS.Repositories
                 return null;
 
             existingSubject.SubjectTypeId = subject.SubjectTypeId;
-            existingSubject.TeachingAssignmentId = subject.TeachingAssignmentId;
+            // existingSubject.TeachingAssignmentId = subject.TeachingAssignmentId;
             existingSubject.SubjectGroupId = subject.SubjectGroupId;
             existingSubject.IsStatus = subject.IsStatus;
             existingSubject.SubjectCode = subject.SubjectCode;
