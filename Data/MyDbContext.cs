@@ -65,6 +65,8 @@ namespace Project_LMS.Data
         public virtual DbSet<TrainingRank> TrainingRanks { get; set; } = null!;
         public virtual DbSet<User> Users { get; set; } = null!;
         public virtual DbSet<UserTrainingRank> UserTrainingRanks { get; set; } = null!;
+        public virtual DbSet<ClassStudent> ClassStudents { get; set; } = null!;
+        public virtual DbSet<ClassSubject> ClassSubjects { get; set; } = null!;
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -2235,6 +2237,49 @@ namespace Project_LMS.Data
                     .HasForeignKey(d => d.UserId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("fk_user_training_ranks_user");
+            });
+
+            modelBuilder.Entity<ClassStudent>(entity =>
+            {
+                entity.ToTable("class_students");
+
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Id)
+                    .ValueGeneratedOnAdd();
+
+                entity.HasOne(d => d.User)
+                    .WithMany(p => p.ClassStudents)
+                    .HasForeignKey(d => d.UserId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("fk_class_students_user");
+
+                entity.HasOne(d => d.Class)
+                    .WithMany(p => p.ClassStudents)
+                    .HasForeignKey(d => d.ClassId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("fk_class_students_class");
+            });
+            modelBuilder.Entity<ClassSubject>(entity =>
+            {
+                entity.ToTable("class_subjects");
+
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Id)
+                    .ValueGeneratedOnAdd();
+
+                entity.HasOne(d => d.Subject)
+                    .WithMany(p => p.ClassSubjects)
+                    .HasForeignKey(d => d.SubjectId)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("fk_class_subject_subject");
+
+                entity.HasOne(d => d.Class)
+                    .WithMany(p => p.ClassSubjects)
+                    .HasForeignKey(d => d.ClassId)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("fk_class_subject_class");
             });
 
             OnModelCreatingPartial(modelBuilder);

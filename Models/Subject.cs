@@ -10,6 +10,7 @@ namespace Project_LMS.Models
             SubjectsGroups = new HashSet<SubjectsGroup>();
             TeacherClassSubjects = new HashSet<TeacherClassSubject>();
             TeachingAssignments = new HashSet<TeachingAssignment>();
+            ClassSubjects = new HashSet<ClassSubject>();
         }
 
         public int Id { get; set; }
@@ -34,5 +35,6 @@ namespace Project_LMS.Models
         public virtual ICollection<SubjectsGroup> SubjectsGroups { get; set; }
         public virtual ICollection<TeacherClassSubject> TeacherClassSubjects { get; set; }
         public virtual ICollection<TeachingAssignment> TeachingAssignments { get; set; }
+        public virtual ICollection<ClassSubject> ClassSubjects { get; set; }
     }
 }

@@ -29,6 +29,7 @@ namespace Project_LMS.Models
             TestExams = new HashSet<TestExam>();
             Topics = new HashSet<Topic>();
             UserTrainingRanks = new HashSet<UserTrainingRank>();
+            ClassStudents = new HashSet<ClassStudent>();
         }
 
         public int Id { get; set; }
@@ -108,5 +109,6 @@ namespace Project_LMS.Models
         public virtual ICollection<TestExam> TestExams { get; set; }
         public virtual ICollection<Topic> Topics { get; set; }
         public virtual ICollection<UserTrainingRank> UserTrainingRanks { get; set; }
+        public virtual ICollection<ClassStudent> ClassStudents {get; set;}
     }
 }
