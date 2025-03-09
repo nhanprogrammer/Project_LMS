@@ -11,14 +11,14 @@ namespace Project_LMS.Models
         }
 
         public int Id { get; set; }
-        public int TestExamId { get; set; }
-        public string Question1 { get; set; } = null!;
-        public int Mark { get; set; }
+        public int? TestExamId { get; set; }
+        public string? Question1 { get; set; }
+        public int? Mark { get; set; }
         public bool? IsDelete { get; set; }
         public DateTime? CreateAt { get; set; }
         public DateTime? UpdateAt { get; set; }
 
-        public virtual TestExam TestExam { get; set; } = null!;
+        public virtual TestExam? TestExam { get; set; }
         public virtual ICollection<Answer> Answers { get; set; }
     }
 }

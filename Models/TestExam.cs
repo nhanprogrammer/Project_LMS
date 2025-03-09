@@ -14,11 +14,10 @@ namespace Project_LMS.Models
         }
 
         public int Id { get; set; }
-        public int DepartmentId { get; set; }
-        public int TestExamTypeId { get; set; }
-        public int SemestersId { get; set; }
-        public int ClassId { get; set; }
-        public int UserId { get; set; }
+        public int? TestExamTypeId { get; set; }
+        public int? SemestersId { get; set; }
+        public int? ClassId { get; set; }
+        public int? UserId { get; set; }
         public string? Topic { get; set; }
         public string? Form { get; set; }
         public TimeOnly? Duration { get; set; }
@@ -30,11 +29,10 @@ namespace Project_LMS.Models
         public DateTime? UpdateAt { get; set; }
         public bool? IsDelete { get; set; }
 
-        public virtual Class Class { get; set; } = null!;
-        public virtual Department Department { get; set; } = null!;
-        public virtual Semester Semesters { get; set; } = null!;
-        public virtual TestExamType TestExamType { get; set; } = null!;
-        public virtual User User { get; set; } = null!;
+        public virtual Class? Class { get; set; }
+        public virtual Semester? Semesters { get; set; }
+        public virtual TestExamType? TestExamType { get; set; }
+        public virtual User? User { get; set; }
         public virtual ICollection<Assignment> Assignments { get; set; }
         public virtual ICollection<ClassTestExam> ClassTestExams { get; set; }
         public virtual ICollection<Examiner> Examiners { get; set; }

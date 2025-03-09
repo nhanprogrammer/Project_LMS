@@ -9,7 +9,7 @@ public class SubjectGroupMapper : Profile
 {
     public SubjectGroupMapper()
     {
-        CreateMap<SubjectsGroup, SubjectGroupResponse>()
+        CreateMap<SubjectGroup, SubjectGroupResponse>()
             .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
             .ForMember(dest => dest.FullName,
                 opt => opt.MapFrom(src => src.User != null ? src.User.FullName : "Unknown"))
@@ -27,7 +27,7 @@ public class SubjectGroupMapper : Profile
         ));
 
 
-        CreateMap<CreateSubjectGroupRequest, SubjectsGroup>()
+        CreateMap<CreateSubjectGroupRequest, SubjectGroup>()
             .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
             .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
             .ForMember(dest => dest.CreateAt,

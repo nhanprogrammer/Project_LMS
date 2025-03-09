@@ -11,18 +11,19 @@ namespace Project_LMS.Models
         }
 
         public int Id { get; set; }
-        public string SchoolCode { get; set; } = null!;
-        public string Name { get; set; } = null!;
-        public string Principal { get; set; } = null!;
-        public string PrincipalPhone { get; set; } = null!;
+        public string? SchoolCode { get; set; }
+        public string? Name { get; set; }
+        public string? Principal { get; set; }
+        public string? PrincipalPhone { get; set; }
         public string? Image { get; set; }
-        public string Email { get; set; } = null!;
-        public string Website { get; set; } = null!;
-        public string Province { get; set; } = null!;
-        public string SchoolType { get; set; } = null!;
-        public string EducationModel { get; set; } = null!;
-        public string Phone { get; set; } = null!;
-        public DateTime EstablishmentDate { get; set; }
+        public string? Email { get; set; }
+        public string? Website { get; set; }
+        public string? Province { get; set; }
+        public bool? Thcs { get; set; }
+        public bool? Thpt { get; set; }
+        public string? EducationModel { get; set; }
+        public string? Phone { get; set; }
+        public DateTime? EstablishmentDate { get; set; }
         public DateTime? CreateAt { get; set; }
         public DateTime? UpdateAt { get; set; }
         public int? UserCreate { get; set; }

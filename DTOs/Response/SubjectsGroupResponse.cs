@@ -1,6 +1,6 @@
 namespace Project_LMS.DTOs.Response
 {
-    public class SubjectsGroupResponse
+    public class SubjectGroupResponse
     {
         public int Id { get; set; }
         public string Name { get; set; }

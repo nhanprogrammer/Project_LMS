@@ -3,12 +3,12 @@ using System.Collections.Generic;
 
 namespace Project_LMS.Models
 {
-    public partial class QuestionsAnswer
+    public partial class QuestionAnswer
     {
-        public QuestionsAnswer()
+        public QuestionAnswer()
         {
             Favourites = new HashSet<Favourite>();
-            InverseQuestionsAnswerNavigation = new HashSet<QuestionsAnswer>();
+            InverseQuestionsAnswer = new HashSet<QuestionAnswer>();
         }
 
         public int Id { get; set; }
@@ -23,10 +23,10 @@ namespace Project_LMS.Models
         public int? UserUpdate { get; set; }
         public bool? IsDelete { get; set; }
 
-        public virtual QuestionsAnswer? QuestionsAnswerNavigation { get; set; }
+        public virtual QuestionAnswer? QuestionsAnswer { get; set; }
         public virtual TeachingAssignment? TeachingAssignment { get; set; }
         public virtual User? User { get; set; }
         public virtual ICollection<Favourite> Favourites { get; set; }
-        public virtual ICollection<QuestionsAnswer> InverseQuestionsAnswerNavigation { get; set; }
+        public virtual ICollection<QuestionAnswer> InverseQuestionsAnswer { get; set; }
     }
 }

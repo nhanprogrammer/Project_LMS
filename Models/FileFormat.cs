@@ -6,7 +6,7 @@ namespace Project_LMS.Models
     public partial class FileFormat
     {
         public int Id { get; set; }
-        public int TestExamId { get; set; }
+        public int? TestExamId { get; set; }
         public bool? IsDoc { get; set; }
         public bool? IsPowerpoint { get; set; }
         public bool? IsXxls { get; set; }

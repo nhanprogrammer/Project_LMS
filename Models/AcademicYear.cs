@@ -12,8 +12,8 @@ namespace Project_LMS.Models
         }
 
         public int Id { get; set; }
-        public DateTime StartDate { get; set; }
-        public DateTime EndDate { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
         public bool? IsInherit { get; set; }
         public int? AcademicParent { get; set; }
         public DateTime? CreateAt { get; set; }

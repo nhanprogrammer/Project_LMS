@@ -1,12 +1,20 @@
+﻿using System;
+using System.Collections.Generic;
+
 namespace Project_LMS.Models
 {
-    public class ClassStudent
+    public partial class ClassStudent
     {
         public int Id { get; set; }
-        public int UserId { get; set; }
-        public int ClassId { get; set; }
+        public int? ClassId { get; set; }
+        public int? UserId { get; set; }
+        public DateTime? CreateAt { get; set; }
+        public DateTime? UpdateAt { get; set; }
+        public int? UserCreate { get; set; }
+        public int? UserUpdate { get; set; }
+        public bool? IsDelete { get; set; }
 
-        public User User { get; set; }= null!;
-        public Class Class { get; set; }= null!;
+        public virtual Class? Class { get; set; }
+        public virtual User? User { get; set; }
     }
 }

@@ -1,14 +1,31 @@
-// Interfaces/Repositories/ISubjectsGroupRepository.cs
+// Interfaces/Repositories/ISubjectGroupRepository.cs
 using Project_LMS.Models;
 
 namespace Project_LMS.Interfaces.Repositories
 {
-    public interface ISubjectsGroupRepository
+    public interface ISubjectGroupRepository
     {
-        Task<IEnumerable<SubjectsGroup>> GetAll(int pageNumber, int pageSize);
-        Task<SubjectsGroup> GetById(int id);
-        Task<SubjectsGroup> Add(SubjectsGroup subjectsGroup);
-        Task<SubjectsGroup> Update(int id, SubjectsGroup subjectsGroup);
-        Task<bool> Delete(int id);
+        Task<SubjectGroup> GetByIdAsync(int id);
+
+
+
+        Task SaveAsync();
+
+
+        Task<IEnumerable<SubjectGroup>> GetAllAsync();
+
+
+        Task AddAsync(SubjectGroup entity);
+
+
+        Task UpdateAsync(SubjectGroup entity);
+
+
+        Task DeleteAsync(int id);
+
+
+        IQueryable<SubjectGroup> GetQueryable();
+
+
     }
 }

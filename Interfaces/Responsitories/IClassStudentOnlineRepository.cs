@@ -2,7 +2,7 @@
 
 namespace Project_LMS.Interfaces.Responsitories;
 
-public interface IClassStudentOnlineRepository : IRepository<ClassStudentsOnline>
+public interface IClassStudentOnlineRepository : IRepository<ClassStudentOnline>
 {
     
 }

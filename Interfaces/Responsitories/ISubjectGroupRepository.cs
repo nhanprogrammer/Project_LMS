@@ -2,9 +2,9 @@
 
 namespace Project_LMS.Interfaces.Responsitories;
 
-public interface ISubjectGroupRepository : IRepository<SubjectsGroup>
+public interface ISubjectGroupRepository : IRepository<SubjectGroup>
 {
-    IQueryable<SubjectsGroup> GetQueryable();
+    IQueryable<SubjectGroup> GetQueryable();
 
     
 

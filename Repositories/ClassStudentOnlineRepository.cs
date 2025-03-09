@@ -14,35 +14,35 @@ public class ClassStudentOnlineRepository : IClassStudentOnlineRepository
         _context = context;
     }
 
-    public async Task<ClassStudentsOnline> GetByIdAsync(int id)
+    public async Task<ClassStudentOnline> GetByIdAsync(int id)
     {
-        return await _context.ClassStudentsOnlines.FindAsync(id);
+        return await _context.ClassStudentOnlines.FindAsync(id);
     }
 
-    public async Task<IEnumerable<ClassStudentsOnline>> GetAllAsync()
+    public async Task<IEnumerable<ClassStudentOnline>> GetAllAsync()
     {
-        return await _context.ClassStudentsOnlines.ToListAsync();
+        return await _context.ClassStudentOnlines.ToListAsync();
     }
 
-    public async Task AddAsync(ClassStudentsOnline entity)
+    public async Task AddAsync(ClassStudentOnline entity)
     {
-        await _context.ClassStudentsOnlines.AddAsync(entity);
+        await _context.ClassStudentOnlines.AddAsync(entity);
         await _context.SaveChangesAsync();
     }
 
-    public async Task UpdateAsync(ClassStudentsOnline entity)
+    public async Task UpdateAsync(ClassStudentOnline entity)
     {
-        _context.ClassStudentsOnlines.Update(entity);
+        _context.ClassStudentOnlines.Update(entity);
         await _context.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(int id)
     {
-        var entity = await _context.ClassStudentsOnlines.FindAsync(id);
+        var entity = await _context.ClassStudentOnlines.FindAsync(id);
         if (entity != null)
         {
             // entity.IsDelete = true;
-            _context.ClassStudentsOnlines.Update(entity);
+            _context.ClassStudentOnlines.Update(entity);
             await _context.SaveChangesAsync();
         }
     }

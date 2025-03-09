@@ -4,9 +4,9 @@ namespace Project_LMS.Interfaces.Responsitories;
 
 public interface IQuestionsAnswerRepository
 {
-    Task<IEnumerable<QuestionsAnswer>> GetAllAsync();
-    Task<QuestionsAnswer?> GetByIdAsync(int id);
-    Task AddAsync(QuestionsAnswer questionsAnswer);
-    Task UpdateAsync(QuestionsAnswer questionsAnswer);
+    Task<IEnumerable<QuestionAnswer>> GetAllAsync();
+    Task<QuestionAnswer?> GetByIdAsync(int id);
+    Task AddAsync(QuestionAnswer questionsAnswer);
+    Task UpdateAsync(QuestionAnswer questionsAnswer);
     Task DeleteAsync(int id);
 }

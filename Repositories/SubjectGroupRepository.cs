@@ -4,11 +4,11 @@ using Project_LMS.Interfaces.Repositories;
 using Project_LMS.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Project_LMS.Interfaces.Responsitories;
+
 
 namespace Project_LMS.Repositories
 {
-    public class SubjectGroupRepository : ISubjectGroupRepository
+    public class SubjectGroupRepository :ISubjectGroupRepository
     {
         private readonly ApplicationDbContext _context;
 
@@ -17,9 +17,9 @@ namespace Project_LMS.Repositories
             _context = context;
         }
 
-        public async Task<SubjectsGroup> GetByIdAsync(int id)
+        public async Task<SubjectGroup> GetByIdAsync(int id)
         {
-            return await _context.SubjectsGroups
+            return await _context.SubjectGroups
                 .Include(sg => sg.User)
                 .Include(sg => sg.SubjectGroupSubjects)  
                 .ThenInclude(sgs => sgs.Subject)  
@@ -33,42 +33,42 @@ namespace Project_LMS.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task<IEnumerable<SubjectsGroup>> GetAllAsync()
+        public async Task<IEnumerable<SubjectGroup>> GetAllAsync()
         {
-            return await _context.SubjectsGroups.Where(sg => sg.IsDelete == false)
+            return await _context.SubjectGroups.Where(sg => sg.IsDelete == false)
                 .Include(sg => sg.SubjectGroupSubjects).ThenInclude(sgs => sgs.Subject).Include(sg => sg.User)
                 .ToListAsync();
         }
 
-        public async Task AddAsync(SubjectsGroup entity)
+        public async Task AddAsync(SubjectGroup entity)
         {
-            await _context.SubjectsGroups.AddAsync(entity);
+            await _context.SubjectGroups.AddAsync(entity);
             await _context.SaveChangesAsync();
         }
 
-        public async Task UpdateAsync(SubjectsGroup entity)
+        public async Task UpdateAsync(SubjectGroup entity)
         {
-            _context.SubjectsGroups.Update(entity);
+            _context.SubjectGroups.Update(entity);
             await _context.SaveChangesAsync();
         }
 
         public async Task DeleteAsync(int id)
         {
-            var entity = await _context.SubjectsGroups.FindAsync(id);
+            var entity = await _context.SubjectGroups.FindAsync(id);
             if (entity != null)
             {
                 entity.IsDelete = true;
-                _context.SubjectsGroups.Update(entity);
-                var relatedSubjects = _context.SubjectGroupsSubjects.Where(sgs => sgs.SubjectGroupId == id);
-                _context.SubjectGroupsSubjects.RemoveRange(relatedSubjects);
+                _context.SubjectGroups.Update(entity);
+                var relatedSubjects = _context.SubjectGroupSubjects.Where(sgs => sgs.SubjectGroupId == id);
+                _context.SubjectGroupSubjects.RemoveRange(relatedSubjects);
 
                 await _context.SaveChangesAsync();
             }
         }
 
-        public IQueryable<SubjectsGroup> GetQueryable()
+        public IQueryable<SubjectGroup> GetQueryable()
         {
-            return _context.SubjectsGroups.AsQueryable();
+            return _context.SubjectGroups.AsQueryable();
         }
 
 
