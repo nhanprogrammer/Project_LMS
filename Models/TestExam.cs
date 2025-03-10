@@ -19,6 +19,7 @@ namespace Project_LMS.Models
         public int? ClassId { get; set; }
         public int? UserId { get; set; }
         public string? Topic { get; set; }
+        public bool? IsExam { get; set; }
         public string? Form { get; set; }
         public TimeOnly? Duration { get; set; }
         public DateOnly? StartDate { get; set; }
