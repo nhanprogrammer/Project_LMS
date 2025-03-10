@@ -52,7 +52,7 @@ namespace Project_LMS.Services
                 throw new ArgumentNullException("QuestionsAnswerId, UserId, và TopicId không được phép là null.");
             }
 
-            var questionsAnswerTopicView = new QuestionsAnswerTopicView
+            var questionsAnswerTopicView = new QuestionAnswerTopicView
             {
                 QuestionsAnswerId = request.QuestionsAnswerId.Value,
                 UserId = request.UserId.Value,

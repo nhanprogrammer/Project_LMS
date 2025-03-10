@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿
 using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
@@ -16,11 +16,12 @@ namespace Project_LMS.Controllers
             _service = service;
         }
         [HttpGet]
-        public Task<ApiResponse<List<UserResponse>>> GetAll()
+        public Task<ApiResponse<List<UserResponse>>> GetAll([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
-
-            return _service.GetAll();
+            return _service.GetAll(pageNumber, pageSize);
         }
+
+
         [HttpPost]
         public Task<ApiResponse<UserResponse>> Create(UserRequest request)
         {
@@ -40,6 +41,11 @@ namespace Project_LMS.Controllers
         public Task<ApiResponse<UserResponse>> Search(int id)
         {
             return _service.Search(id);
+        }
+        [HttpGet("ByIds")]
+        public Task<ApiResponse<List<UserResponse>>> GetAllByIds([FromQuery] List<int> ids, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+        {
+            return _service.GetAllByIds(ids, pageNumber, pageSize);
         }
     }
 }

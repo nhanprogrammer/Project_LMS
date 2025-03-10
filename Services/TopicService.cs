@@ -4,7 +4,6 @@ using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces.Services;
 using Project_LMS.Models;
-﻿using Project_LMS.Interfaces.Services;
 
 
 namespace Project_LMS.Services;
@@ -17,91 +16,105 @@ public class TopicService : ITopicService
     {
         _context = context;
     }
-    public async Task<ApiResponse<TopicResponse>> Create(TopicRequest request)
+    public async Task<ApiResponse<PaginatedResponse<TopicResponse>>> GetAllTopicsAsync(string? keyword, int pageNumber, int pageSize)
     {
-        var topic = ToTopicRequest(request);
+        var query = _context.Topics.Where(t => !t.IsDelete.HasValue || !t.IsDelete.Value);
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            keyword = keyword.Trim().ToLower();
+            query = query.Where(t => t.Title.ToLower().Contains(keyword) || t.Description.ToLower().Contains(keyword));
+        }
+
+        var totalItems = await query.CountAsync();
+        var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+        var topics = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
+        var topicResponses = topics.Select(ToTopicResponse).ToList();
+
+        var paginatedResponse = new PaginatedResponse<TopicResponse>
+        {
+            Items = topicResponses,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalItems = totalItems,
+            TotalPages = totalPages,
+            HasPreviousPage = pageNumber > 1,
+            HasNextPage = pageNumber < totalPages
+        };
+
+        return new ApiResponse<PaginatedResponse<TopicResponse>>(0, "Success", paginatedResponse);
+    }
+
+    public async Task<ApiResponse<TopicResponse>> GetTopicByIdAsync(int id)
+    {
+        var topic = await _context.Topics.FindAsync(id);
+        if (topic == null || topic.IsDelete == true)
+            return new ApiResponse<TopicResponse>(1, "Topic not found", null);
+
+        return new ApiResponse<TopicResponse>(0, "Success", ToTopicResponse(topic));
+    }
+
+    public async Task<ApiResponse<TopicResponse>> CreateTopicAsync(TopicRequest request)
+    {
         try
         {
-            var teachingAssignment = await _context.TeachingAssignments.FindAsync(request.TeachingAssignmentId);
-            topic.TeachingAssignment = teachingAssignment;
-            var topicNavigation = await _context.Topics.FindAsync(request.TopicId);
-            topic.TopicNavigation = topicNavigation;
-            var user = await _context.Users.FindAsync(request.UserId);
-            topic.User = user;
-            topic.CreateAt = DateTime.Now;
-            await _context.Topics.AddAsync(topic);
-            _context.SaveChanges();
-            return new ApiResponse<TopicResponse>(1, "Create Topic success")
-            {
-                Data = ToTopic(topic)
-            };
+            var topic = ToTopic(request);
+            topic.CreateAt = DateTime.UtcNow.ToLocalTime();
+            _context.Topics.Add(topic);
+            await _context.SaveChangesAsync();
+            return new ApiResponse<TopicResponse>(0, "Topic created successfully", ToTopicResponse(topic));
         }
         catch (Exception ex)
         {
-            return new ApiResponse<TopicResponse>(1, "Create Topic error : " + ex);
+            return new ApiResponse<TopicResponse>(1, $"Error creating Topic: {ex.Message}", null);
         }
     }
 
-    public async Task<ApiResponse<TopicResponse>> Delete(int id)
+    public async Task<ApiResponse<TopicResponse>> UpdateTopicAsync(int id, TopicRequest request)
     {
-        var topic = await _context.Topics.FindAsync(id);
-        if (topic != null)
+        try
         {
-            try
-            {
-                _context.Topics.Remove(topic);
+            var topic = await _context.Topics.FindAsync(id);
+            if (topic == null || topic.IsDelete == true)
+                return new ApiResponse<TopicResponse>(1, "Topic not found", null);
 
-            }
-            catch (Exception ex)
-            {
-                topic.IsDelete = true;
-            }
+            topic.Title = request.Title;
+            topic.FileName = request.FileName;
+            topic.Description = request.Description;
+            topic.CloseAt = request.CloseAt;
+            topic.UpdateAt = DateTime.UtcNow.ToLocalTime();
+
             await _context.SaveChangesAsync();
-            return new ApiResponse<TopicResponse>(0, "Delete Topic success");
+            return new ApiResponse<TopicResponse>(0, "Topic updated successfully", ToTopicResponse(topic));
         }
-        else
+        catch (Exception ex)
         {
-            return new ApiResponse<TopicResponse>(1, "Topic does not exist.");
+            return new ApiResponse<TopicResponse>(1, $"Error updating Topic: {ex.Message}", null);
         }
     }
 
-    public async Task<ApiResponse<List<TopicResponse>>> GetAll()
+    public async Task<ApiResponse<bool>> DeleteTopicAsync(int id)
     {
-        var topics = await _context.Topics.ToListAsync();
-        if (topics.Any())
+        try
         {
-            var topicResponses = topics.Select(topic => ToTopic(topic)).ToList();
-            return new ApiResponse<List<TopicResponse>>(0, "GetAll Topic success.")
-            {
-                Data = topicResponses
-            };
-        }
-        else
-        {
-            return new ApiResponse<List<TopicResponse>>(1, "No Topic found.");
-        }
-        {
+            var topic = await _context.Topics.FindAsync(id);
+            if (topic == null || topic.IsDelete == true)
+                return new ApiResponse<bool>(1, "Topic not found", false);
 
+            topic.IsDelete = true;
+            topic.UpdateAt = DateTime.UtcNow.ToLocalTime();
+
+            await _context.SaveChangesAsync();
+            return new ApiResponse<bool>(0, "Topic deleted successfully", true);
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse<bool>(1, $"Error deleting Topic: {ex.Message}", false);
         }
     }
 
-    public async Task<ApiResponse<TopicResponse>> Search(int id)
-    {
-        var topic = await _context.Topics.FindAsync(id);
-        if (topic != null)
-        {
-            return new ApiResponse<TopicResponse>(0, "Found success.")
-            {
-                Data = ToTopic(topic)
-            };
-        }
-        else
-        {
-            return new ApiResponse<TopicResponse>(1, "Topic does not exist.");
-        }
-    }
-
-    public TopicResponse ToTopic(Topic topic)
+    private TopicResponse ToTopicResponse(Topic topic)
     {
         return new TopicResponse
         {
@@ -121,58 +134,20 @@ public class TopicService : ITopicService
         };
     }
 
-    public Topic ToTopicRequest(TopicRequest topic)
+    private Topic ToTopic(TopicRequest request)
     {
         return new Topic
         {
-            TeachingAssignmentId = topic.TeachingAssignmentId,
-            UserId = topic.UserId,
-            TopicId = topic.TopicId,
-            UserCreate = topic.UserCreate,
-            UserUpdate = topic.UserUpdate,
-            Title = topic.Title,
-            FileName = topic.FileName,
-            Description = topic.Description,
-            CloseAt = topic.CloseAt
+            TeachingAssignmentId = request.TeachingAssignmentId,
+            UserId = request.UserId,
+            TopicId = request.TopicId,
+            UserCreate = request.UserCreate,
+            UserUpdate = request.UserUpdate,
+            Title = request.Title,
+            FileName = request.FileName,
+            Description = request.Description,
+            CloseAt = request.CloseAt
         };
     }
-
-    public async Task<ApiResponse<TopicResponse>> Update(int id, TopicRequest request)
-    {
-        var topic = await _context.Topics.FindAsync(id);
-        if (topic != null)
-        {
-            try
-            {
-                topic.TeachingAssignmentId = request.TeachingAssignmentId;
-                topic.Title = request.Title;
-                topic.FileName = request.FileName;
-                topic.Description = request.Description;
-                topic.CloseAt = request.CloseAt;
-
-                var teachingAssignment = await _context.TeachingAssignments.FindAsync(request.TeachingAssignmentId);
-                topic.TeachingAssignment = teachingAssignment;
-                var topicNavigation = await _context.Topics.FindAsync(request.TopicId);
-                topic.TopicNavigation = topicNavigation;
-                var user = await _context.Users.FindAsync(request.UserId);
-                topic.User = user;
-                topic.UpdateAt = DateTime.Now;
-                await _context.SaveChangesAsync();
-                return new ApiResponse<TopicResponse>(1, "Update Topic success : ")
-                {
-                    Data = ToTopic(topic)
-                };
-            }
-            catch (Exception ex)
-            {
-                return new ApiResponse<TopicResponse>(1, "Update Topic error : " + ex);
-            }
-        }
-        else
-        {
-            return new ApiResponse<TopicResponse>(1, "Topic does not exist.");
-        }
-    }
-    
 
 }

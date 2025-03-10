@@ -12,4 +12,6 @@ public class AcademicYearResponse
     public int? UserCreate { get; set; }
     public int? UserUpdate { get; set; }
     public bool IsDelete { get; set; }
+
+    public List<SemesterResponse> Semesters { get; set; }
 }

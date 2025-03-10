@@ -56,12 +56,23 @@ namespace Project_LMS.Controllers
         {
             try
             {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new ApiResponse<SubjectResponse>(1, "Invalid request data", null));
+                }
+
                 var result = await _subjectService.CreateSubjectAsync(request);
+                
+                if (result.Status != 0)
+                {
+                    return BadRequest(result);
+                }
+
                 return CreatedAtAction(nameof(GetById), new { id = result.Data.Id }, result);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<string>(1, $"Internal server error: {ex.Message}", null));
+                return StatusCode(500, new ApiResponse<SubjectResponse>(1, $"Internal server error: {ex.Message}", null));
             }
         }
 
@@ -70,34 +81,65 @@ namespace Project_LMS.Controllers
         {
             try
             {
-                var result = await _subjectService.UpdateSubjectAsync(id, request);
-                if (result.Data == null)
+                if (!ModelState.IsValid)
                 {
-                    return NotFound(new ApiResponse<SubjectResponse>(1, "Subject not found", null));
+                    return BadRequest(new ApiResponse<SubjectResponse>(1, "Invalid request data", null));
                 }
+
+                if (request == null)
+                {
+                    return BadRequest(new ApiResponse<SubjectResponse>(1, "Request body cannot be null", null));
+                }
+
+                if (string.IsNullOrEmpty(request.SubjectCode))
+                {
+                    return BadRequest(new ApiResponse<SubjectResponse>(1, "Subject code is required", null));
+                }
+
+                var result = await _subjectService.UpdateSubjectAsync(id, request);
+                
+                if (result.Status != 0)
+                {
+                    // Handle specific error cases
+                    if (result.Message.Contains("not found"))
+                    {
+                        return NotFound(result);
+                    }
+                    if (result.Message.Contains("already exists"))
+                    {
+                        return BadRequest(result);
+                    }
+                    return BadRequest(result);
+                }
+
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<string>(1, $"Internal server error: {ex.Message}", null));
+                return StatusCode(500, new ApiResponse<SubjectResponse>(1, $"Internal server error: {ex.Message}", null));
             }
         }
 
-        [HttpDelete("{id}")]
-        public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
+        [HttpDelete]
+        public async Task<ActionResult<ApiResponse<bool>>> DeleteMultiple([FromBody] DeleteSubjectRequest request)
         {
             try
             {
-                var result = await _subjectService.DeleteSubjectAsync(id);
-                if (!result.Data)
+                if (request?.Ids == null || !request.Ids.Any())
                 {
-                    return NotFound(new ApiResponse<bool>(1, "Subject not found", false));
+                    return BadRequest(new ApiResponse<bool>(1, "No IDs provided", false));
                 }
-                return Ok(result);
+
+                var result = await _subjectService.DeleteMultipleSubjectsAsync(request.Ids);
+                if (result.Status == 0)
+                {
+                    return Ok(result);
+                }
+                return BadRequest(result);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<string>(1, $"Internal server error: {ex.Message}", null));
+                return StatusCode(500, new ApiResponse<bool>(1, $"Error deleting subjects: {ex.Message}", false));
             }
         }
     }

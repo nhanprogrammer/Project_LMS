@@ -11,8 +11,8 @@ namespace Project_LMS.Models
         }
 
         public int Id { get; set; }
-        public int ModuleId { get; set; }
-        public int GroupRoleId { get; set; }
+        public int? ModuleId { get; set; }
+        public int? GroupRoleId { get; set; }
         public bool? IsView { get; set; }
         public bool? IsInsert { get; set; }
         public bool? IsUpdate { get; set; }

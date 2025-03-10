@@ -6,9 +6,9 @@ public class ApiResponse<T>
 {
     public int Status { get; set; }
     public string Message { get; set; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public T Data { get; set; }
-    
+
     public ApiResponse(int status, string message, T data)
     {
         Status = status;

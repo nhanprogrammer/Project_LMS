@@ -1,74 +1,123 @@
-
 ﻿
+
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Project_LMS.Data;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Interfaces.Responsitories;
 using Project_LMS.Interfaces.Services;
 using Project_LMS.Models;
+
 
 
 namespace Project_LMS.Services;
 
 public class UserService : IUserService
 {
-
+    private readonly IUserRepository _userRepository;
+    private readonly IMapper _mapper;
+    private readonly ILogger<UserService> _logger;
     private readonly ApplicationDbContext _context;
-
-    public UserService(ApplicationDbContext context)
+    public UserService(IUserRepository userRepository, IMapper mapper, ILogger<UserService> logger, ApplicationDbContext context)
     {
+        _userRepository = userRepository;
+        _mapper = mapper;
+        _logger = logger;
         _context = context;
     }
-    public async Task<ApiResponse<UserResponse>> Create(UserRequest user)
+
+    public async Task<ApiResponse<UserResponse>> Create(UserRequest request)
     {
-        var _user = ToUserRequest(user);
-        try
+
+        // Kiểm tra Role có tồn tại không
+        if (request.RoleId.HasValue)
         {
-            var configuration = await _context.SystemSettings.FindAsync(user.ConfigurationId);
-            // _user.Configuration = configuration;  sửa code chỗ này
-            await _context.Users.AddAsync(_user);
-            await _context.SaveChangesAsync();
-            return new ApiResponse<UserResponse>(0, "Create User success")
+            var roleExists = await _context.Roles.AnyAsync(r => r.Id == request.RoleId);
+            if (!roleExists)
             {
-                Data = ToUser(_user)
-            };
+                return new ApiResponse<UserResponse>(1, "Role không tồn tại.");
+            }
         }
-        catch (Exception ex)
+
+        // Kiểm tra GroupRolePermission có tồn tại không
+        var groupRoleExists = await _context.ModulePermissions.AnyAsync(g => g.Id == request.GroupRolePermission);
+        if (!groupRoleExists)
         {
-            return new ApiResponse<UserResponse>(1, "Create User error : " + ex);
+            return new ApiResponse<UserResponse>(1, "Group Role Permission không hợp lệ.");
         }
+
+        // Kiểm tra StudentStatus & TeacherStatus
+        var studentStatusExists = await _context.StudentStatuses.AnyAsync(s => s.Id == request.StudentStatusId);
+        var teacherStatusExists = await _context.TeacherStatuses.AnyAsync(t => t.Id == request.TeacherStatusId);
+        if (!studentStatusExists || !teacherStatusExists)
+        {
+            return new ApiResponse<UserResponse>(1, "StudentStatus hoặc TeacherStatus không hợp lệ.");
+        }
+
+        // Map dữ liệu từ request sang entity
+        var user = _mapper.Map<User>(request);
+        user.IsDelete = false;
+        user.CreateAt = DateTime.Now;
+
+        // Thêm vào database
+        await _userRepository.AddAsync(user);
+
+        return new ApiResponse<UserResponse>(0, "User created successfully.")
+        {
+            Data = _mapper.Map<UserResponse>(user)
+        };
+
+
     }
+
+
 
     public async Task<ApiResponse<UserResponse>> Delete(int id)
     {
-        var _user = await _context.Users.FindAsync(id);
-        if (_user != null)
+        try
         {
-            try
-            {
-                _context.Users.Remove(_user);
-            }
-            catch (Exception ex)
-            {
-                _user.IsDelete = true;
+            var user = await _userRepository.FindAsync(id);
+            if (user == null)
+                return new ApiResponse<UserResponse>(1, "User not found.");
 
-            }
-            await _context.SaveChangesAsync();
-            return new ApiResponse<UserResponse>(0, "Delete User success");
+            user.IsDelete = true;
+            user.UpdateAt = DateTime.Now;
+            await _userRepository.UpdateAsync(user);
+
+            return new ApiResponse<UserResponse>(0, "User deleted successfully.");
         }
-
-        else
+        catch (Exception ex)
         {
-            return new ApiResponse<UserResponse>(1, "User does not exist.");
+            _logger.LogError(ex, $"Error while deleting user with ID {id}.");
+            return new ApiResponse<UserResponse>(-1, "An error occurred while deleting the user.");
         }
     }
 
-    public async Task<ApiResponse<List<UserResponse>>> GetAll()
+
+    public async Task<ApiResponse<List<UserResponse>>> GetAll(int pageNumber, int pageSize)
     {
-        var users = await _context.Users.ToListAsync();
+        var users = await _userRepository.GetAllAsync(pageNumber, pageSize);
         if (users.Any())
         {
-            var userResponses = users.Select(user => ToUser(user)).ToList();
+            var userResponses = users.Select(user => _mapper.Map<UserResponse>(user)).ToList();
+            return new ApiResponse<List<UserResponse>>(0, "GetAll User success.")
+            {
+                Data = userResponses
+            };
+        }
+        else
+        {
+            return new ApiResponse<List<UserResponse>>(1, "No User found.");
+        }
+    }
+
+    public async Task<ApiResponse<List<UserResponse>>> GetAllByIds(List<int> ids, int pageNumber, int pageSize)
+    {
+        var users = await _userRepository.GetAllByIdsAsync(ids, pageNumber, pageSize);
+        if (users.Any())
+        {
+            var userResponses = users.Select(user => _mapper.Map<UserResponse>(user)).ToList();
             return new ApiResponse<List<UserResponse>>(0, "GetAll User success.")
             {
                 Data = userResponses
@@ -82,89 +131,45 @@ public class UserService : IUserService
 
     public async Task<ApiResponse<UserResponse>> Search(int id)
     {
-        var user = await _context.Users.FindAsync(id);
-        if (user != null)
+        try
         {
-            return new ApiResponse<UserResponse>(0, "Found success.")
+            var user = await _userRepository.FindAsync(id);
+            if (user == null)
+                return new ApiResponse<UserResponse>(1, "User not found.");
+
+            return new ApiResponse<UserResponse>(0, "User found.")
             {
-                Data = ToUser(user)
+                Data = _mapper.Map<UserResponse>(user)
             };
         }
-        else
+        catch (Exception ex)
         {
-            return new ApiResponse<UserResponse>(1, "User does not exist.");
+            _logger.LogError(ex, $"Error while searching for user with ID {id}.");
+            return new ApiResponse<UserResponse>(-1, "An error occurred while searching for the user.");
         }
     }
 
-    public UserResponse ToUser(User user)
-    {
-        return new UserResponse
-        {
-            Id = user.Id,
-            // ConfigurationId = user.ConfigurationId, Cả 2 dòng này 
-            // Role = user.Role,
-            Username = user.Username,
-            Password = user.Password,
-            FullName = user.FullName,
-            Email = user.Email,
-            Active = user.Active,
-            IsDelete = user.IsDelete,
-            CreateAt = user.CreateAt,
-            UpdateAt = user.UpdateAt,
-            UserCreate = user.UserCreate,
-            UserUpdate = user.UserUpdate
-        };
 
-    }
-
-    public User ToUserRequest(UserRequest user)
+    public async Task<ApiResponse<UserResponse>> Update(int id, UserRequest request)
     {
-        return new User
+        try
         {
-            // ConfigurationId = user.ConfigurationId, Cả 2 dòng này 
-            // Role = user.Role,
-            Username = user.Username,
-            Password = user.Password,
-            FullName = user.FullName,
-            Email = user.Email,
-            Active = user.Active,
-            UserCreate = user.UserCreate,
-            UserUpdate = user.UserUpdate
-        };
-    }
+            var user = await _userRepository.FindAsync(id);
+            if (user == null)
+                return new ApiResponse<UserResponse>(1, "User not found.");
+            user.UpdateAt = DateTime.Now;
+            _mapper.Map(request, user);
+            await _userRepository.UpdateAsync(user);
 
-    public async Task<ApiResponse<UserResponse>> Update(int id, UserRequest user)
-    {
-        var _user = await _context.Users.FindAsync(id);
-        if (_user != null)
-        {
-            try
+            return new ApiResponse<UserResponse>(0, "User updated successfully.")
             {
-                _user.UpdateAt = DateTime.Now;
-                // var configuraton = await _context.SystemSettings.FindAsync(_user.ConfigurationId); Cả 3 dòng này 
-                // _user.Configuration = configuraton;
-                // _user.Role = user.Role;
-                _user.Username = user.Username;
-                _user.Password = user.Password;
-                _user.FullName = user.FullName;
-                _user.Email = user.Email;
-                _user.Active = user.Active;
-                _user.UserCreate = user.UserCreate;
-                _user.UserUpdate = user.UserUpdate;
-                await _context.SaveChangesAsync();
-                return new ApiResponse<UserResponse>(0, "Update User success.")
-                {
-                    Data = ToUser(_user)
-                };
-            }
-            catch (Exception ex)
-            {
-                return new ApiResponse<UserResponse>(1, "Update User error : " + ex);
-            }
+                Data = _mapper.Map<UserResponse>(user)
+            };
         }
-        else
+        catch (Exception ex)
         {
-            return new ApiResponse<UserResponse>(1, "User does not exist.");
+            _logger.LogError(ex, $"Error while updating user with ID {id}.");
+            return new ApiResponse<UserResponse>(-1, "An error occurred while updating the user.");
         }
     }
 

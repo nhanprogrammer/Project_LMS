@@ -10,7 +10,6 @@ namespace Project_LMS.Models
         public Department()
         {
             Classes = new HashSet<Class>();
-            TestExams = new HashSet<TestExam>();
         }
 
         public int Id { get; set; }
@@ -28,6 +27,5 @@ namespace Project_LMS.Models
         public virtual User User { get; set; } = null!;
         
         public virtual ICollection<Class> Classes { get; set; }
-        public virtual ICollection<TestExam> TestExams { get; set; }
     }
 }

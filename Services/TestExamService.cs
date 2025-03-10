@@ -1,186 +1,203 @@
 
-using System.Net.Mail;
-using System.Net.WebSockets;
-using Microsoft.EntityFrameworkCore;
-using Project_LMS.Data;
-using Project_LMS.DTOs.Request;
-using Project_LMS.DTOs.Response;
-using Project_LMS.Interfaces.Services;
-using Project_LMS.Models;
+// using System.Net.Mail;
+// using System.Net.WebSockets;
+// using Microsoft.EntityFrameworkCore;
+// using Project_LMS.Data;
+// using Project_LMS.DTOs.Request;
+// using Project_LMS.DTOs.Response;
+// using Project_LMS.Interfaces.Services;
+// using Project_LMS.Models;
 
 
-namespace Project_LMS.Services;
+// namespace Project_LMS.Services;
 
-public class TestExamService : ITestExamService
-{
+// public class TestExamService : ITestExamService
+// {
 
-    private readonly ApplicationDbContext _context;
+//     private readonly ApplicationDbContext _context;
 
-    public TestExamService(ApplicationDbContext context)
-    {
-        _context = context;
-    }
-    public async Task<ApiResponse<TestExamResponse>> Create(TestExamRequest request)
-    {
-        try
-        {
+//     public TestExamService(ApplicationDbContext context)
+//     {
+//         _context = context;
+//     }
+//     public async Task<ApiResponse<PaginatedResponse<TestExamResponse>>> GetAllTestExamsAsync(string? keyword, int pageNumber, int pageSize)
+//     {
+//         var query = _context.TestExams
+//             .Where(te => !te.IsDelete.HasValue || !te.IsDelete.Value);
 
-            var testExam = ToTestExamRequest(request);
-            testExam.CreateAt = DateTime.Now;
-            testExam.IsDelete = false;
-            var department = await _context.Departments.FindAsync(request.DepartmentId);
-            testExam.Department = department;
-            var testExamType = await _context.TestExamTypes.FindAsync(request.TestExamTypeId);
-            testExam.TestExamType = testExamType;
-            await _context.TestExams.AddAsync(testExam);
-            await _context.SaveChangesAsync();
-            return new ApiResponse<TestExamResponse>(0, "Create TestExam success.")
-            {
-                Data = ToTestExam(testExam)
-            };
-        }
-        catch (Exception ex)
-        {
-            return new ApiResponse<TestExamResponse>(1, "Create TestExam Error : " + ex);
-        }
-    }
+//         if (!string.IsNullOrWhiteSpace(keyword))
+//         {
+//             keyword = keyword.Trim().ToLower();
+//             query = query.Where(te =>
+//                 (te.Topic != null && te.Topic.ToLower().Contains(keyword)) ||
+//                 (te.Description != null && te.Description.ToLower().Contains(keyword))
+//             );
+//         }
 
-    public async Task<ApiResponse<TestExamResponse>> Delete(int id)
-    {
-        var testExam = await _context.TestExams.FindAsync(id);
-        if (testExam != null)
-        {
-            try
-            {
-                _context.TestExams.Remove(testExam);
-                await _context.SaveChangesAsync();
+//         query = query.Include(te => te.Department).Include(te => te.TestExamType);
 
-            }
-            catch (Exception ex)
-            {
-                testExam.IsDelete = true;
-                await _context.SaveChangesAsync();
-            }
-            return new ApiResponse<TestExamResponse>(0, "Delete TestExam success.");
-        }
-        else
-        {
-            return new ApiResponse<TestExamResponse>(1, "TestExam does not exist.");
-        }
-    }
+//         var totalItems = await query.CountAsync();
+//         var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
 
-    public async Task<ApiResponse<List<TestExamResponse>>> GetAll()
-    {
-        var testExams = await _context.TestExams.ToListAsync();
+//         var testExams = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
 
-        var testExamResponses = testExams.Select(testExam => ToTestExam(testExam)).ToList();
+//         var testExamResponses = testExams.Select(te => new TestExamResponse
+//         {
+//             Id = te.Id,
+//             DepartmentId = te.DepartmentId,
+//             TestExamTypeId = te.TestExamTypeId,
+//             Topic = te.Topic,
+//             Form = te.Form,
+//             Duration = te.Duration,
+//             StartDate = te.StartDate,
+//             EndDate = te.EndDate,
+//             Description = te.Description,
+//             Attachment = te.Attachment
+//         }).ToList();
 
-        if (testExams.Any())
-        {
-            ApiResponse<List<TestExamResponse>> response = new ApiResponse<List<TestExamResponse>>(0, "Get all TestExam success.")
-            {
-                Data = testExamResponses
-            };
+//         var paginatedResponse = new PaginatedResponse<TestExamResponse>
+//         {
+//             Items = testExamResponses,
+//             PageNumber = pageNumber,
+//             PageSize = pageSize,
+//             TotalItems = totalItems,
+//             TotalPages = totalPages,
+//             HasPreviousPage = pageNumber > 1,
+//             HasNextPage = pageNumber < totalPages
+//         };
 
-            return response;
-        }
+//         return new ApiResponse<PaginatedResponse<TestExamResponse>>(0, "Success", paginatedResponse);
+//     }
 
-        return new ApiResponse<List<TestExamResponse>>(1, "No TestExams found.");
-    }
+//     public async Task<ApiResponse<TestExamResponse>> GetTestExamByIdAsync(int id)
+//     {
+//         var testExam = await _context.TestExams
+//             .Include(te => te.Department)
+//             .Include(te => te.TestExamType)
+//             .FirstOrDefaultAsync(te => te.Id == id && (!te.IsDelete.HasValue || !te.IsDelete.Value));
 
+//         if (testExam == null)
+//             return new ApiResponse<TestExamResponse>(1, "TestExam not found", null);
 
-    public async Task<ApiResponse<TestExamResponse>> Search(int id)
-    {
-        var testExam = await _context.TestExams.FindAsync(id);
-        if (testExam != null)
-        {
-            return new ApiResponse<TestExamResponse>(0, "found success.")
-            {
-                Data = ToTestExam(testExam)
-            };
-        }
-       return new ApiResponse<TestExamResponse>(1, "Not found.");
-    }
+//         var response = new TestExamResponse
+//         {
+//             Id = testExam.Id,
+//             DepartmentId = testExam.DepartmentId,
+//             TestExamTypeId = testExam.TestExamTypeId,
+//             Topic = testExam.Topic,
+//             Form = testExam.Form,
+//             Duration = testExam.Duration,
+//             StartDate = testExam.StartDate,
+//             EndDate = testExam.EndDate,
+//             Description = testExam.Description,
+//             Attachment = testExam.Attachment
+//         };
+//         return new ApiResponse<TestExamResponse>(0, "Success", response);
+//     }
 
-    public TestExamResponse ToTestExam(TestExam testExam)
-    {
-        return new TestExamResponse
-        {
-            Id = testExam.Id,
-            DepartmentId = testExam.DepartmentId,
-            TestExamTypeId = testExam.TestExamTypeId,
-            Topic = testExam.Topic,
-            Form = testExam.Form,
-            Duration = testExam.Duration,
-            // Classify = testExam.Classify, //Sửa code ở đây 
-            StartDate = testExam.StartDate,
-            EndDate = testExam.EndDate,
-            Description = testExam.Description,
-            Attachment = testExam.Attachment,
-            // SubmissionFormat = testExam.SubmissionFormat,
+//     public async Task<ApiResponse<TestExamResponse>> CreateTestExamAsync(TestExamRequest request)
+//     {
+//         try
+//         {
+//             var testExam = new TestExam
+//             {
+//                 DepartmentId = request.DepartmentId,
+//                 TestExamTypeId = request.TestExamTypeId,
+//                 Topic = request.Topic,
+//                 Form = request.Form,
+//                 Duration = request.Duration,
+//                 StartDate = request.StartDate,
+//                 EndDate = request.EndDate,
+//                 Description = request.Description,
+//                 Attachment = request.Attachment,
+//                 CreateAt = DateTime.UtcNow.ToLocalTime(),
+//                 IsDelete = false
+//             };
 
-        };
-    }
+//             _context.TestExams.Add(testExam);
+//             await _context.SaveChangesAsync();
 
-    public TestExam ToTestExamRequest(TestExamRequest testExam)
-    {
-        return new TestExam
-        {
-            DepartmentId = testExam.DepartmentId,
-            TestExamTypeId = testExam.TestExamTypeId,
-            Topic = testExam.Topic,
-            Form = testExam.Form,
-            Duration = testExam.Duration,
-            // Classify = testExam.Classify, //Sửa code ở đây
-            StartDate = testExam.StartDate,
-            EndDate = testExam.EndDate,
-            Description = testExam.Description,
-            Attachment = testExam.Attachment,
-            // SubmissionFormat = testExam.SubmissionFormat,
-        };
-    }
+//             var response = new TestExamResponse
+//             {
+//                 Id = testExam.Id,
+//                 DepartmentId = testExam.DepartmentId,
+//                 TestExamTypeId = testExam.TestExamTypeId,
+//                 Topic = testExam.Topic,
+//                 Form = testExam.Form,
+//                 Duration = testExam.Duration,
+//                 StartDate = testExam.StartDate,
+//                 EndDate = testExam.EndDate,
+//                 Description = testExam.Description,
+//                 Attachment = testExam.Attachment
+//             };
+//             return new ApiResponse<TestExamResponse>(0, "TestExam created successfully", response);
+//         }
+//         catch (Exception ex)
+//         {
+//             return new ApiResponse<TestExamResponse>(1, $"Error creating TestExam: {ex.Message}", null);
+//         }
+//     }
 
-    public async Task<ApiResponse<TestExamResponse>> Update(int id, TestExamRequest request)
-    {
-        var testExam = await _context.TestExams.FindAsync(id);
-        if (testExam != null)
-        {
+//     public async Task<ApiResponse<TestExamResponse>> UpdateTestExamAsync(int id, TestExamRequest request)
+//     {
+//         try
+//         {
+//             var testExam = await _context.TestExams
+//     .FirstOrDefaultAsync(te => te.Id == id && (te.IsDelete == null || te.IsDelete == false));
 
-            try
-            {
+//             if (testExam == null || testExam.IsDelete == true)
+//                 return new ApiResponse<TestExamResponse>(1, "TestExam not found", null);
 
+//             testExam.DepartmentId = request.DepartmentId;
+//             testExam.TestExamTypeId = request.TestExamTypeId;
+//             testExam.Topic = request.Topic;
+//             testExam.Form = request.Form;
+//             testExam.Duration = request.Duration;
+//             testExam.StartDate = request.StartDate;
+//             testExam.EndDate = request.EndDate;
+//             testExam.Description = request.Description;
+//             testExam.Attachment = request.Attachment;
+//             testExam.UpdateAt = DateTime.UtcNow.ToLocalTime();
 
-                testExam.Topic = request.Topic;
-                testExam.Form = request.Form;
-                testExam.Duration = request.Duration;
-                // testExam.Classify = request.Classify; //Sửa code ở đây
-                testExam.StartDate = request.StartDate;
-                testExam.EndDate = request.EndDate;
-                testExam.Description = request.Description;
-                testExam.Attachment = request.Attachment;
-                // testExam.SubmissionFormat = request.SubmissionFormat;
+//             await _context.SaveChangesAsync();
 
-                var department = await _context.Departments.FindAsync(request.DepartmentId);
-                testExam.Department = department;
-                var testExamType = await _context.TestExamTypes.FindAsync(request.TestExamTypeId);
-                testExam.TestExamType = testExamType;
-                testExam.UpdateAt = DateTime.Now;
-                await _context.SaveChangesAsync();
-                return new ApiResponse<TestExamResponse>(0, "Update TestExam success.")
-                {
-                    Data = ToTestExam(testExam)
-                };
-            }
-            catch (Exception ex)
-            {
-                return new ApiResponse<TestExamResponse>(1, "Update TestExam Error : " + ex);
-            }
+//             var response = new TestExamResponse
+//             {
+//                 Id = testExam.Id,
+//                 DepartmentId = testExam.DepartmentId,
+//                 TestExamTypeId = testExam.TestExamTypeId,
+//                 Topic = testExam.Topic,
+//                 Form = testExam.Form,
+//                 Duration = testExam.Duration,
+//                 StartDate = testExam.StartDate,
+//                 EndDate = testExam.EndDate,
+//                 Description = testExam.Description,
+//                 Attachment = testExam.Attachment
+//             };
+//             return new ApiResponse<TestExamResponse>(0, "TestExam updated successfully", response);
+//         }
+//         catch (Exception ex)
+//         {
+//             return new ApiResponse<TestExamResponse>(1, $"Error updating TestExam: {ex.Message}", null);
+//         }
+//     }
+//     public async Task<ApiResponse<bool>> DeleteTestExamAsync(int id)
+//     {
+//         try
+//         {
+//             var testExam = await _context.TestExams.FindAsync(id);
+//             if (testExam == null || testExam.IsDelete == true)
+//                 return new ApiResponse<bool>(1, "TestExam not found", false);
 
-        }
-        else
-        {
-            return new ApiResponse<TestExamResponse>(1, "TestExam does not exist.");
-        }
-    }
+//             testExam.IsDelete = true;
+//             testExam.UpdateAt = DateTime.UtcNow.ToLocalTime();
 
-}
+//             await _context.SaveChangesAsync();
+//             return new ApiResponse<bool>(0, "TestExam deleted successfully", true);
+//         }
+//         catch (Exception ex)
+//         {
+//             return new ApiResponse<bool>(1, $"Error deleting TestExam: {ex.Message}", false);
+//         }
+//     }
+// }

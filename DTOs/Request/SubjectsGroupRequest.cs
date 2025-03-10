@@ -1,7 +1,7 @@
-// DTOs/Request/SubjectsGroupRequest.cs
+// DTOs/Request/SubjectGroupRequest.cs
 namespace Project_LMS.DTOs.Request
 {
-    public class SubjectsGroupRequest
+    public class SubjectGroupRequest
     {
         public int SubjectId { get; set; }
         public string Name { get; set; }
