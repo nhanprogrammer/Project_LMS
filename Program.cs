@@ -151,7 +151,7 @@ builder.Services.AddScoped<ITestExamTypeRepository, TestExamTypeRepository>();
 // builder.Services.AddScoped<ISubjectRepository, SubjectRepository>();
 builder.Services.AddScoped<ISubjectTypeRepository, SubjectTypeRepository>();
 // builder.Services.AddScoped<ISubjectGroupRepository, SubjectGroupRepository>();
-
+builder.Services.AddScoped<ISystemSettingService, SystemSettingRepository>();
 // builder.Services.AddScoped<ISubjectGroupRepository, SubjectGroupRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IStudentStatusRepository, StudenStatusRepository>();
