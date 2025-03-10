@@ -32,5 +32,6 @@ namespace Project_LMS.Models
         public virtual ICollection<SubjectGroupSubject> SubjectGroupSubjects { get; set; }
         public virtual ICollection<TeacherClassSubject> TeacherClassSubjects { get; set; }
         public virtual ICollection<TeachingAssignment> TeachingAssignments { get; set; }
+        public virtual ICollection<TestExam> TestExams { get; set; }
     }
 }
