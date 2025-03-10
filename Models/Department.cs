@@ -22,6 +22,7 @@ namespace Project_LMS.Models
         public int? UserUpdate { get; set; }
         
         //Foreign key
+        [Column("user_id")]
         public int UserId { get; set; }
         [ForeignKey("UserId")]
         public virtual User User { get; set; } = null!;
