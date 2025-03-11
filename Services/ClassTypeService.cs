@@ -1,114 +1,128 @@
+using AutoMapper;
+using Microsoft.EntityFrameworkCore;
+using Project_LMS.Data;
+using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces;
-using Project_LMS.Interfaces.Responsitories;
 using Project_LMS.Models;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Project_LMS.Services
 {
     public class ClassTypeService : IClassTypeService
     {
-        private readonly IClassTypeRepository _classTypeRepository;
+        private readonly ApplicationDbContext _context;
+        private readonly IMapper _mapper;
 
-        public ClassTypeService(IClassTypeRepository classTypeRepository)
+        public ClassTypeService(ApplicationDbContext context, IMapper mapper)
         {
-            _classTypeRepository = classTypeRepository;
+            _context = context;
+            _mapper = mapper;
         }
 
-        // Lấy tất cả ClassType
-        public async Task<ApiResponse<IEnumerable<ClassType>>> GetAllAsync()
+        public async Task<ApiResponse<PaginatedResponse<ClassTypeResponse>>> GetAllClassTypesAsync(string? keyword, int pageNumber, int pageSize)
         {
             try
             {
-                var classTypes = await _classTypeRepository.GetAllAsync();
-                return new ApiResponse<IEnumerable<ClassType>>(0, "Lấy tất cả các loại lớp thành công.", classTypes);
-            }
-            catch (Exception ex)
-            {
-                return new ApiResponse<IEnumerable<ClassType>>(1, $"Có lỗi xảy ra: {ex.Message}", null);
-            }
-        }
+                var query = _context.ClassTypes
+                    .Where(ct => !(ct.IsDelete ?? false));
 
-        // Lấy ClassType theo ID
-        public async Task<ApiResponse<ClassType>> GetByIdAsync(int id)
-        {
-            try
-            {
-                var classType = await _classTypeRepository.GetByIdAsync(id);
-                if (classType == null)
+                if (!string.IsNullOrWhiteSpace(keyword))
                 {
-                    return new ApiResponse<ClassType>(1, "Không tìm thấy loại lớp học.", null);
-                }
-                return new ApiResponse<ClassType>(0, "Lấy loại lớp học thành công.", classType);
-            }
-            catch (Exception ex)
-            {
-                return new ApiResponse<ClassType>(1, $"Có lỗi xảy ra: {ex.Message}", null);
-            }
-        }
-
-        // Thêm ClassType mới
-        public async Task<ApiResponse<object>> AddAsync(ClassType classType)
-        {
-            try
-            {
-                await _classTypeRepository.AddAsync(classType);
-                return new ApiResponse<object>(0, "Loại lớp học được tạo thành công.", classType);
-            }
-            catch (Exception ex)
-            {
-                return new ApiResponse<object>(1, $"Có lỗi xảy ra: {ex.Message}", null);
-            }
-        }
-
-        public async Task<ApiResponse<object>> UpdateAsync(ClassType classType)
-        {
-            try
-            {
-                var existingClassType = await _classTypeRepository.GetByIdAsync(classType.Id);
-                if (existingClassType == null)
-                {
-                    return new ApiResponse<object>(1, "Không tìm thấy loại lớp học.", null);
+                    keyword = keyword.Trim().ToLower();
+                    query = query.Where(ct =>
+                        (ct.Name != null && ct.Name.ToLower().Contains(keyword)) ||
+                        (ct.Note != null && ct.Note.ToLower().Contains(keyword))
+                    );
                 }
 
-                // Cập nhật thông tin
-                existingClassType.Name = classType.Name;
-                existingClassType.UpdateAt = DateTime.UtcNow;
-                existingClassType.UserUpdate = classType.UserUpdate;
+                query = query.OrderByDescending(ct => ct.Id);
 
-                // Cập nhật vào cơ sở dữ liệu
-                await _classTypeRepository.UpdateAsync(existingClassType);
+                var totalItems = await query.CountAsync();
+                var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
 
-                // Trả về thông báo thành công
-                return new ApiResponse<object>(0, "Loại lớp học đã được cập nhật thành công.", existingClassType);
+                var classTypes = await query
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+
+                var responses = _mapper.Map<List<ClassTypeResponse>>(classTypes);
+
+                var paginatedResponse = new PaginatedResponse<ClassTypeResponse>
+                {
+                    Items = responses,
+                    PageNumber = pageNumber,
+                    PageSize = pageSize,
+                    TotalItems = totalItems,
+                    TotalPages = totalPages,
+                    HasPreviousPage = pageNumber > 1,
+                    HasNextPage = pageNumber < totalPages
+                };
+
+                return new ApiResponse<PaginatedResponse<ClassTypeResponse>>(0, "Success", paginatedResponse);
             }
             catch (Exception ex)
             {
-                return new ApiResponse<object>(1, $"Có lỗi xảy ra: {ex.Message}", null);
+                return new ApiResponse<PaginatedResponse<ClassTypeResponse>>(1, $"Error getting class types: {ex.Message}", null);
             }
         }
 
-
-        // Xóa ClassType theo ID
-        public async Task<ApiResponse<object>> DeleteAsync(int id)
+        public async Task<ApiResponse<ClassTypeResponse>> GetClassTypeByIdAsync(int id)
         {
-            try
-            {
-                var classType = await _classTypeRepository.GetByIdAsync(id);
-                if (classType == null)
-                {
-                    return new ApiResponse<object>(1, "Không tìm thấy loại lớp học.", null); // Trả về lỗi nếu không tìm thấy
-                }
+            var classType = await _context.ClassTypes
+                .FirstOrDefaultAsync(ct => ct.Id == id && !(ct.IsDelete ?? false));
+            
+            if (classType == null)
+                return new ApiResponse<ClassTypeResponse>(1, "ClassType not found", null);
 
-                await _classTypeRepository.DeleteAsync(id);
-                return new ApiResponse<object>(0, "Loại lớp học đã được xóa thành công.", null); // Trả về thông báo thành công khi xóa
-            }
-            catch (Exception ex)
-            {
-                return new ApiResponse<object>(1, $"Có lỗi xảy ra: {ex.Message}", null); // Trả về lỗi nếu có
-            }
+            var response = _mapper.Map<ClassTypeResponse>(classType);
+            return new ApiResponse<ClassTypeResponse>(0, "Success", response);
+        }
+
+        public async Task<ApiResponse<ClassTypeResponse>> CreateClassTypeAsync(ClassTypeRequest request)
+        {
+            var classType = _mapper.Map<ClassType>(request);
+            classType.CreateAt = DateTime.UtcNow.ToLocalTime();
+            classType.IsDelete = false;
+
+            await _context.ClassTypes.AddAsync(classType);
+            await _context.SaveChangesAsync();
+
+            var response = _mapper.Map<ClassTypeResponse>(classType);
+            return new ApiResponse<ClassTypeResponse>(0, "ClassType created successfully", response);
+        }
+
+        public async Task<ApiResponse<ClassTypeResponse>> UpdateClassTypeAsync(int id, ClassTypeRequest request)
+        {
+            var existingClassType = await _context.ClassTypes
+                .FirstOrDefaultAsync(ct => ct.Id == id && !(ct.IsDelete ?? false));
+
+            if (existingClassType == null)
+                return new ApiResponse<ClassTypeResponse>(1, "ClassType not found", null);
+
+            _mapper.Map(request, existingClassType);
+            existingClassType.UpdateAt = DateTime.UtcNow.ToLocalTime();
+
+            await _context.SaveChangesAsync();
+
+            var response = _mapper.Map<ClassTypeResponse>(existingClassType);
+            return new ApiResponse<ClassTypeResponse>(0, "ClassType updated successfully", response);
+        }
+
+        public async Task<ApiResponse<bool>> DeleteClassTypeAsync(int id)
+        {
+            var classType = await _context.ClassTypes.FindAsync(id);
+            if (classType == null || (classType.IsDelete ?? false))
+                return new ApiResponse<bool>(1, "ClassType not found", false);
+
+            classType.IsDelete = true;
+            classType.UpdateAt = DateTime.UtcNow.ToLocalTime();
+        
+            await _context.SaveChangesAsync();
+            return new ApiResponse<bool>(0, "ClassType deleted successfully", true);
         }
     }
 }

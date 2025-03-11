@@ -1,4 +1,6 @@
 ﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
+using Project_LMS.Data;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces.Repositories;
@@ -9,33 +11,54 @@ namespace Project_LMS.Services
 {
     public class SubjectTypeService : ISubjectTypeService
     {
-        private readonly ISubjectTypeRepository _repository;
+        private readonly ApplicationDbContext _context;
         private readonly IMapper _mapper;
 
-        public SubjectTypeService(ISubjectTypeRepository repository, IMapper mapper)
+        public SubjectTypeService(ApplicationDbContext context, IMapper mapper)
         {
-            _repository = repository;
+            _context = context;
             _mapper = mapper;
         }
 
-        public async Task<ApiResponse<PaginatedResponse<SubjectTypeResponse>>> GetAllSubjectTypesAsync(int pageNumber, int pageSize)
+        public async Task<ApiResponse<PaginatedResponse<SubjectTypeResponse>>> GetAllSubjectTypesAsync(string? keyword, int pageNumber, int pageSize)
         {
             try
             {
-                var subjectTypes = await _repository.GetAll(pageNumber, pageSize);
-                var responses = _mapper.Map<List<SubjectTypeResponse>>(subjectTypes)
-                    .OrderByDescending(s => s.Id)
-                    .ToList();
-                
+                var query = _context.SubjectTypes
+                    .Where(st => !(st.IsDelete ?? false));
+
+                // Add search condition if keyword is provided
+                if (!string.IsNullOrWhiteSpace(keyword))
+                {
+                    keyword = keyword.Trim().ToLower();
+                    query = query.Where(st =>
+                        (st.Name != null && st.Name.ToLower().Contains(keyword)) ||
+                        (st.Note != null && st.Note.ToLower().Contains(keyword))
+                    );
+                }
+
+                // Order by Id descending
+                query = query.OrderByDescending(st => st.Id);
+
+                var totalItems = await query.CountAsync();
+                var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+                var subjectTypes = await query
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+
+                var responses = _mapper.Map<List<SubjectTypeResponse>>(subjectTypes);
+
                 var paginatedResponse = new PaginatedResponse<SubjectTypeResponse>
                 {
                     Items = responses,
                     PageNumber = pageNumber,
                     PageSize = pageSize,
-                    TotalItems = responses.Count,
-                    TotalPages = (int)Math.Ceiling(responses.Count / (double)pageSize),
+                    TotalItems = totalItems,
+                    TotalPages = totalPages,
                     HasPreviousPage = pageNumber > 1,
-                    HasNextPage = responses.Count == pageSize
+                    HasNextPage = pageNumber < totalPages
                 };
 
                 return new ApiResponse<PaginatedResponse<SubjectTypeResponse>>(0, "Success", paginatedResponse);
@@ -48,7 +71,9 @@ namespace Project_LMS.Services
 
         public async Task<ApiResponse<SubjectTypeResponse>> GetSubjectTypeByIdAsync(int id)
         {
-            var subjectType = await _repository.GetById(id);
+            var subjectType = await _context.SubjectTypes
+                .FirstOrDefaultAsync(st => st.Id == id && !(st.IsDelete ?? false));
+            
             if (subjectType == null)
                 return new ApiResponse<SubjectTypeResponse>(1, "SubjectType not found", null);
 
@@ -59,28 +84,43 @@ namespace Project_LMS.Services
         public async Task<ApiResponse<SubjectTypeResponse>> CreateSubjectTypeAsync(SubjectTypeRequest request)
         {
             var subjectType = _mapper.Map<SubjectType>(request);
-            var created = await _repository.Add(subjectType);
-            var response = _mapper.Map<SubjectTypeResponse>(created);
+            subjectType.CreateAt = DateTime.UtcNow.ToLocalTime();
+            subjectType.IsDelete = false;
+
+            await _context.SubjectTypes.AddAsync(subjectType);
+            await _context.SaveChangesAsync();
+
+            var response = _mapper.Map<SubjectTypeResponse>(subjectType);
             return new ApiResponse<SubjectTypeResponse>(0, "SubjectType created successfully", response);
         }
 
         public async Task<ApiResponse<SubjectTypeResponse>> UpdateSubjectTypeAsync(int id, SubjectTypeRequest request)
         {
-            var subjectType = _mapper.Map<SubjectType>(request);
-            var updated = await _repository.Update(id, subjectType);
-            if (updated == null)
+            var existingSubjectType = await _context.SubjectTypes
+                .FirstOrDefaultAsync(st => st.Id == id && !(st.IsDelete ?? false));
+
+            if (existingSubjectType == null)
                 return new ApiResponse<SubjectTypeResponse>(1, "SubjectType not found", null);
 
-            var response = _mapper.Map<SubjectTypeResponse>(updated);
+            _mapper.Map(request, existingSubjectType);
+            existingSubjectType.UpdateAt = DateTime.UtcNow.ToLocalTime();
+
+            await _context.SaveChangesAsync();
+
+            var response = _mapper.Map<SubjectTypeResponse>(existingSubjectType);
             return new ApiResponse<SubjectTypeResponse>(0, "SubjectType updated successfully", response);
         }
 
         public async Task<ApiResponse<bool>> DeleteSubjectTypeAsync(int id)
         {
-            var result = await _repository.Delete(id);
-            if (!result)
+            var subjectType = await _context.SubjectTypes.FindAsync(id);
+            if (subjectType == null || (subjectType.IsDelete ?? false))
                 return new ApiResponse<bool>(1, "SubjectType not found", false);
 
+            subjectType.IsDelete = true;
+            subjectType.UpdateAt = DateTime.UtcNow.ToLocalTime();
+        
+            await _context.SaveChangesAsync();
             return new ApiResponse<bool>(0, "SubjectType deleted successfully", true);
         }
     }

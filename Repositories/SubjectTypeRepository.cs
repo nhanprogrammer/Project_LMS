@@ -45,6 +45,7 @@ namespace Project_LMS.Repositories
                 return null;
 
             existing.Name = subjectType.Name;
+            existing.Note = subjectType.Note;
             existing.UpdateAt = DateTime.UtcNow.ToLocalTime();
             existing.UserUpdate = subjectType.UserUpdate;
 
