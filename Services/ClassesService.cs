@@ -23,24 +23,29 @@ namespace Project_LMS.Services
             _context = context;
         }
 
-        public async Task<ApiResponse<PaginatedResponse<ClassListResponse>>> GetClassList(int AcademicYearId, int DepartmentId, int PageNumber = 1, int PageSize = 10)
+        public async Task<ApiResponse<PaginatedResponse<ClassListResponse>>> GetClassList(ClassRequest classRequest)
         {
-            if (PageNumber < 1) PageNumber = 1;
-            if (PageSize < 1) PageSize = 10;
+            if (classRequest.PageNumber < 1) classRequest.PageNumber = 1;
+            if (classRequest.PageSize < 1) classRequest.PageSize = 10;
 
             var query = _context.Classes
-                .Include(c => c.User) // Đảm bảo User được nạp vào
-                .Where(c => c.AcademicYearId == AcademicYearId &&
-                            c.DepartmentId == DepartmentId &&
-                            c.IsDelete == false);
+                .Include(c => c.User)
+                .Where(c =>
+                    (classRequest.AcademicYearId == 0 || c.AcademicYearId == classRequest.AcademicYearId) &&
+                    (classRequest.DepartmentId == 0 || c.DepartmentId == classRequest.DepartmentId) &&
+                    (string.IsNullOrEmpty(classRequest.Key) ||
+                        c.Name.Contains(classRequest.Key) ||
+                        c.User.FullName.Contains(classRequest.Key)) &&
+                    c.IsDelete == false
+                );
 
             int totalItems = await query.CountAsync();
-            int totalPages = (int)Math.Ceiling((double)totalItems / PageSize);
+            int totalPages = (int)Math.Ceiling((double)totalItems / classRequest.PageSize);
 
             var classes = await query
                 .OrderBy(c => c.Id)
-                .Skip((PageNumber - 1) * PageSize)
-                .Take(PageSize)
+                .Skip((classRequest.PageNumber - 1) * classRequest.PageSize)
+                .Take(classRequest.PageSize)
                 .ToListAsync();
 
             var response = new PaginatedResponse<ClassListResponse>
@@ -52,12 +57,12 @@ namespace Project_LMS.Services
                     ClassName = c.Name,
                     HomeroomTeacher = c.User != null ? c.User.FullName : "Chưa có giáo viên"
                 }).ToList(),
-                PageNumber = PageNumber,
-                PageSize = PageSize,
+                PageNumber = classRequest.PageNumber,
+                PageSize = classRequest.PageSize,
                 TotalItems = totalItems,
                 TotalPages = totalPages,
-                HasPreviousPage = PageNumber > 1,
-                HasNextPage = PageNumber < totalPages
+                HasPreviousPage = classRequest.PageNumber > 1,
+                HasNextPage = classRequest.PageNumber < totalPages
             };
 
             return new ApiResponse<PaginatedResponse<ClassListResponse>>(0, "Lấy danh sách lớp học thành công", response);
@@ -72,45 +77,137 @@ namespace Project_LMS.Services
                 throw new ArgumentNullException(nameof(classSaveRequest), "Dữ liệu không hợp lệ.");
             }
 
-            var classEntity = await _context.Classes
-                .FirstOrDefaultAsync(c => c.Id == classSaveRequest.Id);
-
-            if (classEntity == null) // Trường hợp thêm mới
+            try
             {
-                classEntity = new Class
+                // Kiểm tra ID hợp lệ trước khi thực hiện logic
+                if (!await _context.AcademicYears.AnyAsync(a => a.Id == classSaveRequest.AcademicYearId))
                 {
-                    AcademicYearId = classSaveRequest.AcademicYearId,
-                    DepartmentId = classSaveRequest.DepartmentId,
-                    ClassTypeId = classSaveRequest.ClassTypeId,
-                    UserId = classSaveRequest.UserId,
-                    ClassCode = StringHelper.NormalizeClassCode(classSaveRequest.ClassName)
-                                + DateTime.Now.ToString("yyyyMMddHHmmss"),
-                    Name = classSaveRequest.ClassName,
-                    StudentCount = classSaveRequest.StudentCount,
-                    Description = classSaveRequest.Description,
-                    ClassLink = "NaN",
-                    PasswordClass = "123456",
-                    IsDelete = false
-                };
+                    throw new KeyNotFoundException("Niên khóa không tồn tại.");
+                }
 
-                _context.Classes.Add(classEntity);
+                if (!await _context.Departments.AnyAsync(d => d.Id == classSaveRequest.DepartmentId))
+                {
+                    throw new KeyNotFoundException("Khoa khối không tồn tại.");
+                }
+
+                if (!await _context.ClassTypes.AnyAsync(ct => ct.Id == classSaveRequest.ClassTypeId))
+                {
+                    throw new KeyNotFoundException("Loại lớp không tồn tại.");
+                }
+
+                if (!await _context.Users.AnyAsync(u => u.Id == classSaveRequest.UserId && u.TeacherStatusId.HasValue))
+                {
+                    throw new KeyNotFoundException("Giáo viên chủ nhiệm không tồn tại hoặc không hợp lệ.");
+                }
+
+                Class classEntity;
+
+                if (classSaveRequest.Id == 0) // Trường hợp thêm mới
+                {
+                    classEntity = new Class
+                    {
+                        AcademicYearId = classSaveRequest.AcademicYearId,
+                        DepartmentId = classSaveRequest.DepartmentId,
+                        ClassTypeId = classSaveRequest.ClassTypeId,
+                        UserId = classSaveRequest.UserId,
+                        ClassCode = StringHelper.NormalizeClassCode(classSaveRequest.ClassName)
+                                    + DateTime.Now.ToString("yyyyMMddHHmmss"),
+                        Name = classSaveRequest.ClassName,
+                        StudentCount = classSaveRequest.StudentCount,
+                        Description = classSaveRequest.Description,
+                        ClassLink = "NaN",
+                        PasswordClass = "123456",
+                        IsDelete = false
+                    };
+
+                    _context.Classes.Add(classEntity);
+                }
+                else
+                {
+                    classEntity = await _context.Classes
+                        .FirstOrDefaultAsync(c => c.Id == classSaveRequest.Id);
+
+                    if (classEntity == null)
+                    {
+                        throw new KeyNotFoundException("Không tìm thấy lớp học cần cập nhật.");
+                    }
+
+                    if (classEntity.IsDelete == true)
+                    {
+                        throw new InvalidOperationException("Không thể cập nhật lớp học đã bị xóa.");
+                    }
+
+                    // Cập nhật dữ liệu lớp học
+                    classEntity.AcademicYearId = classSaveRequest.AcademicYearId;
+                    classEntity.DepartmentId = classSaveRequest.DepartmentId;
+                    classEntity.ClassTypeId = classSaveRequest.ClassTypeId;
+                    classEntity.UserId = classSaveRequest.UserId;
+                    classEntity.Name = classSaveRequest.ClassName;
+                    classEntity.StudentCount = classSaveRequest.StudentCount;
+                    classEntity.Description = classSaveRequest.Description;
+                    classEntity.IsDelete = false;
+
+                    _context.Classes.Update(classEntity);
+                }
+
+                await _context.SaveChangesAsync();
+
+                // Cập nhật môn học cho lớp
+                if (classSaveRequest.Ids != null && classSaveRequest.Ids.Count > 0)
+                {
+                    // Lấy danh sách ID môn học hợp lệ
+                    var validSubjectIds = await _context.Subjects
+                        .Where(s => classSaveRequest.Ids.Contains(s.Id))
+                        .Select(s => s.Id)
+                        .ToListAsync();
+
+                    // Kiểm tra xem có môn học nào không hợp lệ
+                    var invalidSubjects = classSaveRequest.Ids.Except(validSubjectIds).ToList();
+                    if (invalidSubjects.Any())
+                    {
+                        throw new KeyNotFoundException($"Các môn học không tồn tại: {string.Join(", ", invalidSubjects)}");
+                    }
+
+                    // Xóa tất cả các môn học hiện tại của lớp trước khi thêm mới
+                    var existingClassSubjects = _context.ClassSubjects
+                        .Where(cs => cs.ClassId == classEntity.Id);
+
+                    _context.ClassSubjects.RemoveRange(existingClassSubjects);
+
+                    // Thêm mới danh sách môn học
+                    var newClassSubjects = classSaveRequest.Ids
+                        .Select(subjectId => new ClassSubject
+                        {
+                            SubjectId = subjectId,
+                            ClassId = classEntity.Id
+                        })
+                        .ToList();
+
+                    await _context.ClassSubjects.AddRangeAsync(newClassSubjects);
+                    await _context.SaveChangesAsync();
+                }
+
             }
-            else // Trường hợp cập nhật
+            catch (KeyNotFoundException ex)
             {
-                classEntity.AcademicYearId = classSaveRequest.AcademicYearId;
-                classEntity.DepartmentId = classSaveRequest.DepartmentId;
-                classEntity.ClassTypeId = classSaveRequest.ClassTypeId;
-                classEntity.UserId = classSaveRequest.UserId;
-                classEntity.Name = classSaveRequest.ClassName;
-                classEntity.StudentCount = classSaveRequest.StudentCount;
-                classEntity.Description = classSaveRequest.Description;
-                classEntity.IsDelete = false;
-
-                _context.Classes.Update(classEntity);
+                Console.WriteLine($"[ERROR] {ex.Message}");
+                throw;
             }
-
-            await _context.SaveChangesAsync();
+            catch (InvalidOperationException ex)
+            {
+                Console.WriteLine($"[ERROR] {ex.Message}");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Lỗi khi lưu lớp học: {ex.Message}");
+                throw new Exception("Đã xảy ra lỗi trong quá trình lưu lớp học. Vui lòng thử lại.");
+            }
         }
+
+
+
+
 
 
         // Lấy danh sách môn học, nhưng loại trừ các môn có ID trong danh sách đã chọn
@@ -164,92 +261,104 @@ namespace Project_LMS.Services
                 SubjectName = s.SubjectName
             }).ToList();
 
-            return new ApiResponse<List<SubjectListResponse>>(0, "Lấy thông tin chi tiết lớp học thành công", response);
+            return new ApiResponse<List<SubjectListResponse>>(0, "Lấy thông tin môn học kế thừa thành công", response);
         }
 
 
         public async Task<bool> DeleteClass(List<int> classIds)
         {
+            if (classIds == null || !classIds.Any())
+            {
+                throw new ArgumentException("Danh sách ID lớp học không hợp lệ.", nameof(classIds));
+            }
+
             var classEntities = await _context.Classes
                 .Where(c => classIds.Contains(c.Id))
                 .ToListAsync();
 
-            if (classEntities.Any())
+            if (!classEntities.Any())
             {
-                foreach (var classEntity in classEntities)
-                {
-                    classEntity.IsDelete = true;
-                }
-
-                await _context.SaveChangesAsync();
-                return true;
+                throw new KeyNotFoundException("Không tìm thấy lớp nào để xóa.");
             }
-            return false;
+
+            // Chỉ lấy các lớp chưa bị xóa để cập nhật
+            var classesToDelete = classEntities.Where(c => c.IsDelete == false).ToList();
+
+            if (!classesToDelete.Any())
+            {
+                return false; // Không có lớp nào hợp lệ để xóa
+            }
+
+            classesToDelete.ForEach(c => c.IsDelete = true);
+            await _context.SaveChangesAsync();
+
+            return true;
         }
 
 
-        public async Task<ApiResponse<ClassDetailResponse>> GetClassDetail(int classId)
+
+
+
+        public async Task<ClassDetailResponse> GetClassDetail(int classId)
         {
             try
             {
                 var classEntity = await _context.Classes
                     .AsNoTracking()
-                    .Include(c => c.AcademicYear)
-                    .Include(c => c.Department)
-                    .Include(c => c.ClassType)
-                    .Include(c => c.User)
+                    .Where(c => c.IsDelete == false)
+                  .Include(c => c.AcademicYear)
+                //  .Include(c => c.Department)
+                   .Include(c => c.ClassType)
+                  .Include(c => c.User)
                     .FirstOrDefaultAsync(c => c.Id == classId);
 
                 if (classEntity == null)
                 {
-                    return new ApiResponse<ClassDetailResponse>(1, "Không tìm thấy lớp học");
+                    throw new KeyNotFoundException("Không tìm thấy lớp học");
                 }
+                string depar = _context.Departments
+                                   .AsNoTracking()
+                                   .Where(d => d.Id == classEntity.DepartmentId)
+                                   .Select(d => d.Name)
+                                   .FirstOrDefault() ?? "N/A";
+
 
                 var classStudentEntity = await _context.ClassStudents
                     .AsNoTracking()
-                    .Where(cs => cs.ClassId == classId)
-                    .Include(cs => cs.User)
-                    .ThenInclude(u => u.StudentStatus)
+                    .Where(cs => cs.IsDelete == false && cs.ClassId == classId)
+                    .Include(cs => cs.User).ThenInclude(u => u.StudentStatus)
                     .ToListAsync();
 
-                // ✅ Bọc try-catch cho truy vấn subjectClass
-                List<Subject> subjectClass = new();
-                try
-                {
-                    subjectClass = await _context.Subjects
-                        .AsNoTracking()
-                        .Where(s => s.ClassSubjects != null && s.ClassSubjects.Any(cs => cs.ClassId == classId))
-                        .ToListAsync();
+                var classSubjectEntity = await _context.ClassSubjects
+                    .AsNoTracking()
+                    .Where(cs => cs.IsDelete == false && cs.ClassId == classId)
+                    .Include(cs => cs.Subject)
+                        .ThenInclude(s => s.SubjectType)
+                    .ToListAsync();
 
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[WARNING] Không thể tải danh sách môn học: {ex.Message}");
-                }
+                string acade = classEntity.AcademicYear?.StartDate != null && classEntity.AcademicYear?.EndDate != null
+     ? $"{classEntity.AcademicYear.StartDate:yyyy} - {classEntity.AcademicYear.EndDate:yyyy}"
+     : "N/A";
 
-                var response = new ClassDetailResponse
+                return new ClassDetailResponse
                 {
                     Id = classEntity.Id,
-                    AcademicYearName = classEntity.AcademicYear != null
-                        ? $"{classEntity.AcademicYear.StartDate:yyyy} - {classEntity.AcademicYear.EndDate:yyyy}"
-                        : "N/A",
-                    DepartmentName = classEntity.Department?.Name ?? "N/A",
+                    AcademicYearName = acade,
+                    DepartmentName = depar,
                     ClassCode = classEntity.ClassCode,
                     ClassName = classEntity.Name,
                     HomeroomTeacher = classEntity.User?.FullName ?? "Chưa có",
                     StudentCount = classEntity.StudentCount > 0 ? classEntity.StudentCount.ToString() : "0",
                     ClassType = classEntity.ClassType?.Name ?? "N/A",
-                    SubjectCount = subjectClass.Any() ? subjectClass.Count.ToString() : "0",
+                    SubjectCount = classSubjectEntity.Any() ? classSubjectEntity.Count.ToString() : "0",
                     Description = classEntity.Description,
 
                     ClassDetailStudentResponse = classStudentEntity.Select(s => new ClassDetailStudentResponse
                     {
-                        Id = s.User?.Id ?? 0,
+                        Id = s.UserId ?? 0,
                         StudentCode = s.User?.UserCode ?? "N/A",
                         StudentName = s.User?.FullName ?? "N/A",
-                        AcademicYear = classEntity.AcademicYear != null
-                            ? $"{classEntity.AcademicYear.StartDate:yyyy} - {classEntity.AcademicYear.EndDate:yyyy}"
-                            : "N/A",
+                        AcademicYear = acade,
                         AdmissionDate = s.User?.StartDate.HasValue == true
                             ? s.User.StartDate.Value.ToString("dd/MM/yyyy")
                             : "N/A",
@@ -257,27 +366,22 @@ namespace Project_LMS.Services
                         StudentStatusId = s.User?.StudentStatusId ?? 0
                     }).ToList(),
 
-                    // ✅ Kiểm tra danh sách môn học
-                    ClassDetailSubjectResponse = subjectClass.Any()
-                        ? subjectClass.Select(s => new ClassDetailSubjectResponse
-                        {
-                            SubjectCode = s.SubjectCode,
-                            SubjectName = s.SubjectName,
-                            SubjectType = s.SubjectType?.Name ?? "N/A",
-                            Semester1LessonCount = s.Semester1PeriodCount?.ToString() ?? "0",
-                            Semester2LessonCount = s.Semester2PeriodCount?.ToString() ?? "0"
-                        }).ToList()
-                        : new List<ClassDetailSubjectResponse>()
+                    ClassDetailSubjectResponse = classSubjectEntity.Select(s => new ClassDetailSubjectResponse
+                    {
+                        SubjectCode = s.Subject?.SubjectCode ?? "N/A",
+                        SubjectName = s.Subject?.SubjectName ?? "N/A",
+                        SubjectType = s.Subject?.SubjectType?.Name ?? "N/A",
+                        Semester1LessonCount = s.Subject?.Semester1PeriodCount?.ToString() ?? "0",
+                        Semester2LessonCount = s.Subject?.Semester2PeriodCount?.ToString() ?? "0"
+                    }).ToList()
                 };
-
-                return new ApiResponse<ClassDetailResponse>(0, "Lấy thông tin chi tiết lớp học thành công", response);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERROR] {ex.Message}");
-                return new ApiResponse<ClassDetailResponse>(-1, "Lỗi hệ thống, vui lòng thử lại sau");
+                throw new Exception("Xảy ra lỗi: " + ex.Message);
             }
         }
+
 
 
 

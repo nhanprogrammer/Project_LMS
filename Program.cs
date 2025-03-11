@@ -101,7 +101,7 @@ builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddScoped<IClassService, ClassService>();
 // builder.Services.AddScoped<ILessonsService, LessonService>();
 builder.Services.AddScoped<IFavouritesService, FavouritesService>();
-builder.Services.AddScoped<IDepartmentsService, DepartmentsService>();
+// builder.Services.AddScoped<IDepartmentsService, DepartmentsService>();
 builder.Services.AddScoped<IDisciplinesService, DisciplinesService>();
 builder.Services.AddScoped<IModulesService, ModulesService>();
 // builder.Services.AddScoped<IClassStudentsOnlineService, ClassStudentOnlineService>();
@@ -155,6 +155,9 @@ builder.Services.AddScoped<ISubjectTypeRepository, SubjectTypeRepository>();
 // builder.Services.AddScoped<ISubjectGroupRepository, SubjectGroupRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IStudentStatusRepository, StudenStatusRepository>();
+builder.Services.AddScoped<IPermissionService, PermissionService>();
+
+
 //mapper
 builder.Services.AddAutoMapper(typeof(MappingProfile));
 builder.Services.AddAutoMapper(typeof(UserMapper));
