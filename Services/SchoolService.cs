@@ -6,6 +6,8 @@ using Project_LMS.DTOs.Response;
 using Project_LMS.Models;
 using Project_LMS.Exceptions;
 using Project_LMS.Helpers;
+using Project_LMS.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace Project_LMS.Services
 {
@@ -13,11 +15,15 @@ namespace Project_LMS.Services
     {
         private readonly ISchoolRepository _schoolRepository;
         private readonly IMapper _mapper;
+        private readonly IServiceProvider _serviceProvider;
+        private readonly ApplicationDbContext _context;
 
-        public SchoolService(ISchoolRepository schoolRepository, IMapper mapper)
+        public SchoolService(ISchoolRepository schoolRepository, IMapper mapper, IServiceProvider serviceProvider, ApplicationDbContext context)
         {
             _schoolRepository = schoolRepository;
             _mapper = mapper;
+            _serviceProvider = serviceProvider;
+            _context = context;
         }
 
         public async Task<IEnumerable<SchoolResponse>> GetAllAsync()
@@ -68,8 +74,17 @@ namespace Project_LMS.Services
 
             var school = _mapper.Map<School>(schoolRequest);
             school.UserCreate = 1;
-            school.IsDelete = false;
 
+            school.IsDelete = false;
+            if (!string.IsNullOrEmpty(schoolRequest.Image))
+            {
+                var cloudinaryService = _serviceProvider.GetService<ICloudinaryService>();
+                if (cloudinaryService == null)
+                {
+                    throw new Exception("Cloudinary service not available");
+                }
+                school.Image = await cloudinaryService.UploadImageAsync(schoolRequest.Image);
+            }
             await _schoolRepository.AddAsync(school);
             return _mapper.Map<SchoolResponse>(school);
         }
@@ -112,7 +127,15 @@ namespace Project_LMS.Services
 
             _mapper.Map(schoolRequest, school);
             school.UserUpdate = 1;
-
+            if (!string.IsNullOrEmpty(schoolRequest.Image))
+            {
+                var cloudinaryService = _serviceProvider.GetService<ICloudinaryService>();
+                if (cloudinaryService == null)
+                {
+                    throw new Exception("Cloudinary service not available");
+                }
+                school.Image = await cloudinaryService.UploadImageAsync(schoolRequest.Image);
+            }
             await _schoolRepository.UpdateAsync(school);
 
             return _mapper.Map<SchoolResponse>(school);
@@ -130,6 +153,27 @@ namespace Project_LMS.Services
             school.UserUpdate = 1;
 
             await _schoolRepository.UpdateAsync(school);
+
+            return _mapper.Map<SchoolResponse>(school);
+        }
+
+        public async Task<ApiResponse<string[]>> GetEducationModelsAsync()
+        {
+            var educationModels = new string[] { "Chính quy", "Công lập", "Tư thục" };
+            return new ApiResponse<string[]>(0, "Lấy danh sách mô hình đào tạo thành công", educationModels);
+        }
+
+        public async Task<SchoolResponse> GetSchoolAndBranchesAsync(int schoolId, List<int> schoolBranchIds)
+        {
+            var school = await _context.Schools
+                .Where(s => s.Id == schoolId && (s.IsDelete == null || s.IsDelete == false))
+                .Include(s => s.SchoolBranches.Where(sb => schoolBranchIds.Contains(sb.Id) && (sb.IsDelete == null || sb.IsDelete == false)))
+                .FirstOrDefaultAsync();
+
+            if (school == null)
+            {
+                return null;
+            }
 
             return _mapper.Map<SchoolResponse>(school);
         }

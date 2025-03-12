@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using Project_LMS.Configurations;
 
 var builder = WebApplication.CreateBuilder(args);
 // Add CORS
@@ -120,6 +121,7 @@ builder.Services.AddScoped<ITestExamTypeService, TestExamTypeService>();
 // builder.Services.AddScoped<ISubjectService, SubjectService>();
 builder.Services.AddScoped<ISubjectTypeService, SubjectTypeService>();
 // builder.Services.AddScoped<ISubjectGroupService, SubjectGroupService>();
+builder.Services.AddScoped<IExcelService, ExcelService>();
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IStudentStatusService, StudentStatusService>();
@@ -159,6 +161,8 @@ builder.Services.AddScoped<IStudentStatusRepository, StudenStatusRepository>();
 builder.Services.AddAutoMapper(typeof(MappingProfile));
 builder.Services.AddAutoMapper(typeof(UserMapper));
 builder.Services.AddAutoMapper(typeof(StudentStatusMapper));
+builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
+builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 //loging
 builder.Services.AddLogging(); // Đăng ký logging
 var app = builder.Build();

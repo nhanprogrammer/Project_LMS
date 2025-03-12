@@ -6,6 +6,9 @@ using Project_LMS.Exceptions;
 using Project_LMS.Filters;
 using Project_LMS.Helpers;
 using System.Text.Json;
+using OfficeOpenXml;
+using System.ComponentModel.DataAnnotations;
+using Project_LMS.Services;
 
 namespace Project_LMS.Controllers
 {
@@ -15,10 +18,14 @@ namespace Project_LMS.Controllers
     public class SchoolController : ControllerBase
     {
         private readonly ISchoolService _schoolService;
+        private readonly IExcelService _excelService;
+        private readonly ICloudinaryService _cloudinaryService;
 
-        public SchoolController(ISchoolService schoolService)
+        public SchoolController(ISchoolService schoolService, IExcelService excelService, ICloudinaryService cloudinaryService)
         {
             _schoolService = schoolService;
+            _excelService = excelService;
+            _cloudinaryService = cloudinaryService;
         }
 
         [HttpGet]
@@ -27,11 +34,26 @@ namespace Project_LMS.Controllers
             try
             {
                 var schools = await _schoolService.GetAllAsync();
-                return Ok(new ApiResponse<IEnumerable<SchoolResponse>>(1, "Lấy danh sách trường thành công", schools));
+                return Ok(new ApiResponse<IEnumerable<SchoolResponse>>(1, "Lấy thông tin trường thành công", schools));
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new ApiResponse<string>(0, "Đã xảy ra lỗi khi lấy danh sách trường", ex.Message));
+            }
+        }
+
+        [HttpGet("education-models")]
+        public async Task<ActionResult<ApiResponse<string[]>>> GetEducationModels()
+        {
+            try
+            {
+                var educationModelsResponse = await _schoolService.GetEducationModelsAsync();
+                var educationModels = educationModelsResponse.Data;
+                return Ok(new ApiResponse<string[]>(0, "Lấy danh sách mô hình đào tạo thành công", educationModels));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi khi lấy danh sách mô hình đào tạo", ex.Message));
             }
         }
 
@@ -143,6 +165,103 @@ namespace Project_LMS.Controllers
             {
                 return StatusCode(500, new ApiResponse<string>(0, "Đã xảy ra lỗi khi xóa trường", ex.Message));
             }
+        }
+
+        [HttpPost("export-excel")]
+        public async Task<ActionResult<ApiResponse<string>>> ExportExcel([FromBody] ExportSchoolExcelRequest request)
+        {
+            try
+            {
+
+                if (request == null || request.SchoolBranchIds == null || !request.SchoolBranchIds.Any())
+                {
+                    return BadRequest(new ApiResponse<string>(0, "SchoolId hoặc danh sách SchoolBranchIds không được để trống", null));
+                }
+
+
+                var school = await _schoolService.GetSchoolAndBranchesAsync(request.SchoolId, request.SchoolBranchIds);
+
+                if (school == null)
+                {
+                    return NotFound(new ApiResponse<string>(0, "Không tìm thấy trường hoặc chi nhánh để xuất Excel", null));
+                }
+
+                var base64String = await _excelService.ExportSchoolAndBranchesToExcelAsync(school, request.SchoolId);
+
+                return Ok(new ApiResponse<string>(1, "Xuất Excel thành công", base64String));
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(new ApiResponse<string>(0, ex.Message, null));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(0, "Đã xảy ra lỗi khi xuất Excel", ex.Message));
+            }
+        }
+
+        [HttpPost("upload-excel")]
+        public async Task<ActionResult<ApiResponse<string>>> UploadExcel([FromBody] UploadFileRequest request)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(request.Base64String))
+                {
+                    return BadRequest(new ApiResponse<string>(0, "Base64 string không được để trống", null));
+                }
+
+                var fileUrl = await _cloudinaryService.UploadExcelAsync(request.Base64String);
+
+                return Ok(new ApiResponse<string>(1, "Tải lên Excel thành công", fileUrl));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponse<string>(0, ex.Message, null));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(0, "Đã xảy ra lỗi khi tải lên Excel", ex.Message));
+            }
+        }
+
+        [HttpPost("upload-doc")]
+        public async Task<ActionResult<ApiResponse<string>>> UploadDoc([FromBody] UploadFileRequest request)
+        {
+            return await UploadFile(request.Base64String, _cloudinaryService.UploadDocAsync);
+        }
+
+        [HttpPost("upload-powerpoint")]
+        public async Task<ActionResult<ApiResponse<string>>> UploadPowerPoint([FromBody] UploadFileRequest request)
+        {
+            return await UploadFile(request.Base64String, _cloudinaryService.UploadPowerPointAsync);
+        }
+
+        private async Task<ActionResult<ApiResponse<string>>> UploadFile(string base64String, Func<string, Task<string>> uploadFunction)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(base64String))
+                {
+                    return BadRequest(new ApiResponse<string>(0, "Base64 string không được để trống", null));
+                }
+
+                var fileUrl = await uploadFunction(base64String);
+
+                return Ok(new ApiResponse<string>(1, "Tải lên thành công", fileUrl));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponse<string>(0, ex.Message, null));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(0, "Đã xảy ra lỗi khi tải lên", ex.Message));
+            }
+        }
+        public class UploadFileRequest
+        {
+            [Required(ErrorMessage = "Base64 string là bắt buộc")]
+            public string Base64String { get; set; } = null!;
         }
     }
 }

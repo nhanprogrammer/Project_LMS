@@ -22,27 +22,34 @@ namespace Project_LMS.Controllers
             [FromQuery, Range(1, int.MaxValue)] int pageSize = 10,
             [FromQuery] string? keyword = null)
         {
-            return _service.GetAll(pageNumber, pageSize,keyword);
+            return _service.GetAll(pageNumber, pageSize, keyword);
         }
 
         [HttpGet("coefficients")]
-        public Task<ApiResponse<List<int>>> GetCoefficients()
+        public async Task<ActionResult<ApiResponse<List<int>>>> GetCoefficients()
         {
-            return _service.GetCoefficients();
+            try
+            {
+                var response = await _service.GetCoefficients();
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(0, "Đã xảy ra lỗi khi lấy danh sách hệ số", ex.Message));
+            }
         }
-        
         [HttpPost]
         public Task<ApiResponse<TestExamTypeResponse>> Create(TestExamTypeRequest request)
         {
             return _service.Create(request);
         }
         [HttpPut("{id}")]
-        public Task<ApiResponse<TestExamTypeResponse>> Update(int id,TestExamTypeRequest request)
+        public Task<ApiResponse<TestExamTypeResponse>> Update(int id, TestExamTypeRequest request)
         {
             return _service.Update(id, request);
-        } 
+        }
         [HttpDelete("{id}")]
-        public Task<ApiResponse<TestExamTypeResponse>> Delete(int id)     
+        public Task<ApiResponse<TestExamTypeResponse>> Delete(int id)
         {
             return _service.Delete(id);
         }

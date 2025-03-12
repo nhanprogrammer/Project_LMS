@@ -4,6 +4,7 @@ using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Exceptions;
 using Project_LMS.Helpers;
+using System.Text.Json;
 
 namespace Project_LMS.Controllers
 {
@@ -25,11 +26,11 @@ namespace Project_LMS.Controllers
             {
 
                 var schoolBranches = await _schoolBranchService.GetAllAsync();
-                return Ok(new ApiResponse<IEnumerable<SchoolBranchResponse>>(1, "Lấy danh sách chi nhánh trường thành công", schoolBranches));
+                return Ok(new ApiResponse<IEnumerable<SchoolBranchResponse>>(0, "Lấy danh sách chi nhánh trường thành công", schoolBranches));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<string>(0, "Đã xảy ra lỗi khi lấy danh sách chi nhánh trường", ex.Message));
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi khi lấy danh sách chi nhánh trường", ex.Message));
             }
         }
 
@@ -41,17 +42,17 @@ namespace Project_LMS.Controllers
                 var schoolBranch = await _schoolBranchService.GetByIdAsync(id);
                 if (schoolBranch == null)
                 {
-                    return NotFound(new ApiResponse<SchoolBranchResponse>(0, "Không tìm thấy chi nhánh trường"));
+                    return NotFound(new ApiResponse<SchoolBranchResponse>(1, "Không tìm thấy chi nhánh trường"));
                 }
-                return Ok(new ApiResponse<SchoolBranchResponse>(1, "Lấy chi nhánh trường thành công", schoolBranch));
+                return Ok(new ApiResponse<SchoolBranchResponse>(0, "Lấy chi nhánh trường thành công", schoolBranch));
             }
             catch (NotFoundException ex)
             {
-                return NotFound(new ApiResponse<string>(0, ex.Message, null));
+                return NotFound(new ApiResponse<string>(1, ex.Message, null));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<string>(0, "Đã xảy ra lỗi khi lấy chi nhánh trường", ex.Message));
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi khi lấy chi nhánh trường", ex.Message));
             }
         }
 
@@ -60,19 +61,20 @@ namespace Project_LMS.Controllers
         {
             try
             {
-                var jsonString = schoolBranchRequest?.ToString();
-                if (string.IsNullOrEmpty(jsonString) || !JsonValidator.IsValidJson(jsonString))
+                string jsonString = JsonSerializer.Serialize(schoolBranchRequest);
+
+                if (!JsonValidator.IsValidJson(jsonString))
                 {
-                    return BadRequest(new ApiResponse<string>(0, "Invalid JSON format", null));
+                    return BadRequest(new ApiResponse<string>(0, "Định dạng JSON không hợp lệ", null));
                 }
 
                 if (schoolBranchRequest == null)
                 {
-                    return BadRequest(new ApiResponse<string>(0, "Request body cannot be null", null));
+                    return BadRequest(new ApiResponse<string>(1, "Request body cannot be null", null));
                 }
 
                 var schoolBranch = await _schoolBranchService.CreateAsync(schoolBranchRequest);
-                return CreatedAtAction(nameof(GetById), new { id = schoolBranch.Id }, new ApiResponse<SchoolBranchResponse>(1, "Tạo chi nhánh trường thành công", schoolBranch));
+                return CreatedAtAction(nameof(GetById), new { id = schoolBranch.Id }, new ApiResponse<SchoolBranchResponse>(0, "Tạo chi nhánh trường thành công", schoolBranch));
             }
             catch (BadRequestException ex)
             {
@@ -80,7 +82,7 @@ namespace Project_LMS.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<string>(0, "Đã xảy ra lỗi khi tạo chi nhánh trường", ex.Message));
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi khi tạo chi nhánh trường", ex.Message));
             }
         }
 
@@ -89,26 +91,27 @@ namespace Project_LMS.Controllers
         {
             try
             {
-                var jsonString = schoolBranchRequest?.ToString();
-                if (string.IsNullOrEmpty(jsonString) || !JsonValidator.IsValidJson(jsonString))
+                string jsonString = JsonSerializer.Serialize(schoolBranchRequest);
+
+                if (!JsonValidator.IsValidJson(jsonString))
                 {
-                    return BadRequest(new ApiResponse<string>(0, "Invalid JSON format", null));
+                    return BadRequest(new ApiResponse<string>(0, "Định dạng JSON không hợp lệ", null));
                 }
 
                 if (schoolBranchRequest == null)
                 {
-                    return BadRequest(new ApiResponse<string>(0, "Request body cannot be null", null));
+                    return BadRequest(new ApiResponse<string>(1, "Request body cannot be null", null));
                 }
                 var schoolBranch = await _schoolBranchService.UpdateAsync(id, schoolBranchRequest);
                 if (schoolBranch == null)
                 {
-                    return NotFound(new ApiResponse<SchoolBranchResponse>(0, "Không tìm thấy chi nhánh trường"));
+                    return NotFound(new ApiResponse<SchoolBranchResponse>(1, "Không tìm thấy chi nhánh trường"));
                 }
-                return Ok(new ApiResponse<SchoolBranchResponse>(1, "Cập nhật chi nhánh trường thành công", schoolBranch));
+                return Ok(new ApiResponse<SchoolBranchResponse>(0, "Cập nhật chi nhánh trường thành công", schoolBranch));
             }
             catch (NotFoundException ex)
             {
-                return NotFound(new ApiResponse<string>(0, ex.Message, null));
+                return NotFound(new ApiResponse<string>(1, ex.Message, null));
             }
             catch (BadRequestException ex)
             {
@@ -116,7 +119,7 @@ namespace Project_LMS.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<string>(0, "Đã xảy ra lỗi khi cập nhật chi nhánh trường", ex.Message));
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi khi cập nhật chi nhánh trường", ex.Message));
             }
         }
 
@@ -128,17 +131,17 @@ namespace Project_LMS.Controllers
                 var schoolBranch = await _schoolBranchService.DeleteAsync(id);
                 if (schoolBranch == null)
                 {
-                    return NotFound(new ApiResponse<SchoolBranchResponse>(0, "Không tìm thấy chi nhánh trường"));
+                    return NotFound(new ApiResponse<SchoolBranchResponse>(1, "Không tìm thấy chi nhánh trường"));
                 }
-                return Ok(new ApiResponse<SchoolBranchResponse>(1, "Xóa chi nhánh trường thành công", schoolBranch));
+                return Ok(new ApiResponse<SchoolBranchResponse>(0, "Xóa chi nhánh trường thành công", schoolBranch));
             }
             catch (NotFoundException ex)
             {
-                return NotFound(new ApiResponse<string>(0, ex.Message, null));
+                return NotFound(new ApiResponse<string>(1, ex.Message, null));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<string>(0, "Đã xảy ra lỗi khi xóa chi nhánh trường", ex.Message));
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi khi xóa chi nhánh trường", ex.Message));
             }
         }
     }

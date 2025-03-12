@@ -1,3 +1,4 @@
+using Project_LMS.DTOs.Response;
 using Project_LMS.Models;
 
 namespace Project_LMS.Interfaces.Repositories

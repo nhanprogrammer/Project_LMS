@@ -1446,8 +1446,7 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.HeadOffice)
                     .HasMaxLength(225)
-                    .HasColumnName("head_office")
-                    .HasDefaultValueSql("false");
+                    .HasColumnName("head_office");
 
                 entity.Property(e => e.Image)
                     .HasColumnName("image");
@@ -1488,14 +1487,13 @@ namespace Project_LMS.Data
                     .HasMaxLength(50)
                     .HasColumnName("school_code");
 
-                entity.Property(e => e.Thcs)
-                    .HasColumnName("thcs")
+                entity.Property(e => e.IsJuniorHigh)
+                    .HasColumnName("is_junior_high")
                     .HasDefaultValueSql("false");
 
-                entity.Property(e => e.Thpt)
-                    .HasColumnName("thpt")
+                entity.Property(e => e.IsHighSchool)
+                    .HasColumnName("is_high_school")
                     .HasDefaultValueSql("false");
-
                 entity.Property(e => e.UpdateAt)
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("update_at")
@@ -1510,10 +1508,6 @@ namespace Project_LMS.Data
                 entity.Property(e => e.Website)
                     .HasMaxLength(255)
                     .HasColumnName("website");
-
-                entity.HasMany(e => e.SchoolBranches)
-                    .WithOne()
-                    .HasForeignKey("school_id");
             });
 
             modelBuilder.Entity<SchoolBranch>(entity =>
@@ -1550,6 +1544,13 @@ namespace Project_LMS.Data
                 entity.Property(e => e.Phone)
                     .HasMaxLength(10)
                     .HasColumnName("phone");
+
+                entity.Property(e => e.SchoolPhone)
+                    .HasMaxLength(10)
+                    .HasColumnName("school_phone");
+
+                entity.Property(e => e.Image)
+                    .HasColumnName("image");
 
                 entity.Property(e => e.SchoolId).HasColumnName("school_id");
 

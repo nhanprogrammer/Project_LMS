@@ -22,8 +22,8 @@ namespace Project_LMS.Models
         public string? District { get; set; } // Quận/Huyện
         public string? Ward { get; set; } // Xã/Phường
         public string? Fax { get; set; } // Số fax
-        public bool? Thcs { get; set; } // Là THCS
-        public bool? Thpt { get; set; } // Là THPT
+        public bool? IsJuniorHigh { get; set; }
+        public bool? IsHighSchool { get; set; }
         public string? EducationModel { get; set; } // Mô hình giáo dục
         public string? Phone { get; set; } // SĐT chung
         public DateTime? EstablishmentDate { get; set; } // Ngày thành lập
@@ -32,7 +32,7 @@ namespace Project_LMS.Models
         public int? UserCreate { get; set; } // Người tạo
         public int? UserUpdate { get; set; } // Người cập nhật
         public bool? IsDelete { get; set; } // Cờ xóa mềm
-        public bool? HeadOffice { get; set; } // Trụ sở chính
+        public string? HeadOffice { get; set; } // Trụ sở chính
 
         public virtual ICollection<SchoolBranch> SchoolBranches { get; set; }
     }

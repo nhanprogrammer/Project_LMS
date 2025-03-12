@@ -4,7 +4,6 @@ namespace Project_LMS.DTOs.Request
 {
     public class SchoolBranchRequest
     {
-        public int Id { get; set; }
 
         [Required(ErrorMessage = "Mã trường là bắt buộc")]
         public int? SchoolId { get; set; }
@@ -21,7 +20,13 @@ namespace Project_LMS.DTOs.Request
 
         [Required(ErrorMessage = "Số điện thoại là bắt buộc")]
         [Phone(ErrorMessage = "Số điện thoại không hợp lệ")]
+        [StringLength(10, ErrorMessage = "Số điện thoại không được vượt quá 10 ký tự")]
         public string Phone { get; set; } = null!;
+
+        [Required(ErrorMessage = "Số điện thoại trường là bắt buộc")]
+        [Phone(ErrorMessage = "Số điện thoại trường không hợp lệ")]
+        [StringLength(10, ErrorMessage = "Số điện thoại trường không được vượt quá 10 ký tự")]
+        public string? SchoolPhone { get; set; } = null!;
 
         [Required(ErrorMessage = "Người quản lý là bắt buộc")]
         public string Manager { get; set; } = null!;
@@ -34,5 +39,6 @@ namespace Project_LMS.DTOs.Request
 
         [Required(ErrorMessage = "Mã phường/xã là bắt buộc")]
         public int? WardId { get; set; }
+        public string? Image { get; set; }
     }
 }
