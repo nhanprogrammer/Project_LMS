@@ -117,6 +117,7 @@ builder.Services.AddScoped<IAssignmentsService, AssignmentsService>();
 builder.Services.AddScoped<IAssignmentDetailsService, AssignmentDetailsService>();
 builder.Services.AddScoped<IChatMessagesService, ChatMessagesService>();
 builder.Services.AddScoped<ITestExamTypeService, TestExamTypeService>();
+builder.Services.AddScoped<ITestExamService, TestExamService>();
 // builder.Services.AddScoped<ISubjectService, SubjectService>();
 builder.Services.AddScoped<ISubjectTypeService, SubjectTypeService>();
 // builder.Services.AddScoped<ISubjectGroupService, SubjectGroupService>();

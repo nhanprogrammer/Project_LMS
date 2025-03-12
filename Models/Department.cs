@@ -28,5 +28,7 @@ namespace Project_LMS.Models
         public virtual User User { get; set; } = null!;
         
         public virtual ICollection<Class> Classes { get; set; }
+        public ICollection<TestExam> TestExams { get; set; }
+
     }
 }

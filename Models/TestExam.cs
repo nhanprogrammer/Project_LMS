@@ -20,7 +20,7 @@ namespace Project_LMS.Models
         public int? ClassId { get; set; }
         public int? UserId { get; set; }
         public string? Topic { get; set; }
-        public bool? IsExam { get; set; }
+        [Column("is_exam")] public bool? IsExam { get; set; }
         public string? Form { get; set; }
         public TimeOnly? Duration { get; set; }
         public DateOnly? StartDate { get; set; }
@@ -42,5 +42,7 @@ namespace Project_LMS.Models
         public virtual ICollection<Examiner> Examiners { get; set; }
         public virtual ICollection<Question> Questions { get; set; }
         public virtual Subject Subject { get; set; }
+        public int? DepartmentId { get; set; }
+        public Department Department { get; set; }
     }
 }

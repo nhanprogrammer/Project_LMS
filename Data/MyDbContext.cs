@@ -897,7 +897,7 @@ namespace Project_LMS.Data
                 entity.Property(e => e.UserId).HasColumnName("user_id");
 
                 entity.Property(e => e.UserUpdate).HasColumnName("user_update");
-
+                entity.Property(e => e.ClassId).HasColumnName("class_id");
                 entity.HasOne(d => d.TestExam)
                     .WithMany(p => p.Examiners)
                     .HasForeignKey(d => d.TestExamId)
@@ -907,6 +907,11 @@ namespace Project_LMS.Data
                     .WithMany(p => p.Examiners)
                     .HasForeignKey(d => d.UserId)
                     .HasConstraintName("fk_examiners_user");
+
+                entity.HasOne(d => d.Class)
+                    .WithMany(p => p.Examiners)
+                    .HasForeignKey(d => d.ClassId)
+                    .HasConstraintName("fk_examiners_class");
             });
 
             modelBuilder.Entity<Favourite>(entity =>
@@ -2137,7 +2142,8 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.TestExamTypeId).HasColumnName("test_exam_type_id");
                 entity.Property(e => e.SubjectId).HasColumnName("subject_id");
-
+                entity.Property(e => e.DepartmentId).HasColumnName("department_id");
+                entity.Property(e => e.ScheduleStatusId).HasColumnName("schedule_status_id");
                 entity.Property(e => e.Topic)
                     .HasMaxLength(50)
                     .HasColumnName("topic");
@@ -2173,11 +2179,16 @@ namespace Project_LMS.Data
                     .WithMany(p => p.TestExams)
                     .HasForeignKey(d => d.SubjectId)
                     .HasConstraintName("fk_test_exams_subjects");
-                
+
                 entity.HasOne(e => e.ExamScheduleStatus)
                     .WithMany(e => e.TestExams)
                     .HasForeignKey(e => e.ScheduleStatusId)
                     .HasConstraintName("fk_test_exams_exam_schedule_status");
+
+                entity.HasOne(d => d.Department)
+                    .WithMany(p => p.TestExams)
+                    .HasForeignKey(d => d.DepartmentId)
+                    .HasConstraintName("fk_test_exam_department");
             });
 
             modelBuilder.Entity<TestExamType>(entity =>
