@@ -2315,6 +2315,8 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.Active).HasColumnName("active");
 
+                entity.Property(e => e.Disable).HasColumnName("disable");
+
                 entity.Property(e => e.Address)
                     .HasMaxLength(255)
                     .HasColumnName("address");
@@ -2393,7 +2395,7 @@ namespace Project_LMS.Data
                     .HasColumnName("gender");
 
                 entity.Property(e => e.GroupRolePermission).HasColumnName("group_role_permission");
-
+                entity.Property(e => e.GroupModulePermissionId).HasColumnName("group_module_permission_id");
                 entity.Property(e => e.Image)
                     .HasMaxLength(255)
                     .HasColumnName("image");

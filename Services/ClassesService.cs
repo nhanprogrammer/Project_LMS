@@ -147,6 +147,7 @@ namespace Project_LMS.Services
                     classEntity.Description = classSaveRequest.Description;
                     classEntity.IsDelete = false;
 
+                    classEntity.UpdateAt = DateTime.Now;
                     _context.Classes.Update(classEntity);
                 }
 
@@ -289,7 +290,12 @@ namespace Project_LMS.Services
                 return false; // Không có lớp nào hợp lệ để xóa
             }
 
-            classesToDelete.ForEach(c => c.IsDelete = true);
+            classesToDelete.ForEach(c =>
+            {
+                c.IsDelete = true;
+                c.UpdateAt = DateTime.Now;
+            });
+
             await _context.SaveChangesAsync();
 
             return true;
@@ -401,6 +407,7 @@ namespace Project_LMS.Services
             }
 
             student.StudentStatusId = statusId;
+            student.UpdateAt = DateTime.Now;
             _context.Users.Update(student);
             await _context.SaveChangesAsync();
 
