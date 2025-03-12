@@ -104,13 +104,6 @@ public class MappingProfile : Profile
         CreateMap<ClassStudentOnline, CreateClassStudentOnlineRequest>();
         CreateMap<ClassStudentOnline, UpdateClassStudentOnlineRequest>();
 
-        CreateMap<ClassType, ClassTypeResponse>()
-            .ForMember(dest => dest.IsDeleted,
-                opt => opt.MapFrom(src => src.IsDelete.HasValue ? src.IsDelete.Value : false))
-            .ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => src.CreateAt ?? DateTime.MinValue));
-        CreateMap<ClassType, UpdateClassTypeRequest>();
-        CreateMap<ClassType, CreateClassTypeRequest>();
-
         CreateMap<CreateDepartmentRequest, Department>()
             .ForMember(dest => dest.DepartmentCode, opt => opt.MapFrom(src => src.DepartmentCode))
             .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
@@ -175,6 +168,10 @@ public class MappingProfile : Profile
 
         CreateMap<Subject, SubjectResponse>();
         CreateMap<SubjectRequest, Subject>();
+        CreateMap<SubjectType, SubjectTypeResponse>();
+        CreateMap<SubjectTypeRequest, SubjectType>();
+        CreateMap<ClassType, ClassTypeResponse>();
+        CreateMap<ClassTypeRequest, ClassType>();
         CreateMap<SchoolTransfer, SchoolTransferResponse>();
         CreateMap<School, SchoolResponse>()
                         .ForMember(dest => dest.Branches, opt => opt.MapFrom(src => src.SchoolBranches));

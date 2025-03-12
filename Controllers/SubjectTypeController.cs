@@ -19,12 +19,13 @@ namespace Project_LMS.Controllers
 
         [HttpGet]
         public async Task<ActionResult<ApiResponse<PaginatedResponse<SubjectTypeResponse>>>> GetAll(
+            [FromQuery] string? keyword = null,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 10)
         {
             try
             {
-                var response = await _subjectTypeService.GetAllSubjectTypesAsync(pageNumber, pageSize);
+                var response = await _subjectTypeService.GetAllSubjectTypesAsync(keyword, pageNumber, pageSize);
                 return Ok(response);
             }
             catch (Exception ex)

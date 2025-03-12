@@ -1,14 +1,14 @@
+using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
-using Project_LMS.Models;
 
 namespace Project_LMS.Interfaces
 {
     public interface IClassTypeService
     {
-        Task<ApiResponse<IEnumerable<ClassType>>> GetAllAsync();  // Lấy tất cả ClassTypes
-        Task<ApiResponse<ClassType>> GetByIdAsync(int id);  // Lấy ClassType theo ID
-        Task<ApiResponse<object>> AddAsync(ClassType classType);  // Thêm ClassType mới
-        Task<ApiResponse<object>> UpdateAsync(ClassType classType);  // Cập nhật ClassType
-        Task<ApiResponse<object>> DeleteAsync(int id);  // Xóa ClassType
+        Task<ApiResponse<PaginatedResponse<ClassTypeResponse>>> GetAllClassTypesAsync(string? keyword, int pageNumber, int pageSize);
+        Task<ApiResponse<ClassTypeResponse>> GetClassTypeByIdAsync(int id);
+        Task<ApiResponse<ClassTypeResponse>> CreateClassTypeAsync(ClassTypeRequest request);
+        Task<ApiResponse<ClassTypeResponse>> UpdateClassTypeAsync(int id, ClassTypeRequest request);
+        Task<ApiResponse<bool>> DeleteClassTypeAsync(int id);
     }
 }
