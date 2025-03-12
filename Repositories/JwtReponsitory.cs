@@ -26,7 +26,8 @@ namespace Project_LMS.Repositories
             {
             new Claim(ClaimTypes.Name, user.Username),
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim("Role", user.Role.ToString())
+            new Claim("Role", user.RoleId.ToString())
+
         };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
@@ -64,16 +65,35 @@ namespace Project_LMS.Repositories
 
             var newUser = new User
             {
-                FullName = username,
-                Password = password,
+                Username = username,
+                Password = hashedPassword,
+                UserCode = GenerateUserCode(),
+                GroupRolePermission = 1,
+                StudentStatusId = 1,
+                TeacherStatusId = 1,
                 //Email = email,
-                //Role = 1
+                RoleId = 1
             };
 
             _context.Users.Add(newUser);
             await _context.SaveChangesAsync();
 
             return newUser;
+        }
+        private string GenerateUserCode()
+        {
+            var random = new Random();
+            string userCode;
+            bool exists;
+
+            do
+            {
+                userCode = "PC" + random.Next(10000, 99999); 
+                exists = _context.Users.Any(u => u.UserCode == userCode);
+            }
+            while (exists);
+
+            return userCode;
         }
     }
 }

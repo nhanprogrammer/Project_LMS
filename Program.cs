@@ -148,9 +148,11 @@ builder.Services.AddScoped<ITestExamTypeRepository, TestExamTypeRepository>();
 builder.Services.AddScoped<ISubjectRepository, SubjectRepository>();
 builder.Services.AddScoped<ISubjectTypeRepository, SubjectTypeRepository>();
 builder.Services.AddScoped<ISubjectsGroupRepository, SubjectsGroupRepository>();
+builder.Services.AddScoped<IJwtReponsitory, JwtReponsitory>();
 
 builder.Services.AddAutoMapper(typeof(MappingProfile));
 
+builder.Services.AddAuthorization();
 var app = builder.Build();
 app.Use(async (context, next) =>
 {
