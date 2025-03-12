@@ -1,8 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Project_LMS.Data;
 using Project_LMS.Models;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Project_LMS.Interfaces.Responsitories;
 
 namespace Project_LMS.Repositories
@@ -23,7 +21,9 @@ namespace Project_LMS.Repositories
 
         public async Task<IEnumerable<Department>> GetAllAsync()
         {
-            return await _context.Departments.Where(ah => (bool)!ah.IsDelete).ToListAsync();
+            return await _context.Departments.Include(d => d.User)
+                .Where(ah => !ah.IsDelete.Value)
+                .ToListAsync();
         }
 
         public async Task AddAsync(Department entity)
@@ -43,7 +43,7 @@ namespace Project_LMS.Repositories
             var entity = await _context.Departments.FindAsync(id);
             if (entity != null)
             {
-                entity.IsDelete = true; 
+                entity.IsDelete = true;
                 _context.Departments.Update(entity);
                 await _context.SaveChangesAsync();
             }

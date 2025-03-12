@@ -3,65 +3,113 @@ using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces;
 
-namespace Project_LMS.Controllers;
-[ApiController]
-[Route("api/[controller]")]
-public class DepartmentController : ControllerBase
+namespace Project_LMS.Controllers
 {
-    private readonly IDepartmentsService _departmentsService;
-
-    public DepartmentController(IDepartmentsService departmentsService)
+    [ApiController]
+    [Route("api/[controller]")]
+    public class DepartmentController : ControllerBase
     {
-        _departmentsService = departmentsService;
-    }
-    
-    [HttpGet]
-    public async Task<IActionResult>  GetAllDepartment()
-    {
-        var response = await _departmentsService.GetAllCoursesAsync();
+        private readonly IDepartmentsService _departmentsService;
 
-        if (response.Status == 1)
+        public DepartmentController(IDepartmentsService departmentsService)
         {
-            return BadRequest(new ApiResponse<List<DepartmentResponse>>(response.Status, response.Message,response.Data)); 
+            _departmentsService = departmentsService;
         }
 
-        return Ok(new ApiResponse<List<DepartmentResponse>>(response.Status, response.Message, response.Data));
-    }
-    
-    [HttpPost]
-    public async Task<IActionResult> CreateDepartment([FromBody] CreateDepartmentRequest request)
-    {
-        var response = await _departmentsService.CreateDepartmentAsync(request);
-
-        if (response.Status == 1)
+        [HttpGet]
+        public async Task<IActionResult> GetAllDepartment([FromQuery] int? pageNumber, [FromQuery] int? pageSize,
+            [FromQuery] string? sortDirection)
         {
-            return BadRequest(new ApiResponse<DepartmentResponse>(response.Status, response.Message,response.Data)); 
+            // Gọi service để lấy danh sách phòng ban
+            var response = await _departmentsService.GetAllCoursesAsync(pageNumber, pageSize, sortDirection);
+
+            // Nếu có lỗi (Status = 1), trả về BadRequest với thông báo và dữ liệu tương ứng
+            if (response.Status == 1)
+            {
+                return BadRequest(new ApiResponse<PaginatedResponse<DepartmentResponse>>(
+                    response.Status,
+                    response.Message,
+                    response.Data
+                ));
+            }
+
+            // Nếu thành công, trả về Ok với thông báo và dữ liệu
+            return Ok(new ApiResponse<PaginatedResponse<DepartmentResponse>>(
+                response.Status,
+                response.Message,
+                response.Data
+            ));
         }
 
-        return Ok(new ApiResponse<DepartmentResponse>(response.Status, response.Message, response.Data));
-    }
-    
-    [HttpPut("{id?}")]
-    public async Task<IActionResult> UpdateDepartment(String id, [FromBody] UpdateDepartmentRequest request)
-    {
-        var response =   await _departmentsService.UpdateDepartmentAsync(id, request);
-        if (response.Status == 1)
+        [HttpGet("search")]
+        public async Task<IActionResult> SearchDepartments
+        (
+            [FromQuery] string? keyword,
+            [FromQuery] int? pageNumber,
+            [FromQuery] int? pageSize,
+            [FromQuery] string? sortDirection
+           )
         {
-            return BadRequest(new ApiResponse<DepartmentResponse>(response.Status, response.Message,response.Data)); 
+            var search = await _departmentsService.SearchDepartmentsAsync(keyword, pageNumber, pageSize, sortDirection);
+
+            return Ok(search);
         }
 
-        return Ok(new ApiResponse<DepartmentResponse>(response.Status, response.Message, response.Data));
-    }
-    
-    [HttpDelete("{id?}")]
-    public async Task<IActionResult> DeleteDepartment(String id)
-    {
-        var response = await _departmentsService.DeleteDepartmentAsync(id);
-        if (response.Status == 1)
+        [HttpGet("departments/{id:int}/classes")]
+        public async Task<IActionResult> GetClassesByDepartmentId([FromRoute] int id)
         {
-            return BadRequest(new ApiResponse<DepartmentResponse>(response.Status, response.Message,response.Data)); 
+            var listClass = await _departmentsService.GetAllClassesAsync(id);
+            return Ok(listClass);
         }
 
-        return Ok(new ApiResponse<DepartmentResponse>(response.Status, response.Message, response.Data));
+        [HttpPost]
+        public async Task<IActionResult> CreateDepartment([FromBody] CreateDepartmentRequest request)
+        {
+            var response = await _departmentsService.CreateDepartmentAsync(request);
+
+            if (response.Status == 1)
+            {
+                return BadRequest(
+                    new ApiResponse<DepartmentResponse>(response.Status, response.Message, response.Data));
+            }
+
+            return Ok(new ApiResponse<DepartmentResponse>(response.Status, response.Message, response.Data));
+        }
+
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> UpdateDepartment(int id, [FromBody] UpdateDepartmentRequest request)
+        {
+            var response = await _departmentsService.UpdateDepartmentAsync(id, request);
+
+            if (response.Status == 1)
+            {
+                return BadRequest(
+                    new ApiResponse<DepartmentResponse>(response.Status, response.Message, response.Data));
+            }
+
+            return Ok(new ApiResponse<DepartmentResponse>(response.Status, response.Message, response.Data));
+        }
+
+        [HttpDelete("{id?}")]
+        public async Task<IActionResult> DeleteDepartment(string id)
+        {
+            var response = await _departmentsService.DeleteDepartmentAsync(id);
+
+            if (response.Status == 1)
+            {
+                return BadRequest(
+                    new ApiResponse<DepartmentResponse>(response.Status, response.Message, response.Data));
+            }
+
+            return Ok(new ApiResponse<DepartmentResponse>(response.Status, response.Message, response.Data));
+        }
+
+        [HttpDelete("batch-delete")]
+        public async Task<IActionResult> DeleteClasses([FromBody] List<int> classIds)
+        {
+            var response = await _departmentsService.DeleteClassById(classIds);
+            return response.Status == 0 ? Ok(response) : BadRequest(response);
+        }
+
     }
 }

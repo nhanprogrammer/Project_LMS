@@ -6,7 +6,7 @@ namespace Project_LMS.Models
     public partial class SystemSetting
     {
         public int Id { get; set; }
-        public int UserId { get; set; }
+        public int? UserId { get; set; }
         public bool? CaptchaEnabled { get; set; }
         public string? CurrentTheme { get; set; }
         public string? Language { get; set; }
@@ -16,6 +16,6 @@ namespace Project_LMS.Models
         public int? UserCreate { get; set; }
         public int? UserUpdate { get; set; }
 
-        public virtual User User { get; set; } = null!;
+        public virtual User? User { get; set; }
     }
 }

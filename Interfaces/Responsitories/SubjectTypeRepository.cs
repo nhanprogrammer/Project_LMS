@@ -1,5 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Project_LMS.Data;
+using Project_LMS.DTOs.Request;
+using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces.Services;
 using Project_LMS.Models;
 
@@ -54,6 +56,31 @@ namespace Project_LMS.Interfaces.Responsitories
             subjectType.IsDelete = true;
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        public Task<ApiResponse<PaginatedResponse<SubjectTypeResponse>>> GetAllSubjectTypesAsync(int pageNumber, int pageSize)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<ApiResponse<SubjectTypeResponse>> GetSubjectTypeByIdAsync(int id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<ApiResponse<SubjectTypeResponse>> CreateSubjectTypeAsync(SubjectTypeRequest request)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<ApiResponse<SubjectTypeResponse>> UpdateSubjectTypeAsync(int id, SubjectTypeRequest request)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<ApiResponse<bool>> DeleteSubjectTypeAsync(int id)
+        {
+            throw new NotImplementedException();
         }
     }
 }

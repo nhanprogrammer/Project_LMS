@@ -6,9 +6,9 @@ namespace Project_LMS.Models
     public partial class ClassOnline
     {
         public int Id { get; set; }
-        public int UserId { get; set; }
-        public string ClassCode { get; set; } = null!;
-        public string ClassTitle { get; set; } = null!;
+        public int? UserId { get; set; }
+        public string? ClassCode { get; set; }
+        public string? ClassTitle { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public string? ClassDescription { get; set; }

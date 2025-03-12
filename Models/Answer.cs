@@ -11,8 +11,8 @@ namespace Project_LMS.Models
         }
 
         public int Id { get; set; }
-        public int QuestionId { get; set; }
-        public string Answer1 { get; set; } = null!;
+        public int? QuestionId { get; set; }
+        public string? Answer1 { get; set; }
         public bool? IsCorrect { get; set; }
         public bool? IsDelete { get; set; }
         public DateTime? CreateAt { get; set; }
@@ -20,7 +20,7 @@ namespace Project_LMS.Models
         public int? UserCreate { get; set; }
         public int? UserUpdate { get; set; }
 
-        public virtual Question Question { get; set; } = null!;
+        public virtual Question? Question { get; set; }
         public virtual ICollection<AssignmentDetail> AssignmentDetails { get; set; }
     }
 }

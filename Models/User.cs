@@ -11,7 +11,8 @@ namespace Project_LMS.Models
             AcademicHolds = new HashSet<AcademicHold>();
             Assignments = new HashSet<Assignment>();
             ChatMessages = new HashSet<ChatMessage>();
-            ClassStudentsOnlines = new HashSet<ClassStudentsOnline>();
+            ClassStudentOnlines = new HashSet<ClassStudentOnline>();
+            ClassStudents = new HashSet<ClassStudent>();
             Classes = new HashSet<Class>();
             Disciplines = new HashSet<Discipline>();
             Examiners = new HashSet<Examiner>();
@@ -19,24 +20,25 @@ namespace Project_LMS.Models
             Lessons = new HashSet<Lesson>();
             NotificationSenders = new HashSet<Notification>();
             NotificationUsers = new HashSet<Notification>();
-            QuestionsAnswers = new HashSet<QuestionsAnswer>();
+            QuestionAnswers = new HashSet<QuestionAnswer>();
             Rewards = new HashSet<Reward>();
             SchoolTransfers = new HashSet<SchoolTransfer>();
-            SubjectsGroups = new HashSet<SubjectsGroup>();
+            SubjectGroups = new HashSet<SubjectGroup>();
             SystemSettings = new HashSet<SystemSetting>();
             TeacherClassSubjects = new HashSet<TeacherClassSubject>();
             TeachingAssignments = new HashSet<TeachingAssignment>();
             TestExams = new HashSet<TestExam>();
             Topics = new HashSet<Topic>();
             UserTrainingRanks = new HashSet<UserTrainingRank>();
+            Departments = new HashSet<Department>();
         }
 
         public int Id { get; set; }
-        public int GroupRolePermission { get; set; }
+        public int? GroupRolePermission { get; set; }
         public int? RoleId { get; set; }
-        public int StudentStatusId { get; set; }
-        public int TeacherStatusId { get; set; }
-        public string UserCode { get; set; } = null!;
+        public int? StudentStatusId { get; set; }
+        public int? TeacherStatusId { get; set; }
+        public string? UserCode { get; set; }
         public string? Username { get; set; }
         public string? Password { get; set; }
         public string? FullName { get; set; }
@@ -82,15 +84,15 @@ namespace Project_LMS.Models
         public DateTime? UpdateAt { get; set; }
         public int? UserCreate { get; set; }
         public int? UserUpdate { get; set; }
-
         public virtual ModulePermission GroupRolePermissionNavigation { get; set; } = null!;
         public virtual Role? Role { get; set; }
-        public virtual StudentStatus StudentStatus { get; set; } = null!;
-        public virtual TeacherStatus TeacherStatus { get; set; } = null!;
+        public virtual StudentStatus? StudentStatus { get; set; }
+        public virtual TeacherStatus? TeacherStatus { get; set; }
         public virtual ICollection<AcademicHold> AcademicHolds { get; set; }
         public virtual ICollection<Assignment> Assignments { get; set; }
         public virtual ICollection<ChatMessage> ChatMessages { get; set; }
-        public virtual ICollection<ClassStudentsOnline> ClassStudentsOnlines { get; set; }
+        public virtual ICollection<ClassStudentOnline> ClassStudentOnlines { get; set; }
+        public virtual ICollection<ClassStudent> ClassStudents { get; set; }
         public virtual ICollection<Class> Classes { get; set; }
         public virtual ICollection<Discipline> Disciplines { get; set; }
         public virtual ICollection<Examiner> Examiners { get; set; }
@@ -98,15 +100,35 @@ namespace Project_LMS.Models
         public virtual ICollection<Lesson> Lessons { get; set; }
         public virtual ICollection<Notification> NotificationSenders { get; set; }
         public virtual ICollection<Notification> NotificationUsers { get; set; }
-        public virtual ICollection<QuestionsAnswer> QuestionsAnswers { get; set; }
+        public virtual ICollection<QuestionAnswer> QuestionAnswers { get; set; }
         public virtual ICollection<Reward> Rewards { get; set; }
         public virtual ICollection<SchoolTransfer> SchoolTransfers { get; set; }
-        public virtual ICollection<SubjectsGroup> SubjectsGroups { get; set; }
+        public virtual ICollection<SubjectGroup> SubjectGroups { get; set; }
         public virtual ICollection<SystemSetting> SystemSettings { get; set; }
         public virtual ICollection<TeacherClassSubject> TeacherClassSubjects { get; set; }
         public virtual ICollection<TeachingAssignment> TeachingAssignments { get; set; }
         public virtual ICollection<TestExam> TestExams { get; set; }
         public virtual ICollection<Topic> Topics { get; set; }
         public virtual ICollection<UserTrainingRank> UserTrainingRanks { get; set; }
+        public virtual ICollection<Department> Departments { get; set; }
+    }
+    public class Jwt
+    {
+        public string Key { get; set; }
+        public string Issuer { get; set; }
+        public string Subject { get; set; }
+        public string Audience { get; set; }
+    }
+
+    public class LoginModel
+    {
+        public string Username { get; set; }
+        public string Password { get; set; }
+    }
+    public class RegisterModel
+    {
+        public string Username { get; set; }
+        public string Password { get; set; }
+        //public string Email { get; set; }
     }
 }

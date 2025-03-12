@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
@@ -7,19 +8,18 @@ namespace Project_LMS.Interfaces
 {
     public interface IClassService
     {
-        Task<ApiResponse<IEnumerable<Class>>> GetAllClassesAsync();
-        Task<ApiResponse<Class>> GetClassByIdAsync(int id);
-        //Task<ApiResponse<Class>> CreateClassAsync(CreateClassRequest request);
-        //Task<ApiResponse<Class>> UpdateClassAsync(int id, UpdateClassRequest request);
+        Task<ApiResponse<PaginatedResponse<ClassListResponse>>> GetClassList(int AcademicYearId, int DepartmentId, int PageNumber = 1, int PageSize = 10);
+        Task SaveClass(ClassSaveRequest classSaveRequest);
 
+        // Lấy danh sách môn học, nhưng loại trừ các môn có ID trong danh sách đã chọn
+        Task<ApiResponse<List<SubjectListResponse>>> GetSubjectsExcluding(List<int> excludedSubjectIds);
 
-        Task<ClassDto> UpdateClassAsync(int id, CreateClassRequest request);
-
-        Task<ClassDto> CreateClassAsync(CreateClassRequest request);
-        Task<ApiResponse<Class>> UpdateClassAsync(int id, UpdateClassRequest request);  // <- Cần kiểm tra
-        Task<ApiResponse<bool>> DeleteClassAsync(int id);  // Cần có
+        // Lấy danh sách môn học mà khối này đã sử dụng từ khóa trước
+        Task<ApiResponse<List<SubjectListResponse>>> GetInheritedSubjects(int academicYearId, int departmentId);
+        Task<bool> DeleteClass(List<int> classId);
+        Task<ApiResponse<ClassDetailResponse>> GetClassDetail(int classId);
+        Task<bool> SaveStudentStatus(int studentId, int statusId);
+        Task<FileContentResult> ExportClassListToExcel(int academicYearId, int departmentId);
+        Task CreateClassByFile(IFormFile file);
     }
 }
-
-
-// note nè Tỷ

@@ -5,11 +5,10 @@ namespace Project_LMS.Interfaces.Services;
 
 public interface ITestExamService
 {
-    
-    Task<ApiResponse<List<TestExamResponse>>> GetAll();
-    Task<ApiResponse<TestExamResponse>> Create(TestExamRequest request);
-    Task<ApiResponse<TestExamResponse>> Update(int id, TestExamRequest request);
-    Task<ApiResponse<TestExamResponse>> Delete(int id);
-    Task<ApiResponse<TestExamResponse>> Search(int id);
+    Task<ApiResponse<PaginatedResponse<TestExamResponse>>> GetAllTestExamsAsync(string? keyword, int? pageNumber, int? pageSize,     string? sortDirection );
+    Task<ApiResponse<TestExamResponse>> GetTestExamByIdAsync(int id);
+    Task<ApiResponse<TestExamResponse>> CreateTestExamAsync(TestExamRequest request);
+    Task<ApiResponse<TestExamResponse>> UpdateTestExamAsync(int id, TestExamRequest request);
+    Task<ApiResponse<bool>> DeleteTestExamAsync(int id);
     
 }

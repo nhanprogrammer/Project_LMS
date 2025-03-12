@@ -11,34 +11,97 @@ namespace Project_LMS.Controllers
     public class TestExamController : ControllerBase
     {
         private readonly ITestExamService _testExamService;
+
         public TestExamController(ITestExamService testExamService)
         {
             _testExamService = testExamService;
         }
+
         [HttpGet]
-        public Task<ApiResponse<List<TestExamResponse>>> getAll()
+        public async Task<IActionResult> GetAllDisciplinesAsync( string? keyword,   int? pageNumber,
+            int? pageSize,
+            string? sortDirection)
         {
-            return _testExamService.GetAll();
+            var response = await _testExamService.GetAllTestExamsAsync(keyword, pageNumber, pageSize, sortDirection);
+
+            if (response.Status == 1)
+            {
+                return BadRequest(
+                    new ApiResponse<PaginatedResponse<TestExamResponse>>(response.Status, response.Message, response.Data));
+            }
+
+            return Ok(new ApiResponse<PaginatedResponse<TestExamResponse>>(response.Status, response.Message, response.Data));
         }
-        [HttpPost]
-        public Task<ApiResponse<TestExamResponse>> Create(TestExamRequest request)
-        {
-            return _testExamService.Create(request);
-        }
-        [HttpPut("{id}")]
-        public Task<ApiResponse<TestExamResponse>> Update(int id, TestExamRequest request)
-        {
-            return _testExamService.Update(id, request);
-        }
-        [HttpDelete("{id}")]
-        public Task<ApiResponse<TestExamResponse>> Delete(int id)
-        {
-            return _testExamService.Delete(id);
-        }
+
+
         [HttpGet("{id}")]
-        public Task<ApiResponse<TestExamResponse>> Search(int id)
+        public async Task<ActionResult<ApiResponse<TestExamResponse>>> GetById(int id)
         {
-            return _testExamService.Search(id);
+            try
+            {
+                var response = await _testExamService.GetTestExamByIdAsync(id);
+                if (response.Status == 1)
+                {
+                    return BadRequest(new ApiResponse<TestExamResponse>(response.Status, response.Message, response.Data));
+                }
+
+                return Ok(new ApiResponse<TestExamResponse>(response.Status, response.Message, response.Data));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, $"Internal server error: {ex.Message}", null));
+            }
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<ApiResponse<TestExamResponse>>> Create([FromBody] TestExamRequest request)
+        {
+            try
+            {
+                var result = await _testExamService.CreateTestExamAsync(request);
+                return CreatedAtAction(nameof(GetById), new { id = result.Data.Id }, result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, $"Internal server error: {ex.Message}", null));
+            }
+        }
+
+        [HttpPut("{id}")]
+        public async Task<ActionResult<ApiResponse<TestExamResponse>>> Update(int id, [FromBody] TestExamRequest request)
+        {
+            try
+            {
+                var result = await _testExamService.UpdateTestExamAsync(id, request);
+                if (result.Data == null)
+                {
+                    return NotFound(new ApiResponse<TestExamResponse>(1, "TestExam not found", null));
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, $"Internal server error: {ex.Message}", null));
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
+        {
+            try
+            {
+                var result = await _testExamService.DeleteTestExamAsync(id);
+                if (!result.Data)
+                {
+                    return NotFound(new ApiResponse<bool>(1, "TestExam not found", false));
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, $"Internal server error: {ex.Message}", null));
+            }
         }
     }
+
 }

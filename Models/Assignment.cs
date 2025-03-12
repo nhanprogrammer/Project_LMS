@@ -11,9 +11,9 @@ namespace Project_LMS.Models
         }
 
         public int Id { get; set; }
-        public int TestExamId { get; set; }
-        public int UserId { get; set; }
-        public int StatusAssignmentId { get; set; }
+        public int? TestExamId { get; set; }
+        public int? UserId { get; set; }
+        public int? StatusAssignmentId { get; set; }
         public DateTime? SubmissionDate { get; set; }
         public int? TotalScore { get; set; }
         public string? SubmissionFile { get; set; }
@@ -25,9 +25,9 @@ namespace Project_LMS.Models
         public int? UserCreate { get; set; }
         public int? UserUpdate { get; set; }
 
-        public virtual StatusAssignment StatusAssignment { get; set; } = null!;
-        public virtual TestExam TestExam { get; set; } = null!;
-        public virtual User User { get; set; } = null!;
+        public virtual StatusAssignment? StatusAssignment { get; set; }
+        public virtual TestExam? TestExam { get; set; }
+        public virtual User? User { get; set; }
         public virtual ICollection<AssignmentDetail> AssignmentDetails { get; set; }
     }
 }

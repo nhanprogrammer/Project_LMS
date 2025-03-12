@@ -16,34 +16,34 @@ namespace Project_LMS.Repositories
             _context = context;
         }
 
-        public async Task<IEnumerable<QuestionsAnswerTopicView>> GetAllAsync()
+        public async Task<IEnumerable<QuestionAnswerTopicView>> GetAllAsync()
         {
-            return await _context.QuestionsAnswerTopicViews.ToListAsync();
+            return await _context.QuestionAnswerTopicViews.ToListAsync();
         }
 
-        public async Task<QuestionsAnswerTopicView?> GetByIdAsync(int id)
+        public async Task<QuestionAnswerTopicView?> GetByIdAsync(int id)
         {
-            return await _context.QuestionsAnswerTopicViews.FindAsync(id);
+            return await _context.QuestionAnswerTopicViews.FindAsync(id);
         }
 
-        public async Task AddAsync(QuestionsAnswerTopicView questionsAnswerTopicView)
+        public async Task AddAsync(QuestionAnswerTopicView questionsAnswerTopicView)
         {
-            await _context.QuestionsAnswerTopicViews.AddAsync(questionsAnswerTopicView);
+            await _context.QuestionAnswerTopicViews.AddAsync(questionsAnswerTopicView);
             await _context.SaveChangesAsync();
         }
 
-        public async Task UpdateAsync(QuestionsAnswerTopicView questionsAnswerTopicView)
+        public async Task UpdateAsync(QuestionAnswerTopicView questionsAnswerTopicView)
         {
-            _context.QuestionsAnswerTopicViews.Update(questionsAnswerTopicView);
+            _context.QuestionAnswerTopicViews.Update(questionsAnswerTopicView);
             await _context.SaveChangesAsync();
         }
 
         public async Task DeleteAsync(int id)
         {
-            var questionsAnswerTopicView = await _context.QuestionsAnswerTopicViews.FindAsync(id);
+            var questionsAnswerTopicView = await _context.QuestionAnswerTopicViews.FindAsync(id);
             if (questionsAnswerTopicView != null)
             {
-                _context.QuestionsAnswerTopicViews.Remove(questionsAnswerTopicView);
+                _context.QuestionAnswerTopicViews.Remove(questionsAnswerTopicView);
                 await _context.SaveChangesAsync();
             }
         }

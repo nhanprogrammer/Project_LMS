@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace Project_LMS.Models
 {
@@ -8,7 +10,6 @@ namespace Project_LMS.Models
         public Department()
         {
             Classes = new HashSet<Class>();
-            TestExams = new HashSet<TestExam>();
         }
 
         public int Id { get; set; }
@@ -19,8 +20,15 @@ namespace Project_LMS.Models
         public DateTime? UpdateAt { get; set; }
         public int? UserCreate { get; set; }
         public int? UserUpdate { get; set; }
-
+        
+        //Foreign key
+        [Column("user_id")]
+        public int UserId { get; set; }
+        [ForeignKey("UserId")]
+        public virtual User User { get; set; } = null!;
+        
         public virtual ICollection<Class> Classes { get; set; }
-        public virtual ICollection<TestExam> TestExams { get; set; }
+        
+        public virtual ICollection<TestExam> TestExams { get; set; } = null!;
     }
 }

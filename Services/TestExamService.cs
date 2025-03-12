@@ -1,10 +1,11 @@
-
 using System.Net.Mail;
 using System.Net.WebSockets;
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Project_LMS.Data;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Interfaces.Responsitories;
 using Project_LMS.Interfaces.Services;
 using Project_LMS.Models;
 
@@ -13,174 +14,146 @@ namespace Project_LMS.Services;
 
 public class TestExamService : ITestExamService
 {
-
+    private readonly ITestExamRepository _testExamRepository;
     private readonly ApplicationDbContext _context;
+    private readonly IMapper _mapper;
 
-    public TestExamService(ApplicationDbContext context)
+    public TestExamService(ITestExamRepository testExamRepository, ApplicationDbContext context, IMapper mapper)
     {
+        _testExamRepository = testExamRepository;
         _context = context;
+        _mapper = mapper;
     }
-    public async Task<ApiResponse<TestExamResponse>> Create(TestExamRequest request)
+
+    public async Task<ApiResponse<PaginatedResponse<TestExamResponse>>> GetAllTestExamsAsync(string? keyword,
+        int? pageNumber, int? pageSize, string? sortDirection)
     {
+        if (pageNumber.HasValue && pageNumber <= 0)
+        {
+            return new ApiResponse<PaginatedResponse<TestExamResponse>>(
+                1,
+                "Giá trị pageNumber phải lớn hơn 0",
+                null
+            );
+        }
+
+        if (pageSize.HasValue && pageSize <= 0)
+        {
+            return new ApiResponse<PaginatedResponse<TestExamResponse>>(
+                1,
+                "Giá trị pageSize phải lớn hơn 0",
+                null
+            );
+        }
+
+        if (!string.IsNullOrEmpty(sortDirection) &&
+            !sortDirection.Equals("asc", StringComparison.OrdinalIgnoreCase) &&
+            !sortDirection.Equals("desc", StringComparison.OrdinalIgnoreCase))
+        {
+            return new ApiResponse<PaginatedResponse<TestExamResponse>>(
+                1,
+                "Giá trị sortDirection phải là 'asc' hoặc 'desc'",
+                null
+            );
+        }
+
         try
         {
+            // 1. Xác định pageNumber, pageSize mặc định
+            var currentPage = pageNumber ?? 1;
+            var currentPageSize = pageSize ?? 10;
 
-            var testExam = ToTestExamRequest(request);
-            testExam.CreateAt = DateTime.Now;
-            testExam.IsDelete = false;
-            var department = await _context.Departments.FindAsync(request.DepartmentId);
-            testExam.Department = department;
-            var testExamType = await _context.TestExamTypes.FindAsync(request.TestExamTypeId);
-            testExam.TestExamType = testExamType;
-            await _context.TestExams.AddAsync(testExam);
-            await _context.SaveChangesAsync();
-            return new ApiResponse<TestExamResponse>(0, "Create TestExam success.")
+            // 2. Lấy danh sách test exams
+            var testExams = await _testExamRepository.GetAllAsync();
+            var testExamQuery = testExams.AsQueryable();
+
+            // 3. Nếu không nhập sortDirection, mặc định là "asc"
+            sortDirection ??= "asc";
+
+            testExamQuery = sortDirection.Equals("desc", StringComparison.OrdinalIgnoreCase)
+                ? testExamQuery.OrderByDescending(te => te.Id).ThenByDescending(te => te.Id)
+                : testExamQuery.OrderBy(te => te.Id).ThenByDescending(te => te.Id);
+
+            // 5. Tính toán tổng số dòng, số trang
+            var totalItems = testExamQuery.Count();
+            var totalPages = (int)Math.Ceiling((double)totalItems / currentPageSize);
+
+            // 6. Phân trang
+            var pagedTestExams = testExamQuery
+                .Skip((currentPage - 1) * currentPageSize)
+                .Take(currentPageSize)
+                .ToList();
+
+            // 7. Map sang DTO
+            var mappedData = _mapper.Map<List<TestExamResponse>>(pagedTestExams);
+
+            // 8. Tạo đối tượng phân trang
+            var paginatedResponse = new PaginatedResponse<TestExamResponse>
             {
-                Data = ToTestExam(testExam)
+                Items = mappedData,
+                PageNumber = currentPage,
+                PageSize = currentPageSize,
+                TotalItems = totalItems,
+                TotalPages = totalPages,
+                HasPreviousPage = currentPage > 1,
+                HasNextPage = currentPage < totalPages
             };
+
+            // 9. Trả về
+            return new ApiResponse<PaginatedResponse<TestExamResponse>>(
+                0,
+                "Lấy dữ liệu thành công",
+                paginatedResponse
+            );
         }
         catch (Exception ex)
         {
-            return new ApiResponse<TestExamResponse>(1, "Create TestExam Error : " + ex);
+            return new ApiResponse<PaginatedResponse<TestExamResponse>>(
+                1,
+                $"Lỗi: {ex.Message}",
+                null
+            );
         }
     }
 
-    public async Task<ApiResponse<TestExamResponse>> Delete(int id)
+
+    public async Task<ApiResponse<TestExamResponse>> GetTestExamByIdAsync(int id)
     {
-        var testExam = await _context.TestExams.FindAsync(id);
-        if (testExam != null)
+        var testExams = await _testExamRepository.GetByIdAsync(id);
+        
+        if (testExams == null)
         {
-            try
-            {
-                _context.TestExams.Remove(testExam);
-                await _context.SaveChangesAsync();
-
-            }
-            catch (Exception ex)
-            {
-                testExam.IsDelete = true;
-                await _context.SaveChangesAsync();
-            }
-            return new ApiResponse<TestExamResponse>(0, "Delete TestExam success.");
-        }
-        else
-        {
-            return new ApiResponse<TestExamResponse>(1, "TestExam does not exist.");
-        }
-    }
-
-    public async Task<ApiResponse<List<TestExamResponse>>> GetAll()
-    {
-        var testExams = await _context.TestExams.ToListAsync();
-
-        var testExamResponses = testExams.Select(testExam => ToTestExam(testExam)).ToList();
-
-        if (testExams.Any())
-        {
-            ApiResponse<List<TestExamResponse>> response = new ApiResponse<List<TestExamResponse>>(0, "Get all TestExam success.")
-            {
-                Data = testExamResponses
-            };
-
-            return response;
+            return new ApiResponse<TestExamResponse>(1, "Nhóm môn học không tồn tại", null);
         }
 
-        return new ApiResponse<List<TestExamResponse>>(1, "No TestExams found.");
-    }
-
-
-    public async Task<ApiResponse<TestExamResponse>> Search(int id)
-    {
-        var testExam = await _context.TestExams.FindAsync(id);
-        if (testExam != null)
+        var testExamResponse = new TestExamResponse()
         {
-            return new ApiResponse<TestExamResponse>(0, "found success.")
-            {
-                Data = ToTestExam(testExam)
-            };
-        }
-       return new ApiResponse<TestExamResponse>(1, "Not found.");
-    }
-
-    public TestExamResponse ToTestExam(TestExam testExam)
-    {
-        return new TestExamResponse
-        {
-            Id = testExam.Id,
-            DepartmentId = testExam.DepartmentId,
-            TestExamTypeId = testExam.TestExamTypeId,
-            Topic = testExam.Topic,
-            Form = testExam.Form,
-            Duration = testExam.Duration,
-            // Classify = testExam.Classify, //Sửa code ở đây 
-            StartDate = testExam.StartDate,
-            EndDate = testExam.EndDate,
-            Description = testExam.Description,
-            Attachment = testExam.Attachment,
-            // SubmissionFormat = testExam.SubmissionFormat,
-
+            Id = testExams.Id,
+            SubjectName = testExams.Subject.SubjectName,
+            StatusExam = testExams.TestExamType.PointTypeName,
+            Duration = testExams.Duration,
+            Semester = testExams.Semesters.Name,
+            StartDate = testExams.StartDate,
+            DepartmentName = testExams.Department.Name,
+            ClassList =  string.Join(", ", testExams.ClassTestExams.Select(e => e.Class.Name)),
+            Examiner =  string.Join("  ", testExams.Examiners.Select(e => e.User.FullName))
         };
+
+        return new ApiResponse<TestExamResponse>(0, "Lấy dữ liệu thành công", testExamResponse);
     }
 
-    public TestExam ToTestExamRequest(TestExamRequest testExam)
+    public Task<ApiResponse<TestExamResponse>> CreateTestExamAsync(TestExamRequest request)
     {
-        return new TestExam
-        {
-            DepartmentId = testExam.DepartmentId,
-            TestExamTypeId = testExam.TestExamTypeId,
-            Topic = testExam.Topic,
-            Form = testExam.Form,
-            Duration = testExam.Duration,
-            // Classify = testExam.Classify, //Sửa code ở đây
-            StartDate = testExam.StartDate,
-            EndDate = testExam.EndDate,
-            Description = testExam.Description,
-            Attachment = testExam.Attachment,
-            // SubmissionFormat = testExam.SubmissionFormat,
-        };
+        throw new NotImplementedException();
     }
 
-    public async Task<ApiResponse<TestExamResponse>> Update(int id, TestExamRequest request)
+    public Task<ApiResponse<TestExamResponse>> UpdateTestExamAsync(int id, TestExamRequest request)
     {
-        var testExam = await _context.TestExams.FindAsync(id);
-        if (testExam != null)
-        {
-
-            try
-            {
-
-
-                testExam.Topic = request.Topic;
-                testExam.Form = request.Form;
-                testExam.Duration = request.Duration;
-                // testExam.Classify = request.Classify; //Sửa code ở đây
-                testExam.StartDate = request.StartDate;
-                testExam.EndDate = request.EndDate;
-                testExam.Description = request.Description;
-                testExam.Attachment = request.Attachment;
-                // testExam.SubmissionFormat = request.SubmissionFormat;
-
-                var department = await _context.Departments.FindAsync(request.DepartmentId);
-                testExam.Department = department;
-                var testExamType = await _context.TestExamTypes.FindAsync(request.TestExamTypeId);
-                testExam.TestExamType = testExamType;
-                testExam.UpdateAt = DateTime.Now;
-                await _context.SaveChangesAsync();
-                return new ApiResponse<TestExamResponse>(0, "Update TestExam success.")
-                {
-                    Data = ToTestExam(testExam)
-                };
-            }
-            catch (Exception ex)
-            {
-                return new ApiResponse<TestExamResponse>(1, "Update TestExam Error : " + ex);
-            }
-
-        }
-        else
-        {
-            return new ApiResponse<TestExamResponse>(1, "TestExam does not exist.");
-        }
+        throw new NotImplementedException();
     }
 
+    public Task<ApiResponse<bool>> DeleteTestExamAsync(int id)
+    {
+        throw new NotImplementedException();
+    }
 }

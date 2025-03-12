@@ -1,12 +1,16 @@
 ﻿namespace Project_LMS.DTOs.Response
 {
-    public class SubjectRespone
+    public class SubjectResponse
     {
         public int Id { get; set; }
-        public string TypeSubjectName { get; set; } = string.Empty;
-        public string SubjectGroupName { get; set; } = string.Empty;
+        public int SubjectTypeId { get; set; }
+        public int SubjectGroupId { get; set; }
         public bool? IsStatus { get; set; }
+        public string? SubjectCode { get; set; }
+        public string? SubjectName { get; set; }
         public string? Description { get; set; }
+        public int? Semester1PeriodCount { get; set; }
+        public int? Semester2PeriodCount { get; set; }
         public DateTime? CreateAt { get; set; }
         public DateTime? UpdateAt { get; set; }
     }

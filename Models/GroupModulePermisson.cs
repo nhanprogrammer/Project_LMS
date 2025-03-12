@@ -6,7 +6,7 @@ namespace Project_LMS.Models
     public partial class GroupModulePermisson
     {
         public int Id { get; set; }
-        public string Name { get; set; } = null!;
+        public string? Name { get; set; }
         public string? Description { get; set; }
         public DateTime? CreateAt { get; set; }
         public DateTime? UpdateAt { get; set; }
