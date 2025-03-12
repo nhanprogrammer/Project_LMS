@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Project_LMS.DTOs.Response
 {
   public class SchoolResponse
@@ -36,7 +38,13 @@ namespace Project_LMS.DTOs.Response
 
     public string? HeadOffice { get; set; }
 
-    public string? Image { get; set; }
-    public List<SchoolBranchResponse> Branches { get; set; } = new List<SchoolBranchResponse>();
+    private List<SchoolBranchResponse>? _branches;
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<SchoolBranchResponse>? Branches
+    {
+        set => _branches = value;                   
+        get => _branches?.Any() == true ? _branches : null; 
+    }
   }
 }
