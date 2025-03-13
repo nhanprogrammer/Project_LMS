@@ -68,13 +68,15 @@ namespace Project_LMS.Data
         public virtual DbSet<TrainingRank> TrainingRanks { get; set; } = null!;
         public virtual DbSet<User> Users { get; set; } = null!;
         public virtual DbSet<UserTrainingRank> UserTrainingRanks { get; set; } = null!;
+        public virtual DbSet<ExamScheduleStatus> ExamScheduleStatusEnumerable { get; set; } = null!;
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             if (!optionsBuilder.IsConfigured)
             {
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
-                optionsBuilder.UseNpgsql("Host=dpg-cv6l940gph6c73dnr7hg-a.oregon-postgres.render.com;Port=5432;Database=lms_rvdc;Username=lms_rvdc_user;Password=GJKc4tITIEh9s1MXQ97tH94RTR8xia8G");
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https: //go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
+                optionsBuilder.UseNpgsql(
+                    "Host=dpg-cv6l940gph6c73dnr7hg-a.oregon-postgres.render.com;Port=5432;Database=lms_rvdc;Username=lms_rvdc_user;Password=GJKc4tITIEh9s1MXQ97tH94RTR8xia8G");
             }
         }
 
@@ -769,6 +771,8 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.UserUpdate).HasColumnName("user_update");
 
+                entity.Property(e => e.UserId).HasColumnName("user_id");
+
                 entity.HasOne(d => d.User)
                     .WithMany(p => p.Departments)
                     .HasForeignKey(d => d.UserId)
@@ -893,7 +897,7 @@ namespace Project_LMS.Data
                 entity.Property(e => e.UserId).HasColumnName("user_id");
 
                 entity.Property(e => e.UserUpdate).HasColumnName("user_update");
-
+                entity.Property(e => e.ClassId).HasColumnName("class_id");
                 entity.HasOne(d => d.TestExam)
                     .WithMany(p => p.Examiners)
                     .HasForeignKey(d => d.TestExamId)
@@ -903,6 +907,11 @@ namespace Project_LMS.Data
                     .WithMany(p => p.Examiners)
                     .HasForeignKey(d => d.UserId)
                     .HasConstraintName("fk_examiners_user");
+
+                entity.HasOne(d => d.Class)
+                    .WithMany(p => p.Examiners)
+                    .HasForeignKey(d => d.ClassId)
+                    .HasConstraintName("fk_examiners_class");
             });
 
             modelBuilder.Entity<Favourite>(entity =>
@@ -2150,7 +2159,9 @@ namespace Project_LMS.Data
                 entity.Property(e => e.StartDate).HasColumnName("start_date");
 
                 entity.Property(e => e.TestExamTypeId).HasColumnName("test_exam_type_id");
-
+                entity.Property(e => e.SubjectId).HasColumnName("subject_id");
+                entity.Property(e => e.DepartmentId).HasColumnName("department_id");
+                entity.Property(e => e.ScheduleStatusId).HasColumnName("schedule_status_id");
                 entity.Property(e => e.Topic)
                     .HasMaxLength(50)
                     .HasColumnName("topic");
@@ -2181,6 +2192,21 @@ namespace Project_LMS.Data
                     .WithMany(p => p.TestExams)
                     .HasForeignKey(d => d.UserId)
                     .HasConstraintName("fk_test_exams_user");
+
+                entity.HasOne(d => d.Subject)
+                    .WithMany(p => p.TestExams)
+                    .HasForeignKey(d => d.SubjectId)
+                    .HasConstraintName("fk_test_exams_subjects");
+
+                entity.HasOne(e => e.ExamScheduleStatus)
+                    .WithMany(e => e.TestExams)
+                    .HasForeignKey(e => e.ScheduleStatusId)
+                    .HasConstraintName("fk_test_exams_exam_schedule_status");
+
+                entity.HasOne(d => d.Department)
+                    .WithMany(p => p.TestExams)
+                    .HasForeignKey(d => d.DepartmentId)
+                    .HasConstraintName("fk_test_exam_department");
             });
 
             modelBuilder.Entity<TestExamType>(entity =>
@@ -2574,6 +2600,20 @@ namespace Project_LMS.Data
                     .HasForeignKey(d => d.UserId)
                     .HasConstraintName("fk_user_training_ranks_user");
             });
+            modelBuilder.Entity<ExamScheduleStatus>(entity =>
+            {
+                entity.ToTable("exam_schedule_statuses");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+
+                entity.Property(e => e.Names).HasColumnName("names");
+
+                entity.HasMany(e => e.TestExams)
+                    .WithOne(e => e.ExamScheduleStatus)
+                    .HasForeignKey(e => e.ScheduleStatusId)
+                    .HasConstraintName("fk_test_exams_schedule_status");
+            });
+
 
             OnModelCreatingPartial(modelBuilder);
         }
