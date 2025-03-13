@@ -99,6 +99,7 @@ builder.Services.AddScoped<IDistrictsService, DistrictsService>();
 builder.Services.AddScoped<IProvincesService, ProvincesService>();
 builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddScoped<IClassService, ClassService>();
+builder.Services.AddScoped<ILessonsService, LessonsService>();
 // builder.Services.AddScoped<ILessonsService, LessonService>();
 builder.Services.AddScoped<IFavouritesService, FavouritesService>();
 // builder.Services.AddScoped<IDepartmentsService, DepartmentsService>();
