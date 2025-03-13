@@ -102,9 +102,9 @@ namespace Project_LMS.Controllers
             try
             {
                 var result = await _testExamService.DeleteTestExamAsync(id);
-                if (!result.Data)
+                if (result.Status == 1)
                 {
-                    return NotFound(new ApiResponse<bool>(1, "TestExam not found", false));
+                    return NotFound(result);
                 }
 
                 return Ok(result);

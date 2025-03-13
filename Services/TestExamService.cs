@@ -433,9 +433,11 @@ public class TestExamService : ITestExamService
         try
         {
             var testExam = await _context.TestExams.FindAsync(id);
-            if (testExam == null || testExam.IsDelete == true)
+            if (testExam == null)
                 return new ApiResponse<bool>(1, "TestExam not found", false);
-
+            if(testExam.IsDelete == true){
+                return new ApiResponse<bool>(1, "TestExam is already deleted", false);
+            }
             testExam.IsDelete = true;
             testExam.UpdateAt = DateTime.UtcNow.ToLocalTime();
 
