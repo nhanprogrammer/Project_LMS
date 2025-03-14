@@ -26,7 +26,7 @@ namespace Project_LMS.Repositories
             {
             new Claim(ClaimTypes.Name, user.Username),
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim("Role", user.Role.ToString())
+            new Claim("Role", user.Role.Name.ToString())
         };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));

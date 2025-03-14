@@ -19,6 +19,11 @@ namespace Project_LMS.Repositories
             await _context.SaveChangesAsync();
         }
 
+        public async Task<int> CountAsync()
+        {
+            return await _context.Users.CountAsync();
+        }
+
         public async Task DeleteAsync(User user)
         {
             _context.Users.Remove(user);

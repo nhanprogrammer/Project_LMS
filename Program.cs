@@ -152,6 +152,7 @@ builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
 builder.Services.AddScoped<ITestExamTypeRepository, TestExamTypeRepository>();
 builder.Services.AddScoped<ISubjectRepository, SubjectRepository>();
 builder.Services.AddScoped<ISubjectTypeRepository, SubjectTypeRepository>();
+builder.Services.AddScoped<IJwtReponsitory, JwtReponsitory>();
 // builder.Services.AddScoped<ISubjectGroupRepository, SubjectGroupRepository>();
 builder.Services.AddScoped<ISystemSettingService, SystemSettingRepository>();
 builder.Services.AddScoped<ITeachingAssignmentService, TeachingAssignmentService>();
@@ -164,6 +165,7 @@ builder.Services.AddAutoMapper(typeof(UserMapper));
 builder.Services.AddAutoMapper(typeof(StudentStatusMapper));
 builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
 builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 //loging
 builder.Services.AddLogging(); // Đăng ký logging
 var app = builder.Build();
