@@ -10,5 +10,7 @@
         public string? Name { get; set; }
         public string? StatusExam { get; set; }
         public string? Examiner { get; set; }
+        public string? ClassList { get; set; }
+        public TimeOnly? Duration { get; set; } 
     }
 }

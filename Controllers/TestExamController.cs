@@ -17,35 +17,40 @@ namespace Project_LMS.Controllers
             _testExamService = testExamService;
         }
 
-        [HttpGet]
-        public async Task<ActionResult<ApiResponse<PaginatedResponse<TestExamResponse>>>> GetAll(
-            [FromQuery] string? keyword = null,
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 10)
+         [HttpGet]
+    public async Task<IActionResult> GetAllDisciplinesAsync(string? keyword, int? pageNumber, int? pageSize, string? sortDirection)
+    {
+        try
         {
-            try
+            var response = await _testExamService.GetAllTestExamsAsync(keyword, pageNumber, pageSize, sortDirection);
+
+            if (response.Status == 1)
             {
-                var response = await _testExamService.GetAllTestExamsAsync(keyword, pageNumber, pageSize);
-                return Ok(response);
+                return BadRequest(new ApiResponse<PaginatedResponse<TestExamResponse>>(response.Status, response.Message, response.Data));
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new ApiResponse<string>(1, $"Internal server error: {ex.Message}", null));
-            }
+
+            return Ok(new ApiResponse<PaginatedResponse<TestExamResponse>>(response.Status, response.Message, response.Data));
         }
+        catch (Exception ex)
+        {
+            // Log the exception (use a logging framework)
+            return StatusCode(500, new ApiResponse<string>(1, "An unexpected error occurred.", ex.Message));
+        }
+    }
+
 
         [HttpGet("{id}")]
         public async Task<ActionResult<ApiResponse<TestExamResponse>>> GetById(int id)
         {
             try
             {
-                var result = await _testExamService.GetTestExamByIdAsync(id);
-                if (result.Data == null)
+                var response = await _testExamService.GetTestExamByIdAsync(id);
+                if (response.Status == 1)
                 {
-                    return NotFound(new ApiResponse<TestExamResponse>(1, "TestExam not found", null));
+                    return BadRequest(new ApiResponse<TestExamResponse>(response.Status, response.Message, response.Data));
                 }
 
-                return Ok(result);
+                return Ok(new ApiResponse<TestExamResponse>(response.Status, response.Message, response.Data));
             }
             catch (Exception ex)
             {

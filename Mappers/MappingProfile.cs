@@ -103,6 +103,13 @@ public class MappingProfile : Profile
         CreateMap<ClassStudentOnline, CreateClassStudentOnlineRequest>();
         CreateMap<ClassStudentOnline, UpdateClassStudentOnlineRequest>();
 
+        CreateMap<ClassType, ClassTypeResponse>()
+            // .ForMember(dest => dest.IsDeleted,
+            //     opt => opt.MapFrom(src => src.IsDelete.HasValue ? src.IsDelete.Value : false))
+            .ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => src.CreateAt ?? DateTime.MinValue));
+        CreateMap<ClassType, UpdateClassTypeRequest>();
+        CreateMap<ClassType, CreateClassTypeRequest>();
+
         CreateMap<CreateDepartmentRequest, Department>()
             .ForMember(dest => dest.DepartmentCode, opt => opt.MapFrom(src => src.DepartmentCode))
             .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
@@ -119,8 +126,8 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.DepartmentID, opt => opt.MapFrom(src => src.Id))
             .ForMember(dest => dest.DepartmentCode, opt => opt.MapFrom(src => src.DepartmentCode))
             .ForMember(dest => dest.DepartmentName, opt => opt.MapFrom(src => src.Name))
-          .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
-          .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User != null ? src.User.FullName : "N/A"));
+            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
+            .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User != null ? src.User.FullName : "N/A"));
 
 
         CreateMap<Discipline, DisciplineResponse>()
@@ -265,14 +272,8 @@ public class MappingProfile : Profile
 
         CreateMap<Subject, SubjectResponse>();
         CreateMap<SubjectRequest, Subject>();
-        CreateMap<SubjectType, SubjectTypeResponse>();
-        CreateMap<SubjectTypeRequest, SubjectType>();
-        CreateMap<ClassType, ClassTypeResponse>();
-        CreateMap<ClassTypeRequest, ClassType>();
         CreateMap<SchoolTransfer, SchoolTransferResponse>();
-        CreateMap<School, SchoolResponse>()
-                        .ForMember(dest => dest.Branches, opt => opt.MapFrom(src => src.SchoolBranches));
-        CreateMap<SchoolBranch, SchoolBranchResponse>();
+
         CreateMap<SubjectGroup, SubjectGroupResponse>()
             .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
             .ForMember(dest => dest.FullName,
@@ -299,6 +300,16 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.UserCreate, opt => opt.MapFrom(src => src.UserCreate))
             .ForMember(dest => dest.SubjectGroupSubjects,
                 opt => opt.MapFrom(src => MapSubjectGroupSubjects(src.SubjectIds)));
+
+        
+        CreateMap<TestExam, TestExamResponse>()
+            .ForMember(dest => dest.Semester, opt => opt.MapFrom(src => src.Semesters.Name))
+            .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
+            .ForMember(dest => dest.DepartmentName, opt => opt.MapFrom(src => src.Department.Name)) 
+            .ForMember(dest => dest.SubjectName, opt => opt.MapFrom(src => src.Subject.SubjectName)) 
+            .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.TestExamType.PointTypeName)) 
+            .ForMember(dest => dest.StatusExam, opt => opt.MapFrom(src => src.ExamScheduleStatus.Names)) 
+            .ForMember(dest => dest.Examiner, opt => opt.MapFrom(src => string.Join(", ", src.Examiners.Select(e => e.User.FullName))));
     }
 
     private List<SubjectGroupSubject> MapSubjectGroupSubjects(List<int> subjectIds)

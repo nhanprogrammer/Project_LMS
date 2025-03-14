@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -1461,16 +1461,7 @@ namespace Project_LMS.Data
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("establishment_date");
 
-                entity.Property(e => e.Fax)
-                    .HasMaxLength(50)
-                    .HasColumnName("fax");
-
-                entity.Property(e => e.HeadOffice)
-                    .HasMaxLength(225)
-                    .HasColumnName("head_office");
-
-                entity.Property(e => e.Image)
-                    .HasColumnName("image");
+                entity.Property(e => e.Image).HasColumnName("image");
 
                 entity.Property(e => e.IsDelete)
                     .HasColumnName("is_delete")
@@ -1493,38 +1484,29 @@ namespace Project_LMS.Data
                     .HasColumnName("principal_phone");
 
                 entity.Property(e => e.Province)
-                    .HasMaxLength(50)
+                    .HasMaxLength(255)
                     .HasColumnName("province");
-
-                entity.Property(e => e.District)
-                    .HasMaxLength(50)
-                    .HasColumnName("district");
-
-                entity.Property(e => e.Ward)
-                    .HasMaxLength(50)
-                    .HasColumnName("ward");
 
                 entity.Property(e => e.SchoolCode)
                     .HasMaxLength(50)
                     .HasColumnName("school_code");
 
-                entity.Property(e => e.IsJuniorHigh)
-                    .HasColumnName("is_junior_high")
+                entity.Property(e => e.Thcs)
+                    .HasColumnName("thcs")
                     .HasDefaultValueSql("false");
 
-                entity.Property(e => e.IsHighSchool)
-                    .HasColumnName("is_high_school")
+                entity.Property(e => e.Thpt)
+                    .HasColumnName("thpt")
                     .HasDefaultValueSql("false");
+
                 entity.Property(e => e.UpdateAt)
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("update_at")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                entity.Property(e => e.UserCreate)
-                    .HasColumnName("user_create");
+                entity.Property(e => e.UserCreate).HasColumnName("user_create");
 
-                entity.Property(e => e.UserUpdate)
-                    .HasColumnName("user_update");
+                entity.Property(e => e.UserUpdate).HasColumnName("user_update");
 
                 entity.Property(e => e.Website)
                     .HasMaxLength(255)
@@ -1566,13 +1548,6 @@ namespace Project_LMS.Data
                     .HasMaxLength(10)
                     .HasColumnName("phone");
 
-                entity.Property(e => e.SchoolPhone)
-                    .HasMaxLength(10)
-                    .HasColumnName("school_phone");
-
-                entity.Property(e => e.Image)
-                    .HasColumnName("image");
-
                 entity.Property(e => e.SchoolId).HasColumnName("school_id");
 
                 entity.Property(e => e.UpdateAt)
@@ -1607,6 +1582,8 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.Reason).HasColumnName("reason");
 
+                entity.Property(e => e.SchoolBranchesId).HasColumnName("school_branches_id");
+
                 entity.Property(e => e.Semester)
                     .HasMaxLength(50)
                     .HasColumnName("semester");
@@ -1630,6 +1607,11 @@ namespace Project_LMS.Data
                 entity.Property(e => e.UserId).HasColumnName("user_id");
 
                 entity.Property(e => e.UserUpdate).HasColumnName("user_update");
+
+                entity.HasOne(d => d.SchoolBranches)
+                    .WithMany(p => p.SchoolTransfers)
+                    .HasForeignKey(d => d.SchoolBranchesId)
+                    .HasConstraintName("fk_school_transfers_branch");
 
                 entity.HasOne(d => d.User)
                     .WithMany(p => p.SchoolTransfers)

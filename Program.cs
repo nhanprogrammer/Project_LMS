@@ -18,6 +18,9 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 using Project_LMS.Configurations;
 
+
+
+
 var builder = WebApplication.CreateBuilder(args);
 // Add CORS
 builder.Services.AddCors(options =>
@@ -101,17 +104,12 @@ builder.Services.AddScoped<IProvincesService, ProvincesService>();
 builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddScoped<IClassService, ClassService>();
 builder.Services.AddScoped<ILessonsService, LessonsService>();
-// builder.Services.AddScoped<ILessonsService, LessonService>();
 builder.Services.AddScoped<IFavouritesService, FavouritesService>();
-// builder.Services.AddScoped<IDepartmentsService, DepartmentsService>();
 builder.Services.AddScoped<IDisciplinesService, DisciplinesService>();
 builder.Services.AddScoped<IModulesService, ModulesService>();
-// builder.Services.AddScoped<IClassStudentsOnlineService, ClassStudentOnlineService>();
 builder.Services.AddScoped<IClassTypeService, ClassTypeService>();
 builder.Services.AddScoped<IClassOnlineService, ClassOnlineService>();
-// builder.Services.AddScoped<IQuestionsService, QuestionService>();
 builder.Services.AddScoped<IQuestionsAnswerTopicViewService, QuestionsAnswerTopicViewService>();
-// builder.Services.AddScoped<IRewardService, RewardService>();
 builder.Services.AddScoped<IAcademicHoldsService, AcademicHoldsService>();
 builder.Services.AddScoped<IAcademicYearsService, AcademicYearsService>();
 builder.Services.AddScoped<IAnswersService, AnswersService>();
@@ -121,11 +119,12 @@ builder.Services.AddScoped<IChatMessagesService, ChatMessagesService>();
 builder.Services.AddScoped<ITestExamTypeService, TestExamTypeService>();
 builder.Services.AddScoped<ISubjectService, SubjectService>();
 builder.Services.AddScoped<ITestExamService, TestExamService>();
-// builder.Services.AddScoped<ISubjectService, SubjectService>();
 builder.Services.AddScoped<ISubjectTypeService, SubjectTypeService>();
-// builder.Services.AddScoped<ISubjectGroupService, SubjectGroupService>();
 builder.Services.AddScoped<IExcelService, ExcelService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<ITestExamService, TestExamService>();
+builder.Services.AddScoped<ISubjectTypeService, SubjectTypeService>();
+builder.Services.AddScoped<ISubjectGroupService, SubjectGroupService>();
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IStudentStatusService, StudentStatusService>();
@@ -137,6 +136,7 @@ builder.Services.AddScoped<ISchoolTransferRepository, SchoolTransferRepository>(
 builder.Services.AddScoped<ISemesterRepository, SemesterRepository>();
 builder.Services.AddScoped<IClassStudentOnlineRepository, ClassStudentOnlineRepository>();
 builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
+builder.Services.AddScoped<ITestExamRepository, TestExamRepository>();
 builder.Services.AddScoped<IDisciplineRepository, DisciplineRepository>();
 builder.Services.AddScoped<IFavouriteRepository, FavouriteRepository>();
 builder.Services.AddScoped<ILessonRepository, LessonRepository>();
@@ -154,13 +154,12 @@ builder.Services.AddScoped<IAssignmentRepository, AssignmentRepository>();
 builder.Services.AddScoped<IAssignmentDetailRepository, AssignmentDetailRepository>();
 builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
 builder.Services.AddScoped<ITestExamTypeRepository, TestExamTypeRepository>();
-builder.Services.AddScoped<ISubjectRepository, SubjectRepository>();
 builder.Services.AddScoped<ISubjectTypeRepository, SubjectTypeRepository>();
 builder.Services.AddScoped<IJwtReponsitory, JwtReponsitory>();
-// builder.Services.AddScoped<ISubjectGroupRepository, SubjectGroupRepository>();
 builder.Services.AddScoped<ISystemSettingService, SystemSettingRepository>();
 builder.Services.AddScoped<ITeachingAssignmentService, TeachingAssignmentService>();
-// builder.Services.AddScoped<ISubjectGroupRepository, SubjectGroupRepository>();
+builder.Services.AddScoped<ISubjectGroupRepository, SubjectGroupRepository>();
+
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IStudentStatusRepository, StudenStatusRepository>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
