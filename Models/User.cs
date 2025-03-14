@@ -34,7 +34,7 @@ namespace Project_LMS.Models
         }
 
         public int Id { get; set; }
-        public int? GroupRolePermission { get; set; }
+        // public int? GroupRolePermission { get; set; }
         public int? RoleId { get; set; }
         public int? StudentStatusId { get; set; }
         public int? TeacherStatusId { get; set; }

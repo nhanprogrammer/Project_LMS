@@ -2410,7 +2410,7 @@ namespace Project_LMS.Data
                     .HasColumnType("bit(1)")
                     .HasColumnName("gender");
 
-                entity.Property(e => e.GroupRolePermission).HasColumnName("group_role_permission");
+                // entity.Property(e => e.GroupRolePermission).HasColumnName("group_role_permission");
 
                 entity.Property(e => e.Image)
                     .HasMaxLength(255)
@@ -2515,10 +2515,10 @@ namespace Project_LMS.Data
                     .HasMaxLength(100)
                     .HasColumnName("work_mother");
 
-                entity.HasOne(d => d.GroupRolePermissionNavigation)
-                    .WithMany(p => p.Users)
-                    .HasForeignKey(d => d.GroupRolePermission)
-                    .HasConstraintName("fk_users_module_permission");
+                // entity.HasOne(d => d.GroupRolePermissionNavigation)
+                //     .WithMany(p => p.Users)
+                //     .HasForeignKey(d => d.GroupRolePermission)
+                //     .HasConstraintName("fk_users_module_permission");
 
                 entity.HasOne(d => d.Role)
                     .WithMany(p => p.Users)
