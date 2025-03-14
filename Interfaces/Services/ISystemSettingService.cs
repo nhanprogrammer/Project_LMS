@@ -1,6 +1,12 @@
-﻿namespace Project_LMS.Interfaces.Services;
+﻿using Project_LMS.DTOs.Request;
+using Project_LMS.DTOs.Response;
+
+namespace Project_LMS.Interfaces.Services;
 
 public interface ISystemSettingService
 {
-    
+    Task<SystemSettingResponse> GetById(int id);
+    Task<IEnumerable<SystemSettingResponse>> GetAll();
+    Task<SystemSettingResponse> Create(SystemSettingRequest request);
+    Task<SystemSettingResponse> Update(int id, SystemSettingRequest request);
 }

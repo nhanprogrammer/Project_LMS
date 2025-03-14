@@ -10,4 +10,6 @@ public interface ISchoolService
     Task<SchoolResponse> CreateAsync(SchoolRequest request);
     Task<SchoolResponse> UpdateAsync(int id, SchoolRequest request);
     Task<SchoolResponse> DeleteAsync(int id);
+    Task<ApiResponse<string[]>> GetEducationModelsAsync();
+    Task<SchoolResponse> GetSchoolAndBranchesAsync(int schoolId, List<int> schoolBranchIds);
 }

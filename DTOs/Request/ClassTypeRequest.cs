@@ -1,6 +1,6 @@
-﻿namespace Project_LMS.DTOs.Request
+namespace Project_LMS.DTOs.Request
 {
-    public class SubjectTypeRequest
+    public class ClassTypeRequest
     {
         public string? Name { get; set; }
         public bool? Status { get; set; }

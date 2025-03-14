@@ -2,14 +2,12 @@
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces;
-using Project_LMS.Models;
-using Project_LMS.Services;
-using System.Threading.Tasks;
+using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
+    [Route("api/[controller]")]
     public class ClassTypeController : ControllerBase
     {
         private readonly IClassTypeService _classTypeService;
@@ -19,78 +17,89 @@ namespace Project_LMS.Controllers
             _classTypeService = classTypeService;
         }
 
-        // GET: api/ClassType
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<ActionResult<ApiResponse<PaginatedResponse<ClassTypeResponse>>>> GetAll(
+            [FromQuery] string? keyword = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10)
         {
-            var response = await _classTypeService.GetAllAsync();
-            if (response.Status == 1)
+            try
             {
-                return BadRequest(response); // Trả về lỗi nếu có
+                var response = await _classTypeService.GetAllClassTypesAsync(keyword, pageNumber, pageSize);
+                return Ok(response);
             }
-
-            return Ok(response); // Trả về dữ liệu khi thành công
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, $"Internal server error: {ex.Message}", null));
+            }
         }
 
-        // GET: api/ClassType/{id}
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
+        public async Task<ActionResult<ApiResponse<ClassTypeResponse>>> GetById(int id)
         {
-            var response = await _classTypeService.GetByIdAsync(id);
-            if (response.Status == 1)
+            try
             {
-                return NotFound(response); // Trả về lỗi nếu không tìm thấy
+                var result = await _classTypeService.GetClassTypeByIdAsync(id);
+                if (result.Data == null)
+                {
+                    return NotFound(new ApiResponse<ClassTypeResponse>(1, "ClassType not found", null));
+                }
+                return Ok(result);
             }
-
-            return Ok(response); // Trả về dữ liệu khi thành công
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, $"Internal server error: {ex.Message}", null));
+            }
         }
 
-        // POST: api/ClassType
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] ClassType request)
+        public async Task<ActionResult<ApiResponse<ClassTypeResponse>>> Create([FromBody] ClassTypeRequest request)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var response = await _classTypeService.AddAsync(request);
-            if (response.Status == 1)
+            try
             {
-                return BadRequest(response); // Trả về lỗi nếu thêm mới không thành công
+                var result = await _classTypeService.CreateClassTypeAsync(request);
+                return Ok(result);
             }
-
-            return CreatedAtAction(nameof(GetById), new { id = request.Id }, response); // Trả về dữ liệu khi thành công
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, $"Internal server error: {ex.Message}", null));
+            }
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] ClassType request)
+        public async Task<ActionResult<ApiResponse<ClassTypeResponse>>> Update(int id, [FromBody] ClassTypeRequest request)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            request.Id = id;
-            var response = await _classTypeService.UpdateAsync(request);
-
-            // Trả về thông báo từ ApiResponse
-            if (response.Status == 1)
+            try
             {
-                return BadRequest(response); // Nếu có lỗi
+                var result = await _classTypeService.UpdateClassTypeAsync(id, request);
+                if (result.Data == null)
+                {
+                    return NotFound(new ApiResponse<ClassTypeResponse>(1, "ClassType not found", null));
+                }
+                return Ok(result);
             }
-
-            return Ok(response); // Nếu thành công, trả về thông báo thành công
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, $"Internal server error: {ex.Message}", null));
+            }
         }
 
-
-        // DELETE: api/ClassType/{id}
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
         {
-            var response = await _classTypeService.DeleteAsync(id);
-            if (response.Status == 1)
+            try
             {
-                return BadRequest(response); // Trả về lỗi nếu xóa không thành công
+                var result = await _classTypeService.DeleteClassTypeAsync(id);
+                if (!result.Data)
+                {
+                    return NotFound(new ApiResponse<bool>(1, "ClassType not found", false));
+                }
+                return Ok(result);
             }
-
-            return NoContent(); // Trả về NoContent khi thành công
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, $"Internal server error: {ex.Message}", null));
+            }
         }
     }
 }
