@@ -203,8 +203,7 @@ public class UserService : IUserService
                 user.BirthDate,
                 Gender = (user.Gender != null && user.Gender.Length > 0) ? user.Gender[0] : false, // Ép kiểu từ BitArray sang bool
                 user.Ethnicity,
-                Status = user.StudentStatus?.StatusName ?? "Unknown",
-                RoleName = user.RoleId
+                Status = user.StudentStatus?.StatusName ?? "Unknown"
             }).ToList();
 
             var paginatedResponse = new PaginatedResponse<object>
