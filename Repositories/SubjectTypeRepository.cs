@@ -1,13 +1,7 @@
 // Repositories/SubjectTypeRepository.cs
 using Microsoft.EntityFrameworkCore;
 using Project_LMS.Data;
-<<<<<<<< HEAD:Interfaces/Responsitories/SubjectTypeRepository.cs
-using Project_LMS.DTOs.Request;
-using Project_LMS.DTOs.Response;
-using Project_LMS.Interfaces.Services;
-========
 using Project_LMS.Interfaces.Repositories;
->>>>>>>> dev:Repositories/SubjectTypeRepository.cs
 using Project_LMS.Models;
 
 namespace Project_LMS.Repositories
@@ -69,31 +63,6 @@ namespace Project_LMS.Repositories
             subjectType.UpdateAt = DateTime.UtcNow.ToLocalTime();
             await _context.SaveChangesAsync();
             return true;
-        }
-
-        public Task<ApiResponse<PaginatedResponse<SubjectTypeResponse>>> GetAllSubjectTypesAsync(int pageNumber, int pageSize)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<ApiResponse<SubjectTypeResponse>> GetSubjectTypeByIdAsync(int id)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<ApiResponse<SubjectTypeResponse>> CreateSubjectTypeAsync(SubjectTypeRequest request)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<ApiResponse<SubjectTypeResponse>> UpdateSubjectTypeAsync(int id, SubjectTypeRequest request)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<ApiResponse<bool>> DeleteSubjectTypeAsync(int id)
-        {
-            throw new NotImplementedException();
         }
     }
 }

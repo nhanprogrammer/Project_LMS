@@ -105,8 +105,8 @@ public class MappingProfile : Profile
         CreateMap<ClassStudentOnline, UpdateClassStudentOnlineRequest>();
 
         CreateMap<ClassType, ClassTypeResponse>()
-            .ForMember(dest => dest.IsDeleted,
-                opt => opt.MapFrom(src => src.IsDelete.HasValue ? src.IsDelete.Value : false))
+            // .ForMember(dest => dest.IsDeleted,
+            //     opt => opt.MapFrom(src => src.IsDelete.HasValue ? src.IsDelete.Value : false))
             .ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => src.CreateAt ?? DateTime.MinValue));
         CreateMap<ClassType, UpdateClassTypeRequest>();
         CreateMap<ClassType, CreateClassTypeRequest>();

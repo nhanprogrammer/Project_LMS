@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections.Generic;
 
 namespace Project_LMS.Models
@@ -49,5 +49,6 @@ namespace Project_LMS.Models
         public virtual ICollection<Lesson> Lessons { get; set; }
         public virtual ICollection<TeachingAssignment> TeachingAssignments { get; set; }
         public virtual ICollection<TestExam> TestExams { get; set; }
+        public virtual ICollection<Examiner> Examiners { get; set; }
     }
 }

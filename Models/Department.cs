@@ -22,10 +22,13 @@ namespace Project_LMS.Models
         public int? UserUpdate { get; set; }
         
         //Foreign key
+        [Column("user_id")]
         public int UserId { get; set; }
         [ForeignKey("UserId")]
         public virtual User User { get; set; } = null!;
         
         public virtual ICollection<Class> Classes { get; set; }
+        public ICollection<TestExam> TestExams { get; set; }
+
     }
 }

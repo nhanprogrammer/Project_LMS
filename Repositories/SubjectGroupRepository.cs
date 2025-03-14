@@ -21,10 +21,9 @@ namespace Project_LMS.Repositories
         public async Task<SubjectGroup> GetByIdAsync(int id)
         {
             return await _context.SubjectGroups
-                .Include(sg => sg.IsDelete == false)   
-                .Include(sg => sg.User)
                 .Include(sg => sg.SubjectGroupSubjects)  
-                .ThenInclude(sgs => sgs.Subject)  
+                .ThenInclude(sgs => sgs.Subject)
+                // .Include(sg=>sg.User)
                 .FirstOrDefaultAsync(sg => sg.Id == id) ?? throw new InvalidOperationException("SubjectGroup not found");
         }
         
@@ -37,8 +36,11 @@ namespace Project_LMS.Repositories
 
         public async Task<IEnumerable<SubjectGroup>> GetAllAsync()
         {
-            return await _context.SubjectGroups.Where(sg => sg.IsDelete == false)
-                .Include(sg => sg.SubjectGroupSubjects).ThenInclude(sgs => sgs.Subject).Include(sg => sg.User)
+            return await _context.SubjectGroups
+                .Where(sg => sg.IsDelete == false)
+                .Include(sg => sg.SubjectGroupSubjects)
+                .ThenInclude(sgs => sgs.Subject)
+                // .Include(sg => sg.User) // Chỉ Include nếu thực sự cần thông tin User
                 .ToListAsync();
         }
 

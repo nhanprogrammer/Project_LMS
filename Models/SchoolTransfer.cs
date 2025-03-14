@@ -8,6 +8,7 @@ namespace Project_LMS.Models
     {
         public int Id { get; set; }
         public int? UserId { get; set; }
+        public int? SchoolBranchesId { get; set; }
         public DateTime? TransferDate { get; set; }
         public BitArray? Status { get; set; }
         public string? Semester { get; set; }
