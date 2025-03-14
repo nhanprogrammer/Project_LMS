@@ -35,10 +35,7 @@ namespace Project_LMS.Models
         }
 
         public int Id { get; set; }
-        public int? GroupRolePermission { get; set; }
-
-        [Column("group_module_permission_id")]
-        public int? GroupModulePermissionId { get; set; }
+        public int? GroupModulePermissonId { get; set; }
         public bool? Disable { get; set; }
         public int? RoleId { get; set; }
         public int? StudentStatusId { get; set; }
@@ -89,8 +86,6 @@ namespace Project_LMS.Models
         public DateTime? UpdateAt { get; set; }
         public int? UserCreate { get; set; }
         public int? UserUpdate { get; set; }
-
-        public virtual ModulePermission? GroupRolePermissionNavigation { get; set; }
 
         public virtual GroupModulePermisson? GroupModulePermisson { get; set; }
         public virtual Role? Role { get; set; }

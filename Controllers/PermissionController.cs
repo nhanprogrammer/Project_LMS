@@ -198,6 +198,17 @@ namespace Project_LMS.Controllers
                 return StatusCode(500, new ApiResponse<string>(3, "Đã xảy ra lỗi, vui lòng thử lại sau.", null));
             }
         }
+        [HttpGet("u")]
+        public async Task<IActionResult> GetUserPer([FromQuery] int userId)
+        {
+            var permissions = await _permissionService.ListPermission(userId);
 
+            if (permissions == null || permissions.Count == 0)
+            {
+                return NotFound(new { message = "Không tìm thấy quyền cho người dùng này." });
+            }
+
+            return Ok(new { userId, permissions });
+        }
     }
 }

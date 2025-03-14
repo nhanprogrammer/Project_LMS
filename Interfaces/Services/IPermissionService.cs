@@ -13,5 +13,6 @@ namespace Project_LMS.Interfaces
         Task<PermissionUserRequest> GetUserPermission(int userId, int groupId, bool disable);
         Task<bool> SaveUserPermission(int userId, int groupId, bool disable);
         Task<bool> DeleteUser(int userId);
+       Task<List<string>> ListPermission(int userId);
     }
 }

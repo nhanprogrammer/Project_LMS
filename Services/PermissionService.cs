@@ -48,7 +48,7 @@ namespace Project_LMS.Services
                 {
                     Id = p.Id,
                     Name = p.Name ?? "NaN",
-                    MemberCount = _context.Users.Count(u => u.GroupRolePermission == p.Id).ToString(),
+                    MemberCount = _context.Users.Count(u => u.GroupModulePermissonId == p.Id).ToString(),
                     Description = p.Description ?? "NaN"
                 })
                 .ToListAsync();
@@ -350,9 +350,9 @@ namespace Project_LMS.Services
                     (string.IsNullOrEmpty(key) ||
                      p.FullName.ToLower().Contains(key) ||
                      p.Email.ToLower().Contains(key) ||
-                     (p.GroupModulePermissionId != null &&
+                     (p.GroupModulePermissonId != null &&
                       _context.GroupModulePermissons
-                          .Where(g => g.Id == p.GroupModulePermissionId)
+                          .Where(g => g.Id == p.GroupModulePermissonId)
                           .Any(g => g.Name.ToLower().Contains(key)))));
 
             // Lấy tổng số bản ghi sau khi lọc
@@ -377,7 +377,7 @@ namespace Project_LMS.Services
                     Name = p.FullName ?? "NaN",
                     Email = p.Email ?? "NaN",
                     GroupPermissionName = _context.GroupModulePermissons
-                        .Where(g => g.Id == p.GroupModulePermissionId)
+                        .Where(g => g.Id == p.GroupModulePermissonId)
                         .Select(g => g.Name)
                         .FirstOrDefault() ?? "NaN",
                     Status = p.Disable.HasValue && p.Disable.Value ? "Đã vô hiệu hóa" : "Đang hoạt động"
@@ -416,7 +416,7 @@ namespace Project_LMS.Services
                 .Select(u => new PermissionUserRequest
                 {
                     UserId = u.Id,
-                    GroupId = u.GroupModulePermissionId ?? 0, // Tránh null gây lỗi
+                    GroupId = u.GroupModulePermissonId ?? 0, // Tránh null gây lỗi
                     Disable = u.Disable ?? false
                 })
                 .FirstOrDefaultAsync();
@@ -447,7 +447,7 @@ namespace Project_LMS.Services
                 user = new User
                 {
                     Id = userId, // ID có thể được gán nếu là user mới
-                    GroupModulePermissionId = groupId,
+                    GroupModulePermissonId = groupId,
                     Disable = disable
                 };
 
@@ -456,7 +456,7 @@ namespace Project_LMS.Services
             else
             {
                 // Nếu user đã tồn tại, cập nhật nhóm quyền và trạng thái
-                user.GroupModulePermissionId = groupId;
+                user.GroupModulePermissonId = groupId;
                 user.Disable = disable;
                 user.UpdateAt = DateTime.Now; // Cập nhật thời gian sửa đổi
                 _context.Users.Update(user);
@@ -487,5 +487,41 @@ namespace Project_LMS.Services
             return true; // Thành công
         }
 
+
+        public async Task<List<string>> ListPermission(int userId)
+        {
+            List<string> ls = new List<string>();
+
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == userId && u.IsDelete == false);
+
+            if (user == null)
+            {
+                return null;
+            }
+
+            var modulePermissions = await _context.ModulePermissions
+                .Where(m => m.GroupRoleId == user.GroupModulePermissonId)
+                .ToListAsync();
+
+            if (modulePermissions == null || modulePermissions.Count == 0)
+            {
+                return null;
+            }
+
+            foreach (var item in modulePermissions)
+            {
+                var module = await _context.Modules.FirstOrDefaultAsync(m => m.Id == item.ModuleId);
+                if (module == null) continue;
+
+                if (item.IsView == true) ls.Add(module.Name + "-VIEW");
+                if (item.IsInsert == true) ls.Add(module.Name + "-INSERT");
+                if (item.IsUpdate == true) ls.Add(module.Name + "-UPDATE");
+                if (item.IsDelete == true) ls.Add(module.Name + "-DELETE");
+                if (item.EnterScore == true) ls.Add(module.Name + "-ENTERSCORE");
+            }
+
+            return ls;
+        }
     }
 }
