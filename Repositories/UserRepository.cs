@@ -38,7 +38,9 @@ namespace Project_LMS.Repositories
         public async Task<List<User>> GetAllAsync(int pageNumber, int pageSize)
         {
             return await _context.Users
-                .Where(user => user.IsDelete == false)
+                .Include(user =>user.Role)
+                .Include(user =>user.StudentStatus)
+                .Where(user => user.IsDelete == false && user.Role.Name.Equals("Student"))
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
