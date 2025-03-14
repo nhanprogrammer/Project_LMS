@@ -1,8 +1,10 @@
 ﻿
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces.Services;
+using Project_LMS.Services;
 
 namespace Project_LMS.Controllers
 {
@@ -16,7 +18,7 @@ namespace Project_LMS.Controllers
             _service = service;
         }
         [HttpGet]
-        public Task<ApiResponse<List<UserResponse>>> GetAll([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+        public Task<ApiResponse<PaginatedResponse<object>>> GetAll([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
             return _service.GetAll(pageNumber, pageSize);
         }
@@ -47,5 +49,24 @@ namespace Project_LMS.Controllers
         {
             return _service.GetAllByIds(ids, pageNumber, pageSize);
         }
+        [HttpGet("export-users")]
+        public async Task<IActionResult> ExportUsers()
+        {
+            var result = await _service.ExportUsersToExcel();
+            return Ok(result); // Trả về ApiResponse<byte[]> trong body
+        }
+        [HttpGet("checkuser/{name}")]
+        public async Task<IActionResult> CheckUser(string name)
+        {
+            var result = await _service.CheckUser(name);
+            return Ok(result);
+        }       [HttpGet("forgotpassword")]
+        [Authorize]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request)
+        {
+            var result = await _service.ForgotPassword(request);
+            return Ok(result);
+        }
+
     }
 }
