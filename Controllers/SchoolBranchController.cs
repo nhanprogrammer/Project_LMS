@@ -65,7 +65,7 @@ namespace Project_LMS.Controllers
 
                 if (!JsonValidator.IsValidJson(jsonString))
                 {
-                    return BadRequest(new ApiResponse<string>(0, "Định dạng JSON không hợp lệ", null));
+                    return BadRequest(new ApiResponse<string>(1, "Định dạng JSON không hợp lệ", null));
                 }
 
                 if (schoolBranchRequest == null)
@@ -95,7 +95,7 @@ namespace Project_LMS.Controllers
 
                 if (!JsonValidator.IsValidJson(jsonString))
                 {
-                    return BadRequest(new ApiResponse<string>(0, "Định dạng JSON không hợp lệ", null));
+                    return BadRequest(new ApiResponse<string>(1, "Định dạng JSON không hợp lệ", null));
                 }
 
                 if (schoolBranchRequest == null)

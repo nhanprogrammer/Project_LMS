@@ -124,6 +124,7 @@ builder.Services.AddScoped<ITestExamService, TestExamService>();
 builder.Services.AddScoped<ISubjectTypeService, SubjectTypeService>();
 // builder.Services.AddScoped<ISubjectGroupService, SubjectGroupService>();
 builder.Services.AddScoped<IExcelService, ExcelService>();
+builder.Services.AddScoped<IReportService, ReportService>();
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IStudentStatusService, StudentStatusService>();
@@ -160,6 +161,7 @@ builder.Services.AddScoped<ITeachingAssignmentService, TeachingAssignmentService
 // builder.Services.AddScoped<ISubjectGroupRepository, SubjectGroupRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IStudentStatusRepository, StudenStatusRepository>();
+builder.Services.AddScoped<IReportRepository, ReportRepository>();
 //mapper
 builder.Services.AddAutoMapper(typeof(MappingProfile));
 builder.Services.AddAutoMapper(typeof(UserMapper));
