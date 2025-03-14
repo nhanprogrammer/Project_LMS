@@ -1136,6 +1136,7 @@ namespace Project_LMS.Data
                 entity.Property(e => e.UserCreate).HasColumnName("user_create");
 
                 entity.Property(e => e.UserUpdate).HasColumnName("user_update");
+                entity.Property(e => e.DisplayName).HasColumnName("display_name");
             });
 
             modelBuilder.Entity<ModulePermission>(entity =>
@@ -1173,6 +1174,17 @@ namespace Project_LMS.Data
                 entity.Property(e => e.UserCreate).HasColumnName("user_create");
 
                 entity.Property(e => e.UserUpdate).HasColumnName("user_update");
+
+                
+                entity.HasOne(d => d.GroupModulePermisson)
+                    .WithMany(p => p.ModulePermissions)
+                    .HasForeignKey(d => d.GroupRoleId)
+                    .HasConstraintName("fk_module_permissions_group_module_permissons");
+
+                entity.HasOne(d => d.Module)
+                    .WithMany(p => p.ModulePermissions)
+                    .HasForeignKey(d => d.ModuleId)
+                    .HasConstraintName("fk_module_permissions_modules");
             });
 
             modelBuilder.Entity<Notification>(entity =>
@@ -2359,6 +2371,8 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.Active).HasColumnName("active");
 
+                entity.Property(e => e.Disable).HasColumnName("disable");
+
                 entity.Property(e => e.Address)
                     .HasMaxLength(255)
                     .HasColumnName("address");
@@ -2438,6 +2452,7 @@ namespace Project_LMS.Data
 
                 // entity.Property(e => e.GroupRolePermission).HasColumnName("group_role_permission");
 
+                entity.Property(e => e.GroupModulePermissonId).HasColumnName("group_module_permisson_id");
                 entity.Property(e => e.Image)
                     .HasMaxLength(255)
                     .HasColumnName("image");
@@ -2541,10 +2556,10 @@ namespace Project_LMS.Data
                     .HasMaxLength(100)
                     .HasColumnName("work_mother");
 
-                // entity.HasOne(d => d.GroupRolePermissionNavigation)
-                //     .WithMany(p => p.Users)
-                //     .HasForeignKey(d => d.GroupRolePermission)
-                //     .HasConstraintName("fk_users_module_permission");
+                entity.HasOne(d => d.GroupModulePermisson)
+                    .WithMany(p => p.Users)
+                    .HasForeignKey(d => d.GroupModulePermissonId)
+                    .HasConstraintName("fk_users_group_module_permisson");
 
                 entity.HasOne(d => d.Role)
                     .WithMany(p => p.Users)

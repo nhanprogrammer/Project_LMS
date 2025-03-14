@@ -5,10 +5,6 @@ namespace Project_LMS.Models
 {
     public partial class ModulePermission
     {
-        public ModulePermission()
-        {
-            Users = new HashSet<User>();
-        }
 
         public int Id { get; set; }
         public int? ModuleId { get; set; }
@@ -22,7 +18,7 @@ namespace Project_LMS.Models
         public int? UserCreate { get; set; }
         public int? UserUpdate { get; set; }
         public bool? IsDelete { get; set; }
-
-        public virtual ICollection<User> Users { get; set; }
+        public virtual GroupModulePermisson? GroupModulePermisson { get; set; }
+        public virtual Module? Module { get; set; }
     }
 }
