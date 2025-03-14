@@ -46,7 +46,6 @@ namespace Project_LMS.DTOs.Request
         [StringLength(50, ErrorMessage = "Số fax không được vượt quá 50 ký tự")]
         public string? Fax { get; set; }
         public bool? IsJuniorHigh { get; set; }
-
         public bool? IsHighSchool { get; set; }
 
         [Required(ErrorMessage = "Mô hình giáo dục là bắt buộc")]

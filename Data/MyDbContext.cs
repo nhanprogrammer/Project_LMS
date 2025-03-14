@@ -1,4 +1,4 @@
-﻿﻿using System;
+﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -1175,7 +1175,7 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.UserUpdate).HasColumnName("user_update");
 
-                
+
                 entity.HasOne(d => d.GroupModulePermisson)
                     .WithMany(p => p.ModulePermissions)
                     .HasForeignKey(d => d.GroupRoleId)
@@ -2143,6 +2143,10 @@ namespace Project_LMS.Data
                 entity.Property(e => e.Form)
                     .HasMaxLength(30)
                     .HasColumnName("form");
+
+                entity.Property(e => e.IsExam)
+                .HasColumnName("is_exam")
+                .HasDefaultValueSql("false");
 
                 entity.Property(e => e.IsDelete)
                     .HasColumnName("is_delete")
