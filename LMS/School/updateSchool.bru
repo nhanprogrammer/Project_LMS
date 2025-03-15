@@ -5,13 +5,14 @@ meta {
 }
 
 put {
-  url: {{base_url}}api/school/1
+  url: {{base_url}}api/school
   body: json
   auth: none
 }
 
 body:json {
   {
+      "id":1,
       "schoolCode": "THPT001",
       "name": "THPT Trần Hưng Đạo",
       "principal": "Nguyễn Nhân Đức",

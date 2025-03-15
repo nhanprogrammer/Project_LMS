@@ -5,13 +5,14 @@ meta {
 }
 
 put {
-  url: {{base_url}}api/testexamtype/24
+  url: {{base_url}}api/testexamtype
   body: json
   auth: none
 }
 
 body:json {
   {
+      "id": 24,
       "PointTypeName": "Example Point Type",
       "Coefficient": 2,
       "MinimunEntriesSem1": 5,
