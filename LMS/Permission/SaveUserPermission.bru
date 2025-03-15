@@ -1,0 +1,19 @@
+meta {
+  name: SaveUserPermission
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{base_url}}api/permission/user-save
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+      "userId": 1,
+      "groupId": 1,
+      "disable": false
+  }
+}

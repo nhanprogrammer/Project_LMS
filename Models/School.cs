@@ -11,24 +11,28 @@ namespace Project_LMS.Models
         }
 
         public int Id { get; set; }
-        public string? SchoolCode { get; set; }
-        public string? Name { get; set; }
-        public string? Principal { get; set; }
-        public string? PrincipalPhone { get; set; }
-        public string? Image { get; set; }
-        public string? Email { get; set; }
-        public string? Website { get; set; }
-        public string? Province { get; set; }
-        public bool? Thcs { get; set; }
-        public bool? Thpt { get; set; }
-        public string? EducationModel { get; set; }
-        public string? Phone { get; set; }
-        public DateTime? EstablishmentDate { get; set; }
-        public DateTime? CreateAt { get; set; }
-        public DateTime? UpdateAt { get; set; }
-        public int? UserCreate { get; set; }
-        public int? UserUpdate { get; set; }
-        public bool? IsDelete { get; set; }
+        public string? SchoolCode { get; set; } // Mã trường
+        public string? Name { get; set; } // Tên trường
+        public string? Principal { get; set; } // Hiệu trưởng
+        public string? PrincipalPhone { get; set; } // SĐT hiệu trưởng
+        public string? Image { get; set; } // Đường dẫn ảnh
+        public string? Email { get; set; } // Email
+        public string? Website { get; set; } // Website
+        public string? Province { get; set; } // Tỉnh/Thành phố
+        public string? District { get; set; } // Quận/Huyện
+        public string? Ward { get; set; } // Xã/Phường
+        public string? Fax { get; set; } // Số fax
+        public bool? IsJuniorHigh { get; set; }
+        public bool? IsHighSchool { get; set; }
+        public string? EducationModel { get; set; } // Mô hình giáo dục
+        public string? Phone { get; set; } // SĐT chung
+        public DateTime? EstablishmentDate { get; set; } // Ngày thành lập
+        public DateTime? CreateAt { get; set; } // Thời gian tạo
+        public DateTime? UpdateAt { get; set; } // Thời gian cập nhật
+        public int? UserCreate { get; set; } // Người tạo
+        public int? UserUpdate { get; set; } // Người cập nhật
+        public bool? IsDelete { get; set; } // Cờ xóa mềm
+        public string? HeadOffice { get; set; } // Trụ sở chính
 
         public virtual ICollection<SchoolBranch> SchoolBranches { get; set; }
     }

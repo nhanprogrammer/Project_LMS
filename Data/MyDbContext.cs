@@ -1461,7 +1461,16 @@ namespace Project_LMS.Data
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("establishment_date");
 
-                entity.Property(e => e.Image).HasColumnName("image");
+                entity.Property(e => e.Fax)
+                    .HasMaxLength(50)
+                    .HasColumnName("fax");
+
+                entity.Property(e => e.HeadOffice)
+                    .HasMaxLength(225)
+                    .HasColumnName("head_office");
+
+                entity.Property(e => e.Image)
+                    .HasColumnName("image");
 
                 entity.Property(e => e.IsDelete)
                     .HasColumnName("is_delete")
@@ -1484,29 +1493,38 @@ namespace Project_LMS.Data
                     .HasColumnName("principal_phone");
 
                 entity.Property(e => e.Province)
-                    .HasMaxLength(255)
+                    .HasMaxLength(50)
                     .HasColumnName("province");
+
+                entity.Property(e => e.District)
+                    .HasMaxLength(50)
+                    .HasColumnName("district");
+
+                entity.Property(e => e.Ward)
+                    .HasMaxLength(50)
+                    .HasColumnName("ward");
 
                 entity.Property(e => e.SchoolCode)
                     .HasMaxLength(50)
                     .HasColumnName("school_code");
 
-                entity.Property(e => e.Thcs)
-                    .HasColumnName("thcs")
+                entity.Property(e => e.IsJuniorHigh)
+                    .HasColumnName("is_junior_high")
                     .HasDefaultValueSql("false");
 
-                entity.Property(e => e.Thpt)
-                    .HasColumnName("thpt")
+                entity.Property(e => e.IsHighSchool)
+                    .HasColumnName("is_high_school")
                     .HasDefaultValueSql("false");
-
                 entity.Property(e => e.UpdateAt)
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("update_at")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                entity.Property(e => e.UserCreate).HasColumnName("user_create");
+                entity.Property(e => e.UserCreate)
+                    .HasColumnName("user_create");
 
-                entity.Property(e => e.UserUpdate).HasColumnName("user_update");
+                entity.Property(e => e.UserUpdate)
+                    .HasColumnName("user_update");
 
                 entity.Property(e => e.Website)
                     .HasMaxLength(255)

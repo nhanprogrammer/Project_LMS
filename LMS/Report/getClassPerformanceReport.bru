@@ -1,0 +1,16 @@
+meta {
+  name: getClassPerformanceReport
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}api/report/class-performance?academicYearId=1&departmentId=2
+  body: none
+  auth: none
+}
+
+params:query {
+  academicYearId: 1
+  departmentId: 2
+}

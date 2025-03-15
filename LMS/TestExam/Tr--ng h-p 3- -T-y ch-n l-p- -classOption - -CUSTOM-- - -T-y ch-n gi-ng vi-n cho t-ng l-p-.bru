@@ -1,0 +1,62 @@
+meta {
+  name: Tr--ng h-p 3- -T-y ch-n l-p- -classOption - -CUSTOM-- - -T-y ch-n gi-ng vi-n cho t-ng l-p-
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{base_url}}api/TestExam/12
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+      "subjectId": 2,
+      "topic": "Cập nhật: Thi giữa học kỳ Lý - Updated",
+      "semestersId": 2,
+      "durationInMinutes": 65,
+      "examDate": "2025-03-13",
+      "classIds": [
+          2,
+          3
+      ],
+      "classOption": "CUSTOM",
+      "selectedClassTypeId": null,
+      "applyExaminerForAllClasses": false,
+      "examinerIds": [],
+      "examinersForClass": [
+          {
+              "classId": 2,
+              "examinerIds": [
+                  3,
+                  1
+              ]
+          },
+          {
+              "classId": 3,
+              "examinerIds": [
+                  3
+              ]
+          }
+      ],
+      "description": "Cập nhật: Thêm giảng viên cho lớp 2",
+      "testExamTypeId": 2,
+      "isExam": false,
+      "form": "Tự luận",
+      "scheduleStatusId": 2,
+      "departmentId": 2
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+}
+
+docs {
+  This is a GET request and it is used to "get" data from an endpoint. There is no request body for a GET request, but you can use query parameters to help specify the resource you want data on (e.g., in this request, we have `id=1`).
+  
+  A successful GET response will have a `200 OK` status, and should include some kind of response body - for example, HTML web content or JSON data.
+}

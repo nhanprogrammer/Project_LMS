@@ -87,10 +87,10 @@ namespace Project_LMS.Services
                 return false;
             }
 
-            await _academicYearRepository.DeleteAsync(id);
+            existingAcademicYear.IsDelete = true;
+            await _academicYearRepository.UpdateAsync(existingAcademicYear);
+
             return true;
         }
-
-        
     }
 }
