@@ -1,0 +1,16 @@
+meta {
+  name: GetLessonPage
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}api/Lesson?pageNumber=1&pageSize=2
+  body: none
+  auth: none
+}
+
+params:query {
+  pageNumber: 1
+  pageSize: 2
+}

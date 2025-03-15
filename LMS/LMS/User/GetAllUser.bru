@@ -1,0 +1,16 @@
+meta {
+  name: GetAllUser
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}api/User?pageNumber=1&pageSize=2
+  body: none
+  auth: none
+}
+
+params:query {
+  pageNumber: 1
+  pageSize: 2
+}

@@ -1,0 +1,18 @@
+meta {
+  name: exportFIle
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}api/school/export-excel
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+      "schoolId": 1,
+      "schoolBranchIds": [1, 6]
+  }
+}

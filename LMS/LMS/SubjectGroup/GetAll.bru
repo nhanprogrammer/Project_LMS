@@ -1,0 +1,17 @@
+meta {
+  name: GetAll
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}api/subjectgroup
+  body: none
+  auth: none
+}
+
+params:query {
+  ~pageNumber: 
+  ~pageSize: 
+  ~sortDirection: 
+}

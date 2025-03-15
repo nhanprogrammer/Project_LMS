@@ -1,0 +1,17 @@
+meta {
+  name: deleteSubject
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{base_url}}api/subject
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+      "ids": [10]
+  }
+}

@@ -1,0 +1,18 @@
+meta {
+  name: GetAllUserByIds
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{base_url}}api/User/ByIds?ids=10&ids=11&pageNumber=1&pageSize=10
+  body: none
+  auth: none
+}
+
+params:query {
+  ids: 10
+  ids: 11
+  pageNumber: 1
+  pageSize: 10
+}

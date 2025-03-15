@@ -1,0 +1,21 @@
+meta {
+  name: updateTestExamType
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{base_url}}api/testexamtype
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+      "id": 24,
+      "PointTypeName": "Example Point Type",
+      "Coefficient": 2,
+      "MinimunEntriesSem1": 5,
+      "MinimunEntriesSem2": 3
+  }
+}

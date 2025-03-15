@@ -109,8 +109,8 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [HttpPut("{id}")]
-        public async Task<ActionResult<ApiResponse<SchoolResponse>>> Update(int id, [FromBody] SchoolRequest schoolRequest)
+        [HttpPut]
+        public async Task<ActionResult<ApiResponse<SchoolResponse>>> Update([FromBody] SchoolRequest schoolRequest)
         {
             try
             {
@@ -121,12 +121,12 @@ namespace Project_LMS.Controllers
                     return BadRequest(new ApiResponse<string>(1, "Định dạng JSON không hợp lệ", null));
                 }
 
-                if (schoolRequest == null)
+                if (schoolRequest == null || schoolRequest.Id == 0)
                 {
-                    return BadRequest(new ApiResponse<string>(1, "Request body cannot be null", null));
+                    return BadRequest(new ApiResponse<string>(1, "Request body hoặc Id không được để trống", null));
                 }
 
-                var school = await _schoolService.UpdateAsync(id, schoolRequest);
+                var school = await _schoolService.UpdateAsync(schoolRequest.Id ?? 0, schoolRequest);
                 if (school == null)
                 {
                     return NotFound(new ApiResponse<SchoolResponse>(1, "Không tìm thấy trường"));

@@ -115,15 +115,11 @@ namespace Project_LMS.Services
             {
                 return new ApiResponse<TestExamTypeResponse>(1, "Loại bài kiểm tra không tồn tại.");
             }
-            var isUsedInTestExams = await _context.TestExams
-                .AnyAsync(te => te.TestExamTypeId == id);
-
-            if (isUsedInTestExams)
+            if(testExamType.IsDelete == true)
             {
-                return new ApiResponse<TestExamTypeResponse>(1, "Không thể xóa loại bài kiểm tra vì đang được sử dụng trong các bài kiểm tra.");
+                return new ApiResponse<TestExamTypeResponse>(1, "Loại bài kiểm tra đã bị xóa.");
             }
-
-            _context.TestExamTypes.Remove(testExamType);
+            testExamType.IsDelete = true;
             await _context.SaveChangesAsync();
             return new ApiResponse<TestExamTypeResponse>(0, "Xóa loại bài kiểm tra thành công.");
         }

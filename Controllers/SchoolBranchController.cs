@@ -86,8 +86,8 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [HttpPut("{id}")]
-        public async Task<ActionResult<ApiResponse<SchoolBranchResponse>>> Update(int id, SchoolBranchRequest schoolBranchRequest)
+        [HttpPut]
+        public async Task<ActionResult<ApiResponse<SchoolBranchResponse>>> Update([FromBody] SchoolBranchRequest schoolBranchRequest)
         {
             try
             {
@@ -98,11 +98,12 @@ namespace Project_LMS.Controllers
                     return BadRequest(new ApiResponse<string>(1, "Định dạng JSON không hợp lệ", null));
                 }
 
-                if (schoolBranchRequest == null)
+                if (schoolBranchRequest == null || schoolBranchRequest.Id == null)
                 {
-                    return BadRequest(new ApiResponse<string>(1, "Request body cannot be null", null));
+                    return BadRequest(new ApiResponse<string>(1, "Request body hoặc Id không được để trống", null));
                 }
-                var schoolBranch = await _schoolBranchService.UpdateAsync(id, schoolBranchRequest);
+
+                var schoolBranch = await _schoolBranchService.UpdateAsync(schoolBranchRequest.Id.Value, schoolBranchRequest);
                 if (schoolBranch == null)
                 {
                     return NotFound(new ApiResponse<SchoolBranchResponse>(1, "Không tìm thấy chi nhánh trường"));
@@ -138,6 +139,10 @@ namespace Project_LMS.Controllers
             catch (NotFoundException ex)
             {
                 return NotFound(new ApiResponse<string>(1, ex.Message, null));
+            }
+            catch (BadRequestException ex)
+            {
+                return BadRequest(new ApiResponse<string>(1, ex.Message, null));
             }
             catch (Exception ex)
             {
