@@ -1,17 +1,18 @@
 meta {
   name: Tr--ng h-p 1- -T-t c- l-p- - --p d-ng cho t-t c- l-p-
   type: http
-  seq: 1
+  seq: 4
 }
 
 put {
-  url: {{base_url}}api/TestExam/17
+  url: {{base_url}}api/TestExam
   body: json
   auth: none
 }
 
 body:json {
    {
+      "id": 17,
       "subjectId": 1,
       "topic": "Cập nhật: Thi cuối học kỳ Toán - Updated",
       "semestersId": 1,
