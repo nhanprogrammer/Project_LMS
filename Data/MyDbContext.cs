@@ -1793,7 +1793,12 @@ namespace Project_LMS.Data
             {
                 entity.ToTable("subject_groups");
 
-                entity.Property(e => e.Id).HasColumnName("id");
+           
+                    entity.Property(e => e.Id)
+                        .HasColumnName("id")          
+                        .ValueGeneratedOnAdd()       
+                        .IsRequired();                
+               
 
                 entity.Property(e => e.CreateAt)
                     .HasColumnType("timestamp without time zone")
@@ -1829,7 +1834,10 @@ namespace Project_LMS.Data
             {
                 entity.ToTable("subject_group_subjects");
 
-                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.Id) 
+                    .HasColumnName("id")          
+                    .ValueGeneratedOnAdd()       
+                    .IsRequired();  
 
                 entity.Property(e => e.CreateAt)
                     .HasColumnType("timestamp without time zone")
