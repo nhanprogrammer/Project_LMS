@@ -5,17 +5,18 @@ meta {
 }
 
 put {
-  url: {{base_url}}api/subjectgroup/2
+  url: {{base_url}}api/subjectgroup
   body: json
   auth: none
 }
 
 body:json {
   {
+    "id" : 1,
     "name": "string",
     "userId": 1,
     "subjectIds": [
-      1
+      1,2
     ]
   }
 }

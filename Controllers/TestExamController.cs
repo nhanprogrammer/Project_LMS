@@ -17,26 +17,30 @@ namespace Project_LMS.Controllers
             _testExamService = testExamService;
         }
 
-         [HttpGet]
-    public async Task<IActionResult> GetAllDisciplinesAsync(string? keyword, int? pageNumber, int? pageSize, string? sortDirection)
-    {
-        try
+        [HttpGet]
+        public async Task<IActionResult> GetAllDisciplinesAsync(string? keyword, int? pageNumber, int? pageSize,
+            string? sortDirection)
         {
-            var response = await _testExamService.GetAllTestExamsAsync(keyword, pageNumber, pageSize, sortDirection);
-
-            if (response.Status == 1)
+            try
             {
-                return BadRequest(new ApiResponse<PaginatedResponse<TestExamResponse>>(response.Status, response.Message, response.Data));
-            }
+                var response =
+                    await _testExamService.GetAllTestExamsAsync(keyword, pageNumber, pageSize, sortDirection);
 
-            return Ok(new ApiResponse<PaginatedResponse<TestExamResponse>>(response.Status, response.Message, response.Data));
+                if (response.Status == 1)
+                {
+                    return BadRequest(new ApiResponse<PaginatedResponse<TestExamResponse>>(response.Status,
+                        response.Message, response.Data));
+                }
+
+                return Ok(new ApiResponse<PaginatedResponse<TestExamResponse>>(response.Status, response.Message,
+                    response.Data));
+            }
+            catch (Exception ex)
+            {
+                // Log the exception (use a logging framework)
+                return StatusCode(500, new ApiResponse<string>(1, "An unexpected error occurred.", ex.Message));
+            }
         }
-        catch (Exception ex)
-        {
-            // Log the exception (use a logging framework)
-            return StatusCode(500, new ApiResponse<string>(1, "An unexpected error occurred.", ex.Message));
-        }
-    }
 
 
         [HttpGet("{id}")]
@@ -47,7 +51,8 @@ namespace Project_LMS.Controllers
                 var response = await _testExamService.GetTestExamByIdAsync(id);
                 if (response.Status == 1)
                 {
-                    return BadRequest(new ApiResponse<TestExamResponse>(response.Status, response.Message, response.Data));
+                    return BadRequest(
+                        new ApiResponse<TestExamResponse>(response.Status, response.Message, response.Data));
                 }
 
                 return Ok(new ApiResponse<TestExamResponse>(response.Status, response.Message, response.Data));
@@ -78,16 +83,15 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [HttpPut("{id}")]
+        [HttpPut]
         public async Task<ActionResult<ApiResponse<TestExamResponse>>> Update
         (
-            int id,
             [FromBody] UpdateTestExamRequest request
         )
         {
             try
             {
-                var result = await _testExamService.UpdateTestExamAsync(id, request);
+                var result = await _testExamService.UpdateTestExamAsync(request);
                 if (result.Status == 1)
                 {
                     return BadRequest(request);
@@ -101,7 +105,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [HttpDelete("{id}")]
+        [HttpDelete("{id:int}")]
         public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
         {
             try

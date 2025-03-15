@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Project_LMS.Data;
+using Project_LMS.Exceptions;
 using Project_LMS.Interfaces.Responsitories;
 using Project_LMS.Models;
 
@@ -25,7 +26,7 @@ public class TestExamRepository : ITestExamRepository
             .Include(t => t.Subject)
             .Include(t => t.TestExamType)
             .Include(t => t.Class)
-            .FirstOrDefaultAsync(sg => sg.Id == id) ?? throw new InvalidOperationException("TestExam not found");
+            .FirstOrDefaultAsync(sg => sg.Id == id) ?? throw new NotFoundException("TestExam not found");
     }
 
 
