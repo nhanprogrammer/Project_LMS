@@ -1,8 +1,10 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Org.BouncyCastle.Asn1.Cms;
 using Project_LMS.Data;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Helpers;
 using Project_LMS.Interfaces;
 using Project_LMS.Interfaces.Responsitories;
 using Project_LMS.Models;
@@ -144,7 +146,7 @@ namespace Project_LMS.Services
                 var department = _mapper.Map<Department>(createDepartmentRequest);
 
                 // Cập nhật thời gian tạo và thông tin người tạo từ request
-                department.CreateAt = DateTime.Now;
+                department.CreateAt = TimeHelper.NowUsingTimeZone;
                 department.UserCreate = createDepartmentRequest.userId;
 
                 // Thêm phòng ban vào cơ sở dữ liệu thông qua repository
