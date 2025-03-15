@@ -1,17 +1,18 @@
 meta {
   name: Tr--ng h-p 3- -T-y ch-n l-p- -classOption - -CUSTOM-- - -T-y ch-n gi-ng vi-n cho t-ng l-p-
   type: http
-  seq: 3
+  seq: 6
 }
 
 put {
-  url: {{base_url}}api/TestExam/12
+  url: {{base_url}}api/TestExam
   body: json
   auth: none
 }
 
 body:json {
   {
+      "id": 12,
       "subjectId": 2,
       "topic": "Cập nhật: Thi giữa học kỳ Lý - Updated",
       "semestersId": 2,
