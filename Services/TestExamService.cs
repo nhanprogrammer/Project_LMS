@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Project_LMS.Data;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Exceptions;
 using Project_LMS.Interfaces.Responsitories;
 using Project_LMS.Interfaces.Services;
 using Project_LMS.Models;
@@ -604,7 +605,9 @@ public class TestExamService : ITestExamService
 
     public async Task<ApiResponse<TestExamResponse>> GetTestExamByIdAsync(int id)
     {
-        var testExams = await _testExamRepository.GetByIdAsync(id);
+        try
+        {
+              var testExams = await _testExamRepository.GetByIdAsync(id);
 
         if (testExams == null)
         {
@@ -625,5 +628,15 @@ public class TestExamService : ITestExamService
         };
 
         return new ApiResponse<TestExamResponse>(0, "Lấy dữ liệu thành công", testExamResponse);
+        }
+        catch (NotFoundException ex)
+        {
+            return new ApiResponse<TestExamResponse>(1, $"{ex.Message}", null);
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse<TestExamResponse>(1, $"Lỗi: {ex.Message}", null);
+        }
+      
     }
 }

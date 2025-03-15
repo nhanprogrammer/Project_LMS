@@ -164,6 +164,7 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IStudentStatusRepository, StudenStatusRepository>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
+// builder.Services.AddScoped<IDepartmentsService, Deparmen>();
 
 
 //mapper
