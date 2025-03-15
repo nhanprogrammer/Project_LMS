@@ -35,8 +35,8 @@ namespace Project_LMS.Controllers
                 return StatusCode(500, new ApiResponse<string>(3, "Đã xảy ra lỗi, vui lòng thử lại sau.", null));
             }
         }
-        [HttpPost("save")]
-        public async Task<IActionResult> UpdateGroupPermissions([FromBody] SaveGroupPermissionRequest request)
+        [HttpPost("create")]
+        public async Task<IActionResult> CreateGroupPermission([FromBody] SaveGroupPermissionRequest request)
         {
             try
             {
@@ -48,7 +48,7 @@ namespace Project_LMS.Controllers
                     request.Permissions
                 );
 
-                return Ok(new ApiResponse<bool>(0, "Lưu quyền nhóm thành công.", result));
+                return Ok(new ApiResponse<string>(0, "Tạo nhóm quyền thành công.", null));
             }
             catch (KeyNotFoundException ex)
             {
@@ -62,21 +62,61 @@ namespace Project_LMS.Controllers
             {
                 return BadRequest(new ApiResponse<string>(1, ex.Message, null));
             }
-            catch (DbUpdateConcurrencyException ex)
+            catch (DbUpdateConcurrencyException)
             {
                 return Conflict(new ApiResponse<string>(1, "Dữ liệu đã bị thay đổi bởi người khác. Vui lòng thử lại.", null));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi, vui lòng thử lại sau.", null));
             }
         }
-        [HttpGet]
-        public async Task<IActionResult> GetGroupPermission([FromQuery] int groupRoleId)
+
+        [HttpPut("update")]
+        public async Task<IActionResult> UpdateGroupPermission([FromBody] SaveGroupPermissionRequest request)
         {
             try
             {
-                var result = await _permissionService.GetGroupPermissionById(groupRoleId);
+                bool result = await _permissionService.SaveGroupPermission(
+                    request.GroupRoleId,
+                    request.GroupRoleName,
+                    request.Description,
+                    request.AllPermission,
+                    request.Permissions
+                );
+
+                return Ok(new ApiResponse<string>(0, "Cập nhật nhóm quyền thành công.", null));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponse<string>(1, ex.Message, null));
+            }
+            catch (ArgumentNullException ex)
+            {
+                return BadRequest(new ApiResponse<string>(1, ex.Message, null));
+            }
+            catch (BadHttpRequestException ex)
+            {
+                return BadRequest(new ApiResponse<string>(1, ex.Message, null));
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return Conflict(new ApiResponse<string>(1, "Dữ liệu đã bị thay đổi bởi người khác. Vui lòng thử lại.", null));
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi, vui lòng thử lại sau.", null));
+            }
+        }
+
+
+
+        [HttpGet]
+        public async Task<IActionResult> GetGroupPermission([FromQuery] PermissionIdRequest groupRoleId)
+        {
+            try
+            {
+                var result = await _permissionService.GetGroupPermissionById(groupRoleId.Id);
                 return Ok(new ApiResponse<GroupPermissionResponse>(0, "Lấy thông tin nhóm quyền thành công.", result));
             }
             catch (KeyNotFoundException ex)
@@ -85,16 +125,16 @@ namespace Project_LMS.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi, vui lòng thử lại sau.", null));
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi, vui lòng thử lại sau."+ex.Message, null));
             }
         }
         [HttpDelete]
-        public async Task<IActionResult> DeleteGroupPermission([FromQuery] int groupRoleId)
+        public async Task<IActionResult> DeleteGroupPermission([FromBody] PermissionIdRequest groupRoleId)
         {
             try
             {
-                bool result = await _permissionService.DeleteGroupPermission(groupRoleId);
-                return Ok(new ApiResponse<bool>(0, "Xóa nhóm quyền thành công.", result));
+                bool result = await _permissionService.DeleteGroupPermission(groupRoleId.Id);
+                return Ok(new ApiResponse<string>(0, "Xóa nhóm quyền thành công.", null));
             }
             catch (KeyNotFoundException ex)
             {
@@ -109,6 +149,8 @@ namespace Project_LMS.Controllers
                 return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi, vui lòng thử lại sau.", null));
             }
         }
+
+        
         [HttpGet("user-list")]
         public async Task<IActionResult> GetPermissionUserList([FromQuery] PermissionListRequest request)
         {
@@ -128,11 +170,11 @@ namespace Project_LMS.Controllers
             }
         }
         [HttpGet("user")]
-        public async Task<IActionResult> GetPermissionUser([FromQuery] PermissionUserRequest request)
+        public async Task<IActionResult> GetPermissionUser([FromQuery] PermissionIdRequest request)
         {
             try
             {
-                var response = await _permissionService.GetUserPermission(request.UserId, request.GroupId, request.Disable);
+                var response = await _permissionService.GetUserPermission(request.Id);
 
                 return Ok(new ApiResponse<PermissionUserRequest>(0, "Lấy danh sách người dùng thành công.", response));
             }
@@ -174,11 +216,11 @@ namespace Project_LMS.Controllers
             }
         }
         [HttpDelete("user-delete")]
-        public async Task<IActionResult> DeleteUserPermission([FromQuery] int userId)
+        public async Task<IActionResult> DeleteUserPermission([FromBody] PermissionIdRequest userId)
         {
             try
             {
-                bool success = await _permissionService.DeleteUser(userId);
+                bool success = await _permissionService.DeleteUser(userId.Id);
 
                 if (success)
                 {
@@ -198,10 +240,11 @@ namespace Project_LMS.Controllers
                 return StatusCode(500, new ApiResponse<string>(3, "Đã xảy ra lỗi, vui lòng thử lại sau.", null));
             }
         }
+
         [HttpGet("u")]
-        public async Task<IActionResult> GetUserPer([FromQuery] int userId)
+        public async Task<IActionResult> GetUserPer([FromQuery] PermissionIdRequest userId)
         {
-            var permissions = await _permissionService.ListPermission(userId);
+            var permissions = await _permissionService.ListPermission(userId.Id);
 
             if (permissions == null || permissions.Count == 0)
             {

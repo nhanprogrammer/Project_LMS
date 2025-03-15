@@ -212,12 +212,18 @@ namespace Project_LMS.Services
 
 
         // Lấy danh sách môn học, nhưng loại trừ các môn có ID trong danh sách đã chọn
-        public async Task<ApiResponse<List<SubjectListResponse>>> GetSubjectsExcluding(List<int> excludedSubjectIds)
+        public async Task<ApiResponse<List<SubjectListResponse>>> GetSubjectsExcluding(string excludedSubjectIds)
         {
-            excludedSubjectIds ??= new List<int>(); // Đảm bảo danh sách không null
+            // Chuyển đổi chuỗi "1,2,3" thành List<int>
+            var excludedIds = excludedSubjectIds?
+                .Split(',')
+                .Select(id => int.TryParse(id, out int parsedId) ? parsedId : (int?)null) // Chuyển đổi an toàn
+                .Where(id => id.HasValue) // Loại bỏ null
+                .Select(id => id.Value) // Lấy giá trị int
+                .ToList() ?? new List<int>(); // Nếu null thì trả về danh sách rỗng
 
             var response = await _context.Subjects
-                .Where(s => s.IsDelete != true && !excludedSubjectIds.Contains(s.Id)) // Sửa lỗi nullable bool
+                .Where(s => s.IsDelete != true && !excludedIds.Contains(s.Id)) // Lọc danh sách ID
                 .Select(s => new SubjectListResponse
                 {
                     Id = s.Id,
@@ -232,6 +238,7 @@ namespace Project_LMS.Services
 
             return new ApiResponse<List<SubjectListResponse>>(0, "Lấy danh sách môn học thành công", response);
         }
+
 
 
 
@@ -414,11 +421,11 @@ namespace Project_LMS.Services
             return true;
         }
 
-        public async Task<FileContentResult> ExportClassListToExcel(int academicYearId, int departmentId)
+        public async Task<byte[]> ExportClassListToExcel(int academicYearId, int departmentId)
         {
             var query = _context.Classes
-                .Where(c => c.AcademicYearId == academicYearId &&
-                            c.DepartmentId == departmentId &&
+                .Where(c => (academicYearId == 0 || c.AcademicYearId == academicYearId) &&
+                            (departmentId == 0 || c.DepartmentId == departmentId) &&
                             c.IsDelete == false)
                 .Include(c => c.User); // Đảm bảo load thông tin giáo viên chủ nhiệm
 
@@ -426,13 +433,12 @@ namespace Project_LMS.Services
                 .OrderBy(c => c.Id)
                 .ToListAsync();
 
-            // Tạo danh sách dữ liệu để export
             var classList = classes.Select(c => new ClassListResponse
             {
                 Id = c.Id,
                 ClassCode = c.ClassCode,
                 ClassName = c.Name,
-                HomeroomTeacher = c.User != null ? c.User.FullName : "Chưa có giáo viên" // Kiểm tra null
+                HomeroomTeacher = c.User != null ? c.User.FullName : "Chưa có giáo viên"
             }).ToList();
 
             using (var package = new ExcelPackage())
@@ -466,26 +472,31 @@ namespace Project_LMS.Services
 
                 worksheet.Cells.AutoFitColumns();
 
-                // Xuất file
-                var excelData = package.GetAsByteArray();
-                return new FileContentResult(excelData, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-                {
-                    FileDownloadName = $"ClassList_{DateTime.Now:yyyyMMddHHmmss}.xlsx"
-                };
+                // Xuất file dưới dạng byte array
+                return package.GetAsByteArray();
             }
         }
 
 
-        public async Task CreateClassByFile(IFormFile file)
+
+        public async Task CreateClassByBase64(string base64File)
         {
-            if (file == null || file.Length == 0)
+            if (string.IsNullOrWhiteSpace(base64File))
             {
                 throw new ArgumentException("File không hợp lệ.");
             }
 
-            // Kiểm tra định dạng file (chỉ chấp nhận .xlsx)
-            var fileExtension = Path.GetExtension(file.FileName);
-            if (!string.Equals(fileExtension, ".xlsx", StringComparison.OrdinalIgnoreCase))
+            byte[] fileBytes;
+            try
+            {
+                fileBytes = Convert.FromBase64String(base64File);
+            }
+            catch (FormatException)
+            {
+                throw new ArgumentException("Chuỗi Base64 không hợp lệ.");
+            }
+
+            if (!IsExcelFile(fileBytes))
             {
                 throw new ArgumentException("Chỉ hỗ trợ file Excel (.xlsx).");
             }
@@ -495,69 +506,66 @@ namespace Project_LMS.Services
 
             try
             {
-                using (var stream = new MemoryStream())
+                using (var stream = new MemoryStream(fileBytes))
+                using (var package = new ExcelPackage(stream))
                 {
-                    await file.CopyToAsync(stream);
-                    using (var package = new ExcelPackage(stream))
+                    ExcelWorksheet worksheet = package.Workbook.Worksheets[0];
+                    if (worksheet == null)
                     {
-                        ExcelWorksheet worksheet = package.Workbook.Worksheets[0]; // Lấy sheet đầu tiên
-                        if (worksheet == null)
-                        {
-                            throw new Exception("File Excel không chứa dữ liệu.");
-                        }
+                        throw new Exception("File Excel không chứa dữ liệu.");
+                    }
 
-                        int rowCount = worksheet.Dimension?.Rows ?? 0;
-                        if (rowCount < 2)
-                        {
-                            throw new Exception("File Excel không có dữ liệu hợp lệ.");
-                        }
+                    int rowCount = worksheet.Dimension?.Rows ?? 0;
+                    if (rowCount < 2)
+                    {
+                        throw new Exception("File Excel không có dữ liệu hợp lệ.");
+                    }
 
-                        for (int row = 2; row <= rowCount; row++) // Bỏ qua dòng tiêu đề
+                    for (int row = 2; row <= rowCount; row++)
+                    {
+                        try
                         {
-                            try
+                            var academicYearId = Convert.ToInt32(worksheet.Cells[row, 1].Value);
+                            var departmentId = Convert.ToInt32(worksheet.Cells[row, 2].Value);
+                            var classTypeId = Convert.ToInt32(worksheet.Cells[row, 3].Value);
+                            var userId = Convert.ToInt32(worksheet.Cells[row, 4].Value);
+                            var className = worksheet.Cells[row, 5].Text.Trim();
+                            var studentCount = Convert.ToInt32(worksheet.Cells[row, 6].Value);
+                            var description = worksheet.Cells[row, 7].Text.Trim();
+                            var subjectIds = worksheet.Cells[row, 8].Text.Split(',').Select(s => int.TryParse(s.Trim(), out var id) ? id : 0).Where(id => id > 0).ToList();
+
+                            if (string.IsNullOrEmpty(className))
                             {
-                                var academicYearId = Convert.ToInt32(worksheet.Cells[row, 1].Value);
-                                var departmentId = Convert.ToInt32(worksheet.Cells[row, 2].Value);
-                                var classTypeId = Convert.ToInt32(worksheet.Cells[row, 3].Value);
-                                var userId = Convert.ToInt32(worksheet.Cells[row, 4].Value);
-                                var className = worksheet.Cells[row, 5].Text.Trim();
-                                var studentCount = Convert.ToInt32(worksheet.Cells[row, 6].Value);
-                                var description = worksheet.Cells[row, 7].Text.Trim();
-
-                                if (string.IsNullOrEmpty(className))
-                                {
-                                    errorMessages.Add($"Lỗi tại dòng {row}: ClassName không được để trống.");
-                                    continue;
-                                }
-
-                                var classSaveRequest = new ClassSaveRequest
-                                {
-                                    AcademicYearId = academicYearId,
-                                    DepartmentId = departmentId,
-                                    ClassTypeId = classTypeId,
-                                    UserId = userId,
-                                    ClassName = className,
-                                    StudentCount = studentCount,
-                                    Description = description
-                                };
-
-                                classList.Add(classSaveRequest);
+                                errorMessages.Add($"Lỗi tại dòng {row}: ClassName không được để trống.");
+                                continue;
                             }
-                            catch (Exception ex)
+
+                            var classSaveRequest = new ClassSaveRequest
                             {
-                                errorMessages.Add($"Lỗi tại dòng {row}: {ex.Message}");
-                            }
+                                AcademicYearId = academicYearId,
+                                DepartmentId = departmentId,
+                                ClassTypeId = classTypeId,
+                                UserId = userId,
+                                ClassName = className,
+                                StudentCount = studentCount,
+                                Description = description,
+                                Ids = subjectIds
+                            };
+
+                            classList.Add(classSaveRequest);
+                        }
+                        catch (Exception ex)
+                        {
+                            errorMessages.Add($"Lỗi tại dòng {row}: {ex.Message}");
                         }
                     }
                 }
 
-                // Nếu có lỗi, ném ngoại lệ
                 if (errorMessages.Count > 0)
                 {
                     throw new Exception("Đã xảy ra lỗi khi đọc file Excel:\n" + string.Join("\n", errorMessages));
                 }
 
-                // Lưu danh sách lớp học
                 foreach (var classItem in classList)
                 {
                     await SaveClass(classItem);
@@ -568,5 +576,134 @@ namespace Project_LMS.Services
                 throw new Exception($"Lỗi khi xử lý file Excel: {ex.Message}");
             }
         }
+
+
+        private bool IsExcelFile(byte[] fileBytes)
+        {
+            // Kiểm tra header của file (Magic Number)
+            // File .xlsx có header: "50 4B 03 04" (PK ZIP format)
+            if (fileBytes.Length < 4)
+                return false;
+
+            return fileBytes[0] == 0x50 && fileBytes[1] == 0x4B &&
+                   fileBytes[2] == 0x03 && fileBytes[3] == 0x04;
+        }
+
+
+        public async Task<byte[]> GenerateClassTemplate()
+        {
+            using (var package = new ExcelPackage())
+            {
+                // 1. Tạo sheet Template (Mẫu nhập liệu)
+                var templateSheet = package.Workbook.Worksheets.Add("Template");
+                var header = new string[]
+                {
+            "AcademicYearId", "DepartmentId", "ClassTypeId", "UserId", "ClassName", "StudentCount", "Description", "SubjectIds"
+                };
+
+                for (int col = 0; col < header.Length; col++)
+                {
+                    templateSheet.Cells[1, col + 1].Value = header[col];
+                    templateSheet.Cells[1, col + 1].Style.Font.Bold = true;
+                }
+
+                // Thêm dữ liệu mẫu
+                templateSheet.Cells[2, 1].Value = 1; // AcademicYearId
+                templateSheet.Cells[2, 2].Value = 2; // DepartmentId
+                templateSheet.Cells[2, 3].Value = 1; // ClassTypeId
+                templateSheet.Cells[2, 4].Value = 3; // UserId
+                templateSheet.Cells[2, 5].Value = "Lớp 12A1"; // ClassName
+                templateSheet.Cells[2, 6].Value = 40; // StudentCount
+                templateSheet.Cells[2, 7].Value = "Lớp chuyên toán"; // Description
+                templateSheet.Cells[2, 8].Value = "1,3,5"; // SubjectIds (các môn học)
+
+                // Ghi chú cho người dùng
+                templateSheet.Cells[4, 1].Value = "Ghi chú:";
+                templateSheet.Cells[5, 1].Value = "1. Các cột AcademicYearId, DepartmentId, ClassTypeId, UserId, SubjectIds phải khớp với dữ liệu bên sheet 'Data'.";
+                templateSheet.Cells[6, 1].Value = "2. SubjectIds có thể nhập nhiều giá trị, cách nhau bằng dấu phẩy (ví dụ: 1,3,5).";
+
+                // 2. Tạo sheet Data (Dữ liệu hỗ trợ nhập liệu)
+                var dataSheet = package.Workbook.Worksheets.Add("Data");
+
+                // Lấy dữ liệu từ DB
+                var academicYears = await _context.AcademicYears
+                    .Select(a => new { a.Id, Name = $"{a.StartDate:yyyy} - {a.EndDate:yyyy}" })
+                    .ToListAsync();
+
+                var departments = await _context.Departments
+                    .Select(d => new { d.Id, d.Name })
+                    .ToListAsync();
+
+                var classTypes = await _context.ClassTypes
+                    .Select(ct => new { ct.Id, ct.Name })
+                    .ToListAsync();
+
+                var users = await _context.Users
+                    .Where(u => u.TeacherStatusId.HasValue)
+                    .Select(u => new { u.Id, u.FullName })
+                    .ToListAsync();
+
+                var subjects = await _context.Subjects
+                    .Select(s => new { s.Id, s.SubjectName })
+                    .ToListAsync();
+
+                // Điền dữ liệu vào sheet Data
+                int startRow = 2;
+
+                // AcademicYears
+                dataSheet.Cells[1, 1].Value = "AcademicYearId";
+                dataSheet.Cells[1, 2].Value = "AcademicYearName";
+                for (int i = 0; i < academicYears.Count; i++)
+                {
+                    dataSheet.Cells[startRow + i, 1].Value = academicYears[i].Id;
+                    dataSheet.Cells[startRow + i, 2].Value = academicYears[i].Name;
+                }
+
+                // Departments
+                startRow = academicYears.Count + 4;
+                dataSheet.Cells[startRow, 1].Value = "DepartmentId";
+                dataSheet.Cells[startRow, 2].Value = "DepartmentName";
+                for (int i = 0; i < departments.Count; i++)
+                {
+                    dataSheet.Cells[startRow + i + 1, 1].Value = departments[i].Id;
+                    dataSheet.Cells[startRow + i + 1, 2].Value = departments[i].Name;
+                }
+
+                // ClassTypes
+                startRow += departments.Count + 4;
+                dataSheet.Cells[startRow, 1].Value = "ClassTypeId";
+                dataSheet.Cells[startRow, 2].Value = "ClassTypeName";
+                for (int i = 0; i < classTypes.Count; i++)
+                {
+                    dataSheet.Cells[startRow + i + 1, 1].Value = classTypes[i].Id;
+                    dataSheet.Cells[startRow + i + 1, 2].Value = classTypes[i].Name;
+                }
+
+                // Users (Teachers)
+                startRow += classTypes.Count + 4;
+                dataSheet.Cells[startRow, 1].Value = "UserId";
+                dataSheet.Cells[startRow, 2].Value = "TeacherName";
+                for (int i = 0; i < users.Count; i++)
+                {
+                    dataSheet.Cells[startRow + i + 1, 1].Value = users[i].Id;
+                    dataSheet.Cells[startRow + i + 1, 2].Value = users[i].FullName;
+                }
+
+                // Subjects
+                startRow += users.Count + 4;
+                dataSheet.Cells[startRow, 1].Value = "SubjectId";
+                dataSheet.Cells[startRow, 2].Value = "SubjectName";
+                for (int i = 0; i < subjects.Count; i++)
+                {
+                    dataSheet.Cells[startRow + i + 1, 1].Value = subjects[i].Id;
+                    dataSheet.Cells[startRow + i + 1, 2].Value = subjects[i].SubjectName;
+                }
+
+                // Lưu file Excel vào byte array
+                return package.GetAsByteArray();
+            }
+        }
+
+
     }
 }
