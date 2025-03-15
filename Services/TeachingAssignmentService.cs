@@ -88,10 +88,12 @@ public class TeachingAssignmentService : ITeachingAssignmentService
     }
 
 
-    public async Task<TeachingAssignmentResponse?> Create(TeachingAssignmentRequest request)
+    public async Task<TeachingAssignmentResponse> Create(TeachingAssignmentRequest request)
     {
         try
         {
+            Console.WriteLine($"Bắt đầu tạo TeachingAssignment: UserId={request.UserId}, ClassId={request.ClassId}, SubjectId={request.SubjectId}");
+
             var assignment = new TeachingAssignment
             {
                 UserId = request.UserId,
@@ -99,21 +101,22 @@ public class TeachingAssignmentService : ITeachingAssignmentService
                 SubjectId = request.SubjectId,
                 StartDate = request.StartDate,
                 EndDate = request.EndDate,
-                CreateAt = DateTime.UtcNow
+                CreateAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified)
             };
 
             _context.TeachingAssignments.Add(assignment);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(); 
+
+            Console.WriteLine($"TeachingAssignment đã tạo với ID = {assignment.Id}");
 
             return await GetById(assignment.Id);
         }
-        catch (Exception ex)
+        catch (DbUpdateException dbEx)
         {
-            Console.WriteLine($"Lỗi Create: {ex.Message} | {ex.StackTrace}");
+            Console.WriteLine($"Lỗi khi lưu vào database: {dbEx.InnerException?.Message}");
             throw;
         }
     }
-
 
 
     public async Task<bool> Update(int id, TeachingAssignmentRequest request)
@@ -128,7 +131,8 @@ public class TeachingAssignmentService : ITeachingAssignmentService
             assignment.SubjectId = request.SubjectId;
             assignment.StartDate = request.StartDate;
             assignment.EndDate = request.EndDate;
-            assignment.UpdateAt = DateTime.UtcNow;
+            assignment.UpdateAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified);
+
 
             await _context.SaveChangesAsync();
             return true;

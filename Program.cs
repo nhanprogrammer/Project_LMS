@@ -167,6 +167,8 @@ builder.Services.AddScoped<IStudentStatusRepository, StudenStatusRepository>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 
 //mapper
 builder.Services.AddAutoMapper(typeof(MappingProfile));

@@ -56,7 +56,7 @@ public class SystemSettingService : ISystemSettingService
                 CaptchaEnabled = request.CaptchaEnabled,
                 CurrentTheme = request.CurrentTheme,
                 Language = request.Language,
-                CreateAt = DateTime.UtcNow
+                CreateAt = DateTime.Now
             };
 
             _context.SystemSettings.Add(setting);
@@ -89,7 +89,7 @@ public class SystemSettingService : ISystemSettingService
             setting.CaptchaEnabled = request.CaptchaEnabled;
             setting.CurrentTheme = request.CurrentTheme;
             setting.Language = request.Language;
-            setting.UpdateAt = DateTime.UtcNow;
+            setting.UpdateAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
 
