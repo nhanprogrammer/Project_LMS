@@ -61,11 +61,10 @@ public class SubjectGroupController : ControllerBase
         return Ok(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
     }
 
-    [HttpPut("{id?}")]
-    public async Task<IActionResult> UpdateDepartment(int id,
-        [FromBody] UpdateSubjectGroupRequest updateSubjectGroupRequest)
+    [HttpPut]
+    public async Task<IActionResult> UpdateDepartment([FromBody] UpdateSubjectGroupRequest updateSubjectGroupRequest)
     {
-        var response = await _subjectGroupService.UpdateSubjectGroupAsync(id, updateSubjectGroupRequest);
+        var response = await _subjectGroupService.UpdateSubjectGroupAsync(updateSubjectGroupRequest);
         if (response.Status == 1)
         {
             return BadRequest(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
@@ -86,15 +85,20 @@ public class SubjectGroupController : ControllerBase
         return Ok(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
     }
 
-    [HttpDelete ("/SubjectList")]
-    public async Task<IActionResult> DeleteListSubject([FromBody] List<int> ids)
-    {
-        var response = await _subjectGroupService.DeleteSubjectGroupSubject(ids);
-        if (response.Status == 1)
-        {
-            return BadRequest(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
-        }
+ [HttpDelete]
+ public async Task<IActionResult> DeleteListSubject([FromBody] DeleteRequest deleteRequest)
+{
+    Console.WriteLine($"Received IDs: {string.Join(", ", deleteRequest)}");
 
-        return Ok(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
+
+    var response = await _subjectGroupService.DeleteSubjectGroupSubject(deleteRequest);
+    
+    if (response.Status == 1)
+    {
+        return BadRequest(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
     }
+
+    return Ok(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
+}
+
 }

@@ -296,7 +296,11 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
             .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
             .ForMember(dest => dest.CreateAt,
-                opt => opt.MapFrom(src => src.CreateAt.HasValue ? src.CreateAt.Value.ToLocalTime() : (DateTime?)null))
+                opt => opt.MapFrom(src =>
+                    src.CreateAt.HasValue
+                        ? TimeZoneInfo.ConvertTimeFromUtc(src.CreateAt.Value, TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")) // Múi giờ GMT+7
+                        : (DateTime?)null))
+
             .ForMember(dest => dest.UserCreate, opt => opt.MapFrom(src => src.UserCreate))
             .ForMember(dest => dest.SubjectGroupSubjects,
                 opt => opt.MapFrom(src => MapSubjectGroupSubjects(src.SubjectIds)));
