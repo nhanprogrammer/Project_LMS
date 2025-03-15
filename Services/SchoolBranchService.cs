@@ -133,6 +133,10 @@ namespace Project_LMS.Services
             {
                 throw new NotFoundException("Không tìm thấy chi nhánh trường");
             }
+            if(branch.IsDelete == true)
+            {
+                throw new BadRequestException("Chi nhánh trường đã bị xóa");
+            }
 
             branch.IsDelete = true;
             branch.UserUpdate = 1;

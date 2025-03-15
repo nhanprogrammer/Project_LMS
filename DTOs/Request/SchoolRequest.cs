@@ -4,6 +4,7 @@ namespace Project_LMS.DTOs.Request
 {
     public class SchoolRequest
     {
+        public int? Id { get; set; }
         [Required(ErrorMessage = "Mã trường là bắt buộc")]
         [StringLength(50, ErrorMessage = "Mã trường không được vượt quá 50 ký tự")]
         public string SchoolCode { get; set; } = null!;
