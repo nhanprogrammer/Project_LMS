@@ -5,6 +5,7 @@ namespace Project_LMS.DTOs.Request
 {
     public class UpdateTestExamRequest
     {
+        public int id { get; set; }
         public int? SubjectId { get; set; }
         public string? Topic { get; set; }
         public int? SemestersId { get; set; }

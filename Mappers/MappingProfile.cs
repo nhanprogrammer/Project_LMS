@@ -111,16 +111,16 @@ public class MappingProfile : Profile
         CreateMap<ClassType, CreateClassTypeRequest>();
 
         CreateMap<CreateDepartmentRequest, Department>()
-            .ForMember(dest => dest.DepartmentCode, opt => opt.MapFrom(src => src.DepartmentCode))
-            .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
-            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
-            .ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => src.CreateAt ?? DateTime.Now));
+            .ForMember(dest => dest.DepartmentCode, opt => opt.MapFrom(src => src.departmentCode))
+            .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.name))
+            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.userId))
+            .ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => src.createAt ?? DateTime.Now));
 
         CreateMap<UpdateDepartmentRequest, Department>()
-            .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
-            .ForMember(dest => dest.IsDelete, opt => opt.MapFrom(src => src.IsDelete))
-            .ForMember(dest => dest.UpdateAt, opt => opt.MapFrom(src => src.UpdateAt ?? DateTime.Now))
-            .ForMember(dest => dest.UserUpdate, opt => opt.MapFrom(src => src.UserUpdate));
+            .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.name))
+            .ForMember(dest => dest.IsDelete, opt => opt.MapFrom(src => src.isDelete))
+            .ForMember(dest => dest.UpdateAt, opt => opt.MapFrom(src => src.updateAt ?? DateTime.Now))
+            .ForMember(dest => dest.UserUpdate, opt => opt.MapFrom(src => src.userUpdate));
 
         CreateMap<Department, DepartmentResponse>()
             .ForMember(dest => dest.DepartmentID, opt => opt.MapFrom(src => src.Id))
@@ -175,29 +175,29 @@ public class MappingProfile : Profile
         // Mapper Create Test_exam for Test_Exam
         CreateMap<CreateTestExamRequest, TestExam>()
             // Map cột SemestersId, SubjectId, TestExamTypeId, ...
-            .ForMember(dest => dest.SemestersId, opt => opt.MapFrom(src => src.SemestersId))
-            .ForMember(dest => dest.SubjectId, opt => opt.MapFrom(src => src.SubjectId))
-            .ForMember(dest => dest.TestExamTypeId, opt => opt.MapFrom(src => src.TestExamTypeId))
+            .ForMember(dest => dest.SemestersId, opt => opt.MapFrom(src => src.semestersId))
+            .ForMember(dest => dest.SubjectId, opt => opt.MapFrom(src => src.subjectId))
+            .ForMember(dest => dest.TestExamTypeId, opt => opt.MapFrom(src => src.testExamTypeId))
 
             // Topic, IsExam, Form, Description, ScheduleStatusId, DepartmentId
-            .ForMember(dest => dest.Topic, opt => opt.MapFrom(src => src.Topic))
-            .ForMember(dest => dest.IsExam, opt => opt.MapFrom(src => src.IsExam))
-            .ForMember(dest => dest.Form, opt => opt.MapFrom(src => src.Form))
-            .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
+            .ForMember(dest => dest.Topic, opt => opt.MapFrom(src => src.topic))
+            .ForMember(dest => dest.IsExam, opt => opt.MapFrom(src => src.isExam))
+            .ForMember(dest => dest.Form, opt => opt.MapFrom(src => src.form))
+            .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.description))
             .ForMember(dest => dest.ScheduleStatusId, opt => opt.Ignore())
-            .ForMember(dest => dest.DepartmentId, opt => opt.MapFrom(src => src.DepartmentId))
+            .ForMember(dest => dest.DepartmentId, opt => opt.MapFrom(src => src.departmentId))
 
             // DurationInMinutes -> Duration (TimeOnly?)
             .ForMember(dest => dest.Duration, opt => opt.MapFrom(src =>
-                src.DurationInMinutes.HasValue
-                    ? TimeOnly.FromTimeSpan(TimeSpan.FromMinutes(src.DurationInMinutes.Value))
+                src.durationInMinutes.HasValue
+                    ? TimeOnly.FromTimeSpan(TimeSpan.FromMinutes(src.durationInMinutes.Value))
                     : (TimeOnly?)null
             ))
 
             // ExamDate -> StartDate (hoặc EndDate, tùy ý)
-            .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.ExamDate))
+            .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.examDate))
             // Nếu bạn muốn EndDate giống StartDate:
-            .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.ExamDate))
+            .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.examDate))
             // hoặc .ForMember(dest => dest.EndDate, opt => opt.Ignore())
 
             // Không map ClassId và UserId (vì quan hệ N-N, ta xử lý riêng)

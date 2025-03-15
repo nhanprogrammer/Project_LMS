@@ -29,10 +29,10 @@ public class TestExamService : ITestExamService
     public async Task<ApiResponse<object>> CreateTestExamAsync(CreateTestExamRequest request)
     {
         // 1) Kiểm tra Học kỳ (SemestersId) có tồn tại không
-        if (request.SemestersId.HasValue)
+        if (request.semestersId.HasValue)
         {
             bool existsSemester = await _context.Semesters
-                .AnyAsync(s => s.Id == request.SemestersId.Value);
+                .AnyAsync(s => s.Id == request.semestersId.Value);
             if (!existsSemester)
             {
                 return new ApiResponse<object>(1, "Học kỳ không tồn tại trong DB", null);
@@ -40,10 +40,10 @@ public class TestExamService : ITestExamService
         }
 
         // 2) Kiểm tra Môn học (SubjectId) có tồn tại không
-        if (request.SubjectId.HasValue)
+        if (request.subjectId.HasValue)
         {
             bool existsSubject = await _context.Subjects
-                .AnyAsync(sub => sub.Id == request.SubjectId.Value);
+                .AnyAsync(sub => sub.Id == request.subjectId.Value);
             if (!existsSubject)
             {
                 return new ApiResponse<object>(1, "Môn học không tồn tại trong DB", null);
@@ -51,10 +51,10 @@ public class TestExamService : ITestExamService
         }
 
         // 3) Kiểm tra Loại kiểm tra (TestExamTypeId) có tồn tại không
-        if (request.TestExamTypeId.HasValue)
+        if (request.testExamTypeId.HasValue)
         {
             bool existsType = await _context.TestExamTypes
-                .AnyAsync(t => t.Id == request.TestExamTypeId.Value);
+                .AnyAsync(t => t.Id == request.testExamTypeId.Value);
             if (!existsType)
             {
                 return new ApiResponse<object>(1, "Loại kiểm tra không tồn tại trong DB", null);
@@ -64,7 +64,7 @@ public class TestExamService : ITestExamService
         // 4) Map Request -> TestExam
         var testExam = _mapper.Map<TestExam>(request);
         testExam.ScheduleStatusId = 1;
-        testExam.DepartmentId = request.DepartmentId;
+        testExam.DepartmentId = request.departmentId;
         // 5) Add TestExam vào DbSet
         await _context.TestExams.AddAsync(testExam);
 
@@ -74,18 +74,18 @@ public class TestExamService : ITestExamService
         // 7) Xử lý ClassOption & ClassIds => thêm ClassTestExams
         var finalClassIds = new List<int>();
 
-        if (request.ClassOption == "ALL")
+        if (request.classOption == "ALL")
         {
             finalClassIds = await _context.Classes
                 .Where(c => c.IsDelete == false)
                 .Select(c => c.Id)
                 .ToListAsync();
         }
-        else if (request.ClassOption == "TYPE")
+        else if (request.classOption == "TYPE")
         {
-            if (request.SelectedClassTypeId.HasValue)
+            if (request.selectedClassTypeId.HasValue)
             {
-                var typeId = request.SelectedClassTypeId.Value;
+                var typeId = request.selectedClassTypeId.Value;
                 finalClassIds = await _context.Classes
                     .Where(c => c.ClassTypeId == typeId && c.IsDelete == false)
                     .Select(c => c.Id)
@@ -94,9 +94,9 @@ public class TestExamService : ITestExamService
         }
         else
         {
-            if (request.ClassIds != null && request.ClassIds.Any())
+            if (request.classIds != null && request.classIds.Any())
             {
-                finalClassIds = request.ClassIds;
+                finalClassIds = request.classIds;
             }
         }
 
@@ -116,11 +116,11 @@ public class TestExamService : ITestExamService
 
         // 9) Xử lý phân công chấm thi (Examiner)
         //    Nếu ApplyExaminerForAllClasses = true => examiner chung áp dụng cho tất cả các lớp
-        if (request.ApplyExaminerForAllClasses == true)
+        if (request.applyExaminerForAllClasses == true)
         {
-            if (request.ExaminerIds != null && request.ExaminerIds.Any())
+            if (request.examinerIds != null && request.examinerIds.Any())
             {
-                foreach (var examinerId in request.ExaminerIds)
+                foreach (var examinerId in request.examinerIds)
                 {
                     var examiner = new Examiner
                     {
@@ -138,12 +138,12 @@ public class TestExamService : ITestExamService
         else
         {
             // Tùy chọn cho từng lớp cho user chấm theo lớp cụ thể
-            if (request.ExaminersForClass != null && request.ExaminersForClass.Any())
+            if (request.examinersForClass != null && request.examinersForClass.Any())
             {
-                foreach (var item in request.ExaminersForClass)
+                foreach (var item in request.examinersForClass)
                 {
-                    var classId = item.ClassId;
-                    foreach (var exId in item.ExaminerIds)
+                    var classId = item.classId;
+                    foreach (var exId in item.examinerIds)
                     {
                         var examiner = new Examiner
                         {
@@ -188,10 +188,10 @@ public class TestExamService : ITestExamService
         return new ApiResponse<object>(0, "Tạo lịch thi thành công", responseData);
     }
 
-    public async Task<ApiResponse<object>> UpdateTestExamAsync(int id, UpdateTestExamRequest request)
+    public async Task<ApiResponse<object>> UpdateTestExamAsync(UpdateTestExamRequest request)
     {
         // 1) Lấy đối tượng TestExam cần cập nhật
-        var testExam = await _context.TestExams.FirstOrDefaultAsync(te => te.Id == id && te.IsDelete == false);
+        var testExam = await _context.TestExams.FirstOrDefaultAsync(te => te.Id == request.id && te.IsDelete == false);
         if (testExam == null)
         {
             return new ApiResponse<object>(1, "Lịch thi không tồn tại", null);
@@ -234,7 +234,7 @@ public class TestExamService : ITestExamService
         // 4) Cập nhật lại danh sách ClassTestExam:
         // Xoá các bản ghi ClassTestExam hiện có của bài thi
         var existingClassTestExams =
-            _context.ClassTestExams.Where(cte => cte.TestExamId == id && cte.IsDelete == false);
+            _context.ClassTestExams.Where(cte => cte.TestExamId == request.id && cte.IsDelete == false);
         _context.ClassTestExams.RemoveRange(existingClassTestExams);
 
         // Tính toán lại danh sách lớp dựa trên ClassOption & ClassIds
@@ -280,7 +280,7 @@ public class TestExamService : ITestExamService
 
         // 5) Cập nhật lại phân công chấm thi (Examiner)
         // Xoá các bản ghi Examiner hiện có của bài thi
-        var existingExaminers = _context.Examiners.Where(e => e.TestExamId == id && e.IsDelete == false);
+        var existingExaminers = _context.Examiners.Where(e => e.TestExamId == request.id && e.IsDelete == false);
         _context.Examiners.RemoveRange(existingExaminers);
 
         // Nếu ApplyExaminerForAllClasses = true, thêm examiner cho tất cả các lớp
@@ -511,8 +511,9 @@ public class TestExamService : ITestExamService
             return new ApiResponse<IEnumerable<object>>(1, $"Đã xảy ra lỗi {e.Message}", null);
         }
     }
+
     public async Task<ApiResponse<PaginatedResponse<TestExamResponse>>> GetAllTestExamsAsync(string? keyword,
-            int? pageNumber, int? pageSize, string? sortDirection)
+        int? pageNumber, int? pageSize, string? sortDirection)
     {
         if (pageNumber.HasValue && pageNumber <= 0)
         {
@@ -588,7 +589,7 @@ public class TestExamService : ITestExamService
             // 9. Trả về
             return new ApiResponse<PaginatedResponse<TestExamResponse>>(
                 0,
-"Lấy dữ liệu thành công",
+                "Lấy dữ liệu thành công",
                 paginatedResponse
             );
         }
