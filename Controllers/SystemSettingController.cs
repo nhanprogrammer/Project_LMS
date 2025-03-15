@@ -65,20 +65,5 @@ namespace Project_LMS.Controllers
             }
         }
 
-        //[HttpDelete("{id}")]
-        //public async Task<IActionResult> Delete(int id)
-        //{
-        //    try
-        //    {
-        //        var success = await _systemSettingService.Delete(id);
-        //        if (!success) return BadRequest(new { message = "Xóa thất bại." });
-
-        //        return NoContent();
-        //    }
-        //    catch (KeyNotFoundException ex)
-        //    {
-        //        return NotFound(new { message = ex.Message });
-        //    }
-        //}
     }
 }

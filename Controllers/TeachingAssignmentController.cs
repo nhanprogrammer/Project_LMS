@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces.Services;
@@ -30,27 +31,67 @@ namespace Project_LMS.Controllers
         public async Task<ActionResult<TeachingAssignmentResponse>> GetById(int id)
         {
             var result = await _service.GetById(id);
-            if (result == null) return NotFound();
+            if (result == null)
+            {
+                Console.WriteLine($"API GetById: Không tìm thấy TeachingAssignment với ID: {id}");
+                return NotFound(new { Message = $"Không tìm thấy phân công giảng dạy với ID: {id}" });
+            }
             return Ok(result);
         }
+
 
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] TeachingAssignmentRequest request)
         {
-            var response = await _service.Create(request);
-            return response != null
-                ? Ok(new { Message = "Phân công giảng dạy đã được tạo!", Data = response })
-                : BadRequest(new { Message = "Tạo phân công thất bại!" });
+            try
+            {
+                Console.WriteLine($"Bắt đầu tạo phân công: UserId={request.UserId}, ClassId={request.ClassId}, SubjectId={request.SubjectId}");
+
+                var response = await _service.Create(request);
+                if (response != null)
+                {
+                    return Ok(new { Message = "Phân công giảng dạy đã được tạo!", Data = response });
+                }
+                return BadRequest(new { Message = "Tạo phân công thất bại!" });
+            }
+            catch (DbUpdateException dbEx)
+            {
+                Console.WriteLine($"Lỗi khi lưu vào database: {dbEx.InnerException?.Message ?? dbEx.Message}");
+                return StatusCode(500, new
+                {
+                    Message = "Lỗi khi lưu dữ liệu vào database.",
+                    Error = dbEx.InnerException?.Message ?? dbEx.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi không xác định: {ex.Message}");
+                return StatusCode(500, new { Message = "Đã xảy ra lỗi.", Error = ex.Message });
+            }
         }
+
+
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] TeachingAssignmentRequest request)
         {
-            var response = await _service.Update(id, request);
-            return response != null
-                ? Ok(new { Message = "Cập nhật thành công!", Data = response })
-                : NotFound(new { Message = "Không tìm thấy phân công giảng dạy!" });
+            try
+            {
+                var success = await _service.Update(id, request);
+                if (success)
+                {
+                    return Ok(new { Message = "Cập nhật thành công!" });
+                }
+                return NotFound(new { Message = "Không tìm thấy phân công giảng dạy!" });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi khi cập nhật phân công giảng dạy (ID: {id}): {ex.Message}");
+                return StatusCode(500, new { Message = "Đã xảy ra lỗi khi cập nhật phân công giảng dạy.", Error = ex.Message });
+            }
         }
+
+
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
