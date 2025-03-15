@@ -135,7 +135,7 @@ namespace Project_LMS.Services
             }
             if(branch.IsDelete == true)
             {
-                throw new BadRequestException("Chi nhánh trường đã bị xóa");
+                throw new BadRequestException("Chi nhánh trường đã bị xóa", new List<ValidationError>());
             }
 
             branch.IsDelete = true;

@@ -9,9 +9,6 @@
             Errors = errors;
         }
 
-        public BadRequestException(string message) : base(message)
-        {
-        }
 
         public static BadRequestException BadRequest(string message)
         {
