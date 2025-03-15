@@ -66,7 +66,11 @@ public class TeachingAssignmentService : ITeachingAssignmentService
             .Include(t => t.Subject)
             .FirstOrDefaultAsync(t => t.Id == id && (t.IsDelete == false || t.IsDelete == null));
 
-        if (assignment == null) return null;
+        if (assignment == null)
+        {
+            Console.WriteLine($"Không tìm thấy TeachingAssignment với ID: {id}");
+            return null;
+        }
 
         return new TeachingAssignmentResponse
         {
@@ -83,41 +87,61 @@ public class TeachingAssignmentService : ITeachingAssignmentService
         };
     }
 
-    public async Task<TeachingAssignmentResponse> Create(TeachingAssignmentRequest request)
+
+    public async Task<TeachingAssignmentResponse?> Create(TeachingAssignmentRequest request)
     {
-        var assignment = new TeachingAssignment
+        try
         {
-            UserId = request.UserId,
-            ClassId = request.ClassId,
-            SubjectId = request.SubjectId,
-            StartDate = request.StartDate,
-            EndDate = request.EndDate,
-            CreateAt = DateTime.UtcNow
-        };
+            var assignment = new TeachingAssignment
+            {
+                UserId = request.UserId,
+                ClassId = request.ClassId,
+                SubjectId = request.SubjectId,
+                StartDate = request.StartDate,
+                EndDate = request.EndDate,
+                CreateAt = DateTime.UtcNow
+            };
 
-        _context.TeachingAssignments.Add(assignment);
-        await _context.SaveChangesAsync();
+            _context.TeachingAssignments.Add(assignment);
+            await _context.SaveChangesAsync();
 
-        return await GetById(assignment.Id);
+            return await GetById(assignment.Id);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Lỗi Create: {ex.Message} | {ex.StackTrace}");
+            throw;
+        }
     }
+
+
 
     public async Task<bool> Update(int id, TeachingAssignmentRequest request)
     {
-        var assignment = await _context.TeachingAssignments.FindAsync(id);
-        if (assignment == null) return false;
+        try
+        {
+            var assignment = await _context.TeachingAssignments.FindAsync(id);
+            if (assignment == null) return false;
 
-        assignment.UserId = request.UserId;
-        assignment.ClassId = request.ClassId;
-        assignment.SubjectId = request.SubjectId;
-        assignment.StartDate = request.StartDate;
-        assignment.EndDate = request.EndDate;
-        assignment.UpdateAt = DateTime.UtcNow;
+            assignment.UserId = request.UserId;
+            assignment.ClassId = request.ClassId;
+            assignment.SubjectId = request.SubjectId;
+            assignment.StartDate = request.StartDate;
+            assignment.EndDate = request.EndDate;
+            assignment.UpdateAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync();
-        return true;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Lỗi Update: {ex.Message} | {ex.StackTrace}");
+            throw;
+        }
     }
 
-    
+
+
     public async Task<bool> Delete(int id)
     {
         var assignment = await _context.TeachingAssignments.FindAsync(id);

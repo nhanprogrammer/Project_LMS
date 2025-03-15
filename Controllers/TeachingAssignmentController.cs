@@ -30,9 +30,14 @@ namespace Project_LMS.Controllers
         public async Task<ActionResult<TeachingAssignmentResponse>> GetById(int id)
         {
             var result = await _service.GetById(id);
-            if (result == null) return NotFound();
+            if (result == null)
+            {
+                Console.WriteLine($"API GetById: Không tìm thấy TeachingAssignment với ID: {id}");
+                return NotFound(new { Message = $"Không tìm thấy phân công giảng dạy với ID: {id}" });
+            }
             return Ok(result);
         }
+
 
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] TeachingAssignmentRequest request)
@@ -46,11 +51,12 @@ namespace Project_LMS.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] TeachingAssignmentRequest request)
         {
-            var response = await _service.Update(id, request);
-            return response != null
-                ? Ok(new { Message = "Cập nhật thành công!", Data = response })
+            var success = await _service.Update(id, request);
+            return success
+                ? Ok(new { Message = "Cập nhật thành công!" })
                 : NotFound(new { Message = "Không tìm thấy phân công giảng dạy!" });
         }
+
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
