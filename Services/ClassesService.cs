@@ -6,6 +6,7 @@ using Project_LMS.Data;
 using Project_LMS.DTOs;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Exceptions;
 using Project_LMS.Interfaces;
 using Project_LMS.Models;
 using System.Collections.Generic;
@@ -82,22 +83,22 @@ namespace Project_LMS.Services
                 // Kiểm tra ID hợp lệ trước khi thực hiện logic
                 if (!await _context.AcademicYears.AnyAsync(a => a.Id == classSaveRequest.AcademicYearId))
                 {
-                    throw new KeyNotFoundException("Niên khóa không tồn tại.");
+                    throw new NotFoundException("Niên khóa không tồn tại.");
                 }
 
                 if (!await _context.Departments.AnyAsync(d => d.Id == classSaveRequest.DepartmentId))
                 {
-                    throw new KeyNotFoundException("Khoa khối không tồn tại.");
+                    throw new NotFoundException("Khoa khối không tồn tại.");
                 }
 
                 if (!await _context.ClassTypes.AnyAsync(ct => ct.Id == classSaveRequest.ClassTypeId))
                 {
-                    throw new KeyNotFoundException("Loại lớp không tồn tại.");
+                    throw new NotFoundException("Loại lớp không tồn tại.");
                 }
 
                 if (!await _context.Users.AnyAsync(u => u.Id == classSaveRequest.UserId && u.TeacherStatusId.HasValue))
                 {
-                    throw new KeyNotFoundException("Giáo viên chủ nhiệm không tồn tại hoặc không hợp lệ.");
+                    throw new NotFoundException("Giáo viên chủ nhiệm không tồn tại hoặc không hợp lệ.");
                 }
 
                 Class classEntity;
@@ -129,7 +130,7 @@ namespace Project_LMS.Services
 
                     if (classEntity == null)
                     {
-                        throw new KeyNotFoundException("Không tìm thấy lớp học cần cập nhật.");
+                        throw new NotFoundException("Không tìm thấy lớp học cần cập nhật.");
                     }
 
                     if (classEntity.IsDelete == true)
@@ -166,7 +167,7 @@ namespace Project_LMS.Services
                     var invalidSubjects = classSaveRequest.Ids.Except(validSubjectIds).ToList();
                     if (invalidSubjects.Any())
                     {
-                        throw new KeyNotFoundException($"Các môn học không tồn tại: {string.Join(", ", invalidSubjects)}");
+                        throw new NotFoundException($"Các môn học không tồn tại: {string.Join(", ", invalidSubjects)}");
                     }
 
                     // Xóa tất cả các môn học hiện tại của lớp trước khi thêm mới
@@ -189,7 +190,7 @@ namespace Project_LMS.Services
                 }
 
             }
-            catch (KeyNotFoundException ex)
+            catch (NotFoundException ex)
             {
                 Console.WriteLine($"[ERROR] {ex.Message}");
                 throw;
@@ -286,7 +287,7 @@ namespace Project_LMS.Services
 
             if (!classEntities.Any())
             {
-                throw new KeyNotFoundException("Không tìm thấy lớp nào để xóa.");
+                throw new NotFoundException("Không tìm thấy lớp nào để xóa.");
             }
 
             // Chỉ lấy các lớp chưa bị xóa để cập nhật
@@ -316,6 +317,7 @@ namespace Project_LMS.Services
         {
             try
             {
+                
                 var classEntity = await _context.Classes
                     .AsNoTracking()
                     .Where(c => c.IsDelete == false)
@@ -327,7 +329,7 @@ namespace Project_LMS.Services
 
                 if (classEntity == null)
                 {
-                    throw new KeyNotFoundException("Không tìm thấy lớp học");
+                    throw new NotFoundException("Không tìm thấy lớp học");
                 }
                 string depar = _context.Departments
                                    .AsNoTracking()

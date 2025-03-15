@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Project_LMS.Data;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Exceptions;
 using Project_LMS.Interfaces;
 using Project_LMS.Models;
 
@@ -33,7 +34,7 @@ namespace Project_LMS.Services
 
             if (totalItems == 0)
             {
-                throw new KeyNotFoundException("Không tìm thấy nhóm quyền nào.");
+                throw new NotFoundException("Không tìm thấy nhóm quyền nào.");
             }
 
             // Tính toán tổng số trang
@@ -88,7 +89,7 @@ namespace Project_LMS.Services
 
                 if (group == null)
                 {
-                    throw new KeyNotFoundException("Không tìm thấy nhóm quyền.");
+                    throw new NotFoundException("Không tìm thấy nhóm quyền.");
                 }
 
                 if (group.Name != groupRoleName || group.Description != description)
@@ -266,7 +267,7 @@ namespace Project_LMS.Services
 
             if (groupEntity == null)
             {
-                throw new KeyNotFoundException("Không tìm thấy nhóm quyền.");
+                throw new NotFoundException("Không tìm thấy nhóm quyền.");
             }
 
             var group = new GroupPermissionResponse
@@ -318,7 +319,7 @@ namespace Project_LMS.Services
 
             if (group == null)
             {
-                throw new KeyNotFoundException("Không tìm thấy nhóm quyền.");
+                throw new NotFoundException("Không tìm thấy nhóm quyền.");
             }
 
             // Đánh dấu xóa mềm
@@ -364,7 +365,7 @@ namespace Project_LMS.Services
 
             if (totalItems == 0)
             {
-                throw new KeyNotFoundException("Không tìm thấy người dùng nào.");
+                throw new NotFoundException("Không tìm thấy người dùng nào.");
             }
 
             // Tính toán tổng số trang
@@ -427,7 +428,7 @@ namespace Project_LMS.Services
 
             if (user == null)
             {
-                throw new KeyNotFoundException("Không tìm thấy người dùng.");
+                throw new NotFoundException("Không tìm thấy người dùng.");
             }
 
             return user;
@@ -439,7 +440,7 @@ namespace Project_LMS.Services
             bool groupExists = await _context.GroupModulePermissons.AnyAsync(g => g.Id == groupId);
             if (!groupExists)
             {
-                throw new KeyNotFoundException("Nhóm quyền không tồn tại.");
+                throw new NotFoundException("Nhóm quyền không tồn tại.");
             }
 
             // Kiểm tra user có tồn tại không
@@ -477,7 +478,7 @@ namespace Project_LMS.Services
 
             if (user == null)
             {
-                throw new KeyNotFoundException("Không tìm thấy người dùng.");
+                throw new NotFoundException("Không tìm thấy người dùng.");
             }
 
             // Cập nhật trạng thái IsDelete thành true

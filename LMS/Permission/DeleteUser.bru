@@ -1,15 +1,21 @@
 meta {
   name: DeleteUser
   type: http
-  seq: 8
+  seq: 9
 }
 
 delete {
-  url: {{base_url}}api/permission/user-delete?userId=1
-  body: none
+  url: {{base_url}}api/permission/user-delete
+  body: json
   auth: none
 }
 
 params:query {
-  userId: 1
+  ~: 1
+}
+
+body:json {
+  {
+      "Id":1
+  }
 }

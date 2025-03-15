@@ -2,6 +2,7 @@
 using Project_LMS.DTOs;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Exceptions;
 using Project_LMS.Interfaces;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -41,7 +42,7 @@ namespace Project_LMS.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(1, new ApiResponse<string>(3, "Đã xảy ra lỗi, vui lòng thử lại.", null));
+                return StatusCode(1, new ApiResponse<string>(1, "Đã xảy ra lỗi, vui lòng thử lại.", null));
             }
         }
 
@@ -53,7 +54,7 @@ namespace Project_LMS.Controllers
                 await _classService.SaveClass(request);
                 return Ok(new ApiResponse<string>(0, "Cập nhật lớp học thành công", null));
             }
-            catch (KeyNotFoundException ex)
+            catch (NotFoundException ex)
             {
                 return NotFound(new ApiResponse<string>(1, ex.Message, null));
             }
@@ -63,7 +64,7 @@ namespace Project_LMS.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(1, new ApiResponse<string>(3, "Đã xảy ra lỗi, vui lòng thử lại.", null));
+                return StatusCode(1, new ApiResponse<string>(1, "Đã xảy ra lỗi, vui lòng thử lại.", null));
             }
         }
 
@@ -93,22 +94,21 @@ namespace Project_LMS.Controllers
 
 
         [HttpGet("detail")]
-        public async Task<IActionResult> GetClassDetail([FromQuery] int classId)
+        public async Task<IActionResult> GetClassDetail([FromQuery] ClassIdRequest classId)
         {
             try
             {
-                var response = await _classService.GetClassDetail(classId);
-
-                if (response == null)
-                {
-                    return (IActionResult)response;
-                }
+                var response = await _classService.GetClassDetail(classId.Id);
 
                 return Ok(new ApiResponse<object>(0, "Lấy thông tin lớp học thành công.", response));
             }
+            catch (NotFoundException ex)
+            {
+                return StatusCode(404, new ApiResponse<string>(1, ex.Message, null));
+            }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<string>(2, "Đã xảy ra lỗi, vui lòng thử lại.", null));
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi, vui lòng thử lại." + ex.Message, null));
             }
         }
 
@@ -171,7 +171,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        
+
         [HttpGet("download-excel")]
         public async Task<IActionResult> DownloadClassTemplate()
         {

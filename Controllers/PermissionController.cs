@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Exceptions;
 using Project_LMS.Interfaces;
 
 namespace Project_LMS.Controllers
@@ -26,13 +27,13 @@ namespace Project_LMS.Controllers
 
                 return Ok(new ApiResponse<PaginatedResponse<PermissionListGroupResponse>>(0, "Lấy danh sách nhóm quyền thành công.", response));
             }
-            catch (KeyNotFoundException ex)
+            catch (NotFoundException ex)
             {
                 return NotFound(new ApiResponse<string>(1, ex.Message, null));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<string>(3, "Đã xảy ra lỗi, vui lòng thử lại sau.", null));
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi, vui lòng thử lại sau.", null));
             }
         }
         [HttpPost("create")]
@@ -50,7 +51,7 @@ namespace Project_LMS.Controllers
 
                 return Ok(new ApiResponse<string>(0, "Tạo nhóm quyền thành công.", null));
             }
-            catch (KeyNotFoundException ex)
+            catch (NotFoundException ex)
             {
                 return NotFound(new ApiResponse<string>(1, ex.Message, null));
             }
@@ -87,7 +88,7 @@ namespace Project_LMS.Controllers
 
                 return Ok(new ApiResponse<string>(0, "Cập nhật nhóm quyền thành công.", null));
             }
-            catch (KeyNotFoundException ex)
+            catch (NotFoundException ex)
             {
                 return NotFound(new ApiResponse<string>(1, ex.Message, null));
             }
@@ -119,7 +120,7 @@ namespace Project_LMS.Controllers
                 var result = await _permissionService.GetGroupPermissionById(groupRoleId.Id);
                 return Ok(new ApiResponse<GroupPermissionResponse>(0, "Lấy thông tin nhóm quyền thành công.", result));
             }
-            catch (KeyNotFoundException ex)
+            catch (NotFoundException ex)
             {
                 return NotFound(new ApiResponse<string>(1, ex.Message, null));
             }
@@ -136,7 +137,7 @@ namespace Project_LMS.Controllers
                 bool result = await _permissionService.DeleteGroupPermission(groupRoleId.Id);
                 return Ok(new ApiResponse<string>(0, "Xóa nhóm quyền thành công.", null));
             }
-            catch (KeyNotFoundException ex)
+            catch (NotFoundException ex)
             {
                 return NotFound(new ApiResponse<string>(1, ex.Message, null));
             }
@@ -150,7 +151,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        
+
         [HttpGet("user-list")]
         public async Task<IActionResult> GetPermissionUserList([FromQuery] PermissionListRequest request)
         {
@@ -160,13 +161,13 @@ namespace Project_LMS.Controllers
 
                 return Ok(new ApiResponse<PaginatedResponse<PermissionUserResponse>>(0, "Lấy danh sách người dùng thành công.", response));
             }
-            catch (KeyNotFoundException ex)
+            catch (NotFoundException ex)
             {
                 return NotFound(new ApiResponse<string>(1, ex.Message, null));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<string>(3, "Đã xảy ra lỗi, vui lòng thử lại sau.", null));
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi, vui lòng thử lại sau.", null));
             }
         }
         [HttpGet("user")]
@@ -178,13 +179,13 @@ namespace Project_LMS.Controllers
 
                 return Ok(new ApiResponse<PermissionUserRequest>(0, "Lấy danh sách người dùng thành công.", response));
             }
-            catch (KeyNotFoundException ex)
+            catch (NotFoundException ex)
             {
                 return NotFound(new ApiResponse<string>(1, ex.Message, null));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<string>(3, "Đã xảy ra lỗi, vui lòng thử lại sau.", null));
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi, vui lòng thử lại sau.", null));
             }
         }
 
@@ -203,16 +204,16 @@ namespace Project_LMS.Controllers
                 }
                 else
                 {
-                    return BadRequest(new ApiResponse<string>(2, "Không thể cập nhật quyền người dùng.", null));
+                    return BadRequest(new ApiResponse<string>(1, "Không thể cập nhật quyền người dùng.", null));
                 }
             }
-            catch (KeyNotFoundException ex)
+            catch (NotFoundException ex)
             {
                 return NotFound(new ApiResponse<string>(1, ex.Message, null));
             }
             catch (Exception)
             {
-                return StatusCode(500, new ApiResponse<string>(3, "Đã xảy ra lỗi, vui lòng thử lại sau.", null));
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi, vui lòng thử lại sau.", null));
             }
         }
         [HttpDelete("user-delete")]
@@ -228,16 +229,16 @@ namespace Project_LMS.Controllers
                 }
                 else
                 {
-                    return BadRequest(new ApiResponse<string>(2, "Không thể xóa người dùng.", null));
+                    return BadRequest(new ApiResponse<string>(1, "Không thể xóa người dùng.", null));
                 }
             }
-            catch (KeyNotFoundException ex)
+            catch (NotFoundException ex)
             {
                 return NotFound(new ApiResponse<string>(1, ex.Message, null));
             }
             catch (Exception)
             {
-                return StatusCode(500, new ApiResponse<string>(3, "Đã xảy ra lỗi, vui lòng thử lại sau.", null));
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi, vui lòng thử lại sau.", null));
             }
         }
 

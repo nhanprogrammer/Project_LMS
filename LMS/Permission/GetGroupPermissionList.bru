@@ -5,13 +5,13 @@ meta {
 }
 
 get {
-  url: {{base_url}}api/permission/group-list?Key=Học sinh&PageNumber=1&PageSize=10
+  url: {{base_url}}api/permission/group-list?PageNumber=1&PageSize=10
   body: none
   auth: none
 }
 
 params:query {
-  Key: Học sinh
   PageNumber: 1
   PageSize: 10
+  ~Key: Học sinh
 }
