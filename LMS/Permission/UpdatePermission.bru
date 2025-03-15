@@ -1,11 +1,11 @@
 meta {
-  name: SavePermission
+  name: UpdatePermission
   type: http
-  seq: 2
+  seq: 3
 }
 
-post {
-  url: {{base_url}}api/permission/save
+put {
+  url: {{base_url}}api/permission/update
   body: json
   auth: none
 }
@@ -13,14 +13,14 @@ post {
 body:json {
   {
       "groupRoleId": 1,
-      "groupRoleName":"Nhóm quyền Supper Admin",
+      "groupRoleName":"Nhóm quyền Admin222",
       "description":"Mô tả mô tả",
       "allPermission":false,
       "permissions": [
           {
               "moduleId": 1,
               "isView": false,
-              "isInsert": true,
+              "isInsert": false,
               "isUpdate": true,
               "isDelete": true,
               "enterScore": true

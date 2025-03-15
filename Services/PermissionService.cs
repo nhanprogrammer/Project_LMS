@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Project_LMS.Data;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Exceptions;
 using Project_LMS.Interfaces;
 using Project_LMS.Models;
 
@@ -33,7 +34,7 @@ namespace Project_LMS.Services
 
             if (totalItems == 0)
             {
-                throw new KeyNotFoundException("Không tìm thấy nhóm quyền nào.");
+                throw new NotFoundException("Không tìm thấy nhóm quyền nào.");
             }
 
             // Tính toán tổng số trang
@@ -88,7 +89,7 @@ namespace Project_LMS.Services
 
                 if (group == null)
                 {
-                    throw new KeyNotFoundException("Không tìm thấy nhóm quyền.");
+                    throw new NotFoundException("Không tìm thấy nhóm quyền.");
                 }
 
                 if (group.Name != groupRoleName || group.Description != description)
@@ -108,12 +109,15 @@ namespace Project_LMS.Services
                 await _context.Modules.AsNoTracking().Select(m => m.Id).ToListAsync()
             );
 
-            var existingPermissionsDict = existingPermissions.ToDictionary(p => p.ModuleId.Value);
+            var existingPermissionsDict = existingPermissions
+                .Where(p => p.ModuleId.HasValue)
+                .ToLookup(p => p.ModuleId.Value);
+
             List<ModulePermission> newPermissions = new List<ModulePermission>();
 
             if (allPermission)
             {
-                var moduleIdsWithPermission = existingPermissionsDict.Keys.ToHashSet();
+                var moduleIdsWithPermission = existingPermissionsDict.Select(g => g.Key).ToHashSet();
                 var modulesToAdd = await _context.Modules
                     .Where(m => !moduleIdsWithPermission.Contains(m.Id))
                     .ToListAsync();
@@ -133,15 +137,19 @@ namespace Project_LMS.Services
                     newPermissions.Add(newPermission);
                 }
 
-                foreach (var existing in existingPermissionsDict.Values)
+                foreach (var groupPermission in existingPermissionsDict)
                 {
-                    existing.IsView = true;
-                    existing.IsInsert = true;
-                    existing.IsUpdate = true;
-                    existing.IsDelete = true;
-                    existing.EnterScore = true;
-                    existing.UpdateAt = DateTime.Now;
-                    _context.ModulePermissions.Update(existing);
+                    var existing = groupPermission.FirstOrDefault();
+                    if (existing != null)
+                    {
+                        existing.IsView = true;
+                        existing.IsInsert = true;
+                        existing.IsUpdate = true;
+                        existing.IsDelete = true;
+                        existing.EnterScore = true;
+                        existing.UpdateAt = DateTime.Now;
+                        _context.ModulePermissions.Update(existing);
+                    }
                 }
             }
             else
@@ -168,7 +176,9 @@ namespace Project_LMS.Services
                         throw new BadHttpRequestException($"ModuleId {permission.ModuleId} không hợp lệ.");
                     }
 
-                    if (existingPermissionsDict.TryGetValue(permission.ModuleId, out var existingPermission))
+                    var existingPermission = existingPermissionsDict[permission.ModuleId].FirstOrDefault();
+
+                    if (existingPermission != null)
                     {
                         if (existingPermission.IsView != permission.IsView ||
                             existingPermission.IsInsert != permission.IsInsert ||
@@ -223,12 +233,15 @@ namespace Project_LMS.Services
         }
 
 
+
         public async Task<GroupPermissionResponse> GetGroupPermissionById(int groupRoleId)
         {
-            // Nếu groupRoleId <= 0, trả về dữ liệu mặc định (dành cho create)
+            // Nếu groupRoleId <= 0, trả về danh sách module mặc định
             if (groupRoleId <= 0)
             {
-                var modules = await _context.Modules.ToListAsync();
+                var modules = await _context.Modules
+                    .Select(m => new { m.Id, m.DisplayName })
+                    .ToListAsync();
 
                 return new GroupPermissionResponse
                 {
@@ -249,62 +262,54 @@ namespace Project_LMS.Services
             }
 
             // Lấy thông tin nhóm quyền
-            var group = await _context.GroupModulePermissons
-                .Where(g => g.Id == groupRoleId && g.IsDelete == false)
-                .Select(g => new GroupPermissionResponse
-                {
-                    GroupRoleId = g.Id,
-                    GroupRoleName = g.Name,
-                    Description = g.Description
-                })
-                .FirstOrDefaultAsync();
+            var groupEntity = await _context.GroupModulePermissons
+                .FirstOrDefaultAsync(g => g.Id == groupRoleId && g.IsDelete == false);
 
-            if (group == null)
+            if (groupEntity == null)
             {
-                throw new KeyNotFoundException("Không tìm thấy nhóm quyền.");
+                throw new NotFoundException("Không tìm thấy nhóm quyền.");
             }
 
-            // Lấy danh sách tất cả module
-            var modulesList = await _context.Modules.ToListAsync();
+            var group = new GroupPermissionResponse
+            {
+                GroupRoleId = groupEntity.Id,
+                GroupRoleName = groupEntity.Name,
+                Description = groupEntity.Description
+            };
 
-            // Lấy danh sách quyền hiện có của nhóm
-            var existingPermissions = await _context.ModulePermissions
-                .Where(p => p.GroupRoleId == groupRoleId)
+            // Lấy danh sách module (chỉ lấy cột cần thiết)
+            var modulesList = await _context.Modules
+                .Select(m => new { m.Id, m.DisplayName })
                 .ToListAsync();
 
-            // Chuyển danh sách quyền hiện có thành dictionary để tìm kiếm nhanh hơn
-            var existingPermissionsDict = existingPermissions.ToDictionary(p => p.ModuleId ?? 0);
+            // Lấy danh sách quyền của nhóm
+            var existingPermissions = await _context.ModulePermissions
+                .Where(p => p.GroupRoleId == groupRoleId && p.ModuleId.HasValue)
+                .ToListAsync();
 
-            // Danh sách quyền đầy đủ (bao gồm cả những module chưa có quyền)
-            var completePermissions = modulesList.Select(m =>
-                existingPermissionsDict.TryGetValue(m.Id, out var permission)
-                ? new ModulePermissionRequest
+            var existingPermissionsDict = existingPermissions
+                .Where(p => p.ModuleId.HasValue)
+                .ToLookup(p => p.ModuleId.Value);
+
+            // Ghép quyền vào module
+            group.Permissions = modulesList.Select(m =>
+            {
+                var permission = existingPermissionsDict[m.Id].FirstOrDefault();
+                return new ModulePermissionRequest
                 {
                     ModuleId = m.Id,
                     ModuleName = m.DisplayName,
-                    IsView = permission.IsView ?? false,
-                    IsInsert = permission.IsInsert ?? false,
-                    IsUpdate = permission.IsUpdate ?? false,
-                    IsDelete = permission.IsDelete ?? false,
-                    EnterScore = permission.EnterScore ?? false
-                }
-                : new ModulePermissionRequest
-                {
-                    ModuleId = m.Id,
-                    ModuleName = m.DisplayName,
-                    IsView = false,
-                    IsInsert = false,
-                    IsUpdate = false,
-                    IsDelete = false,
-                    EnterScore = false
-                }).ToList();
+                    IsView = permission?.IsView ?? false,
+                    IsInsert = permission?.IsInsert ?? false,
+                    IsUpdate = permission?.IsUpdate ?? false,
+                    IsDelete = permission?.IsDelete ?? false,
+                    EnterScore = permission?.EnterScore ?? false
+                };
+            }).ToList();
 
-            // Gán danh sách quyền vào nhóm quyền
-            group.Permissions = completePermissions;
 
             return group;
         }
-
 
 
         public async Task<bool> DeleteGroupPermission(int groupRoleId)
@@ -314,7 +319,7 @@ namespace Project_LMS.Services
 
             if (group == null)
             {
-                throw new KeyNotFoundException("Không tìm thấy nhóm quyền.");
+                throw new NotFoundException("Không tìm thấy nhóm quyền.");
             }
 
             // Đánh dấu xóa mềm
@@ -360,7 +365,7 @@ namespace Project_LMS.Services
 
             if (totalItems == 0)
             {
-                throw new KeyNotFoundException("Không tìm thấy người dùng nào.");
+                throw new NotFoundException("Không tìm thấy người dùng nào.");
             }
 
             // Tính toán tổng số trang
@@ -397,7 +402,7 @@ namespace Project_LMS.Services
             };
         }
 
-        public async Task<PermissionUserRequest> GetUserPermission(int userId, int groupId, bool disable)
+        public async Task<PermissionUserRequest> GetUserPermission(int userId)
         {
             // Nếu userId <= 0, trả về dữ liệu mặc định (dành cho create)
             if (userId <= 0)
@@ -423,7 +428,7 @@ namespace Project_LMS.Services
 
             if (user == null)
             {
-                throw new KeyNotFoundException("Không tìm thấy người dùng.");
+                throw new NotFoundException("Không tìm thấy người dùng.");
             }
 
             return user;
@@ -435,7 +440,7 @@ namespace Project_LMS.Services
             bool groupExists = await _context.GroupModulePermissons.AnyAsync(g => g.Id == groupId);
             if (!groupExists)
             {
-                throw new KeyNotFoundException("Nhóm quyền không tồn tại.");
+                throw new NotFoundException("Nhóm quyền không tồn tại.");
             }
 
             // Kiểm tra user có tồn tại không
@@ -473,7 +478,7 @@ namespace Project_LMS.Services
 
             if (user == null)
             {
-                throw new KeyNotFoundException("Không tìm thấy người dùng.");
+                throw new NotFoundException("Không tìm thấy người dùng.");
             }
 
             // Cập nhật trạng thái IsDelete thành true
@@ -501,7 +506,7 @@ namespace Project_LMS.Services
             }
 
             var modulePermissions = await _context.ModulePermissions
-                .Where(m => m.GroupRoleId == user.GroupModulePermissonId)
+                .Where(m => m.GroupRoleId == user.GroupModulePermissonId && user.Disable == false)
                 .ToListAsync();
 
             if (modulePermissions == null || modulePermissions.Count == 0)

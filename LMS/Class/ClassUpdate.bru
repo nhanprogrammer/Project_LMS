@@ -1,11 +1,11 @@
 meta {
-  name: ClassSave
+  name: ClassUpdate
   type: http
-  seq: 2
+  seq: 3
 }
 
-post {
-  url: {{base_url}}api/class/save
+put {
+  url: {{base_url}}api/class/update
   body: json
   auth: none
 }
@@ -17,10 +17,10 @@ body:json {
       "departmentId": 1,
       "classTypeId": 1,
       "userId": 2,
-      "ClassName":"Lớp 11_AC",
+      "ClassName":"Lớp 10_A",
       "studentCount": 35,
       "description": "Lớp chuyên Lý",
-      "Ids":[1,2,3]
+      "ids":[1,2,3]
   }
   
 }

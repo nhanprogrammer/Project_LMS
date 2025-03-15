@@ -12,14 +12,15 @@ namespace Project_LMS.Interfaces
         Task SaveClass(ClassSaveRequest classSaveRequest);
 
         // Lấy danh sách môn học, nhưng loại trừ các môn có ID trong danh sách đã chọn
-        Task<ApiResponse<List<SubjectListResponse>>> GetSubjectsExcluding(List<int> excludedSubjectIds);
+        Task<ApiResponse<List<SubjectListResponse>>> GetSubjectsExcluding(string excludedSubjectIds);
 
         // Lấy danh sách môn học mà khối này đã sử dụng từ khóa trước
         Task<ApiResponse<List<SubjectListResponse>>> GetInheritedSubjects(int academicYearId, int departmentId);
         Task<bool> DeleteClass(List<int> classId);
         Task<ClassDetailResponse> GetClassDetail(int classId);
         Task<bool> SaveStudentStatus(int studentId, int statusId);
-        Task<FileContentResult> ExportClassListToExcel(int academicYearId, int departmentId);
-        Task CreateClassByFile(IFormFile file);
+         Task<byte[]> ExportClassListToExcel(int academicYearId, int departmentId);
+        Task CreateClassByBase64(string base64File);
+        Task<byte[]> GenerateClassTemplate();
     }
 }

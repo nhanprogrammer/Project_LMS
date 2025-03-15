@@ -1,15 +1,17 @@
 meta {
   name: DeleteGroupPermission
   type: http
-  seq: 4
+  seq: 5
 }
 
 delete {
-  url: {{base_url}}api/permission?groupRoleId=1
-  body: none
+  url: {{base_url}}api/permission
+  body: json
   auth: none
 }
 
-params:query {
-  groupRoleId: 1
+body:json {
+  {
+      "Id":1
+  }
 }
