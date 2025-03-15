@@ -1,0 +1,17 @@
+meta {
+  name: GetUserPermission
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{base_url}}api/permission/user?UserId=1&GroupId=1&Disable=false
+  body: none
+  auth: none
+}
+
+params:query {
+  UserId: 1
+  GroupId: 1
+  Disable: false
+}

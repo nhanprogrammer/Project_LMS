@@ -1,0 +1,16 @@
+meta {
+  name: ExportClass
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{base_url}}api/class/export-class-list?academicYearId=1&departmentId=1
+  body: none
+  auth: none
+}
+
+params:query {
+  academicYearId: 1
+  departmentId: 1
+}

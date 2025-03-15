@@ -1,0 +1,23 @@
+meta {
+  name: updateSubject
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{base_url}}api/subject/1
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+      "subjectTypeId": 1,
+      "subjectCode": "MATH105",
+      "subjectName": "Mathematics Updated",
+      "description": "Updated Mathematics Course",
+      "semester1PeriodCount": 35,
+      "semester2PeriodCount": 35,
+      "isStatus": true
+  }
+}

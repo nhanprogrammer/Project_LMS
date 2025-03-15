@@ -1,0 +1,64 @@
+meta {
+  name: AddUser
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "groupRolePermission": 1,
+    "roleId": 1,
+    "studentStatusId": 1,
+    "teacherStatusId": 1,
+    "userCode": "U12345",
+    "username": "test_user",
+    "password": "hashed_password",
+    "fullName": "Nguyễn Văn A",
+    "email": "testuser@example.com",
+    "startDate": "2025-03-07T05:26:22.994",
+    "active": true,
+    "image": "profile.jpg",
+    "gender": true,
+    "ethnicity": "Kinh",
+    "religion": "Không",
+    "placeOfBirth": "Hà Nội",
+    "birthDate": "2000-05-15T00:00:00",
+    "studyMode": "Full-time",
+    "phone": "0987654321",
+    "card": "123456789",
+    "cardIssueDate": "2020-01-01T00:00:00",
+    "cardIssuePlace": "Hà Nội",
+    "unionMember": true,
+    "unionJoinDate": "2023-05-01T00:00:00",
+    "partyMember": false,
+    "partyJoinDate": null,
+    "address": "123 ABC Street",
+    "provinceId": "1",
+    "districtId": "1",
+    "wardId": "1",
+    "alias": "NVA",
+    "admissionType": "Direct",
+    "national": "Vietnam",
+    "fullnameFather": "Nguyễn Văn B",
+    "birthFather": "1970-05-10T00:00:00",
+    "workFather": "Engineer",
+    "phoneFather": "0912345678",
+    "fullnameMother": "Trần Thị C",
+    "birthMother": "1975-08-20T00:00:00",
+    "workMother": "Teacher",
+    "phoneMother": "0987654321",
+    "fullnameGuardianship": "Nguyễn Văn D",
+    "birthGuardianship": "1965-11-15T00:00:00",
+    "workGuardianship": "Retired",
+    "phoneGuardianship": "0911222333",
+    "userCreate": 1,
+    "userUpdate": 1
+  }
+  
+}

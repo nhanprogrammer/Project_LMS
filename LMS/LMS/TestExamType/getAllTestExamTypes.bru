@@ -1,0 +1,17 @@
+meta {
+  name: getAllTestExamTypes
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}api/testexamtype
+  body: multipartForm
+  auth: none
+}
+
+params:query {
+  ~pageNumber: 1
+  ~pageSize: 2
+  ~keyword: Final Exam 10
+}

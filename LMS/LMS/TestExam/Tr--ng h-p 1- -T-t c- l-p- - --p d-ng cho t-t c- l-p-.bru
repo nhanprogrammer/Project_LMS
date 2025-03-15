@@ -1,0 +1,46 @@
+meta {
+  name: Tr--ng h-p 1- -T-t c- l-p- - --p d-ng cho t-t c- l-p-
+  type: http
+  seq: 1
+}
+
+put {
+  url: {{base_url}}api/TestExam/17
+  body: json
+  auth: none
+}
+
+body:json {
+   {
+      "subjectId": 1,
+      "topic": "Cập nhật: Thi cuối học kỳ Toán - Updated",
+      "semestersId": 1,
+      "durationInMinutes": 100,
+      "examDate": "2025-03-15",
+      "classIds": null,
+      "classOption": "ALL",
+      "selectedClassTypeId": null,
+      "applyExaminerForAllClasses": true,
+      "examinerIds": [1, 2, 3],
+      "examinersForClass": null,
+      "description": "Cập nhật: Thay đổi thời lượng và ngày thi",
+      "testExamTypeId": 1,
+      "isExam": true,
+      "form": "Trắc nghiệm",
+      "scheduleStatusId": 1,
+      "departmentId": 1
+    }
+}
+
+tests {
+  test("Successful DELETE request", function () {
+      expect(res.getStatus()).to.be.oneOf([200, 202, 204]);
+  });
+  
+}
+
+docs {
+  This is a DELETE request, and it is used to delete data that was previously created via a POST request. You typically identify the entity being updated by including an identifier in the URL (eg. `id=1`).
+  
+  A successful DELETE request typically returns a `200 OK`, `202 Accepted`, or `204 No Content` response code.
+}
