@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs.Request;
+using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers
@@ -22,11 +23,11 @@ namespace Project_LMS.Controllers
             try
             {
                 var result = await _systemSettingService.GetById(id);
-                return Ok(result);
+                return Ok(new ApiResponse<object>(0, "Success", result));
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(new { message = ex.Message });
+                return NotFound(new ApiResponse<object>(1, ex.Message));
             }
         }
 
@@ -34,7 +35,7 @@ namespace Project_LMS.Controllers
         public async Task<IActionResult> GetAll()
         {
             var result = await _systemSettingService.GetAll();
-            return Ok(result);
+            return Ok(new ApiResponse<object>(0, "Success", result));
         }
 
         [HttpPost]
@@ -43,11 +44,11 @@ namespace Project_LMS.Controllers
             try
             {
                 var result = await _systemSettingService.Create(request);
-                return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+                return CreatedAtAction(nameof(GetById), new { id = result.Id }, new ApiResponse<object>(0, "Thêm mới thành công", result));
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new ApiResponse<object>(1, ex.Message));
             }
         }
 
@@ -57,13 +58,14 @@ namespace Project_LMS.Controllers
             try
             {
                 var result = await _systemSettingService.Update(id, request);
-                return Ok(result);
+                return Ok(new ApiResponse<object>(0, "Cập nhật thành công", result));
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(new { message = ex.Message });
+                return NotFound(new ApiResponse<object>(1, ex.Message));
             }
         }
+
 
     }
 }

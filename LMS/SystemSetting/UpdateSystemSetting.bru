@@ -1,0 +1,19 @@
+meta {
+  name: UpdateSystemSetting
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{base_url}}api/SystemSetting/7
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "captchaEnabled": true,
+    "currentTheme": "Xanh la",
+    "language": "EngLish"
+  }
+}

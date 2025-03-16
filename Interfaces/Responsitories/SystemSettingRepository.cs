@@ -89,5 +89,17 @@ namespace Project_LMS.Interfaces.Responsitories
                 CreateAt = setting.CreateAt
             };
         }
+        public async Task<bool> Delete(int id)
+        {
+            var systemSetting = await _context.SystemSettings.FindAsync(id);
+            if (systemSetting == null || systemSetting.IsDelete == true)
+                throw new KeyNotFoundException("Không tìm thấy cài đặt hệ thống");
+
+            systemSetting.IsDelete = true;
+            systemSetting.UpdateAt = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
     }
 }

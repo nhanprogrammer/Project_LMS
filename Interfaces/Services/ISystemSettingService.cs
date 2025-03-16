@@ -9,4 +9,5 @@ public interface ISystemSettingService
     Task<IEnumerable<SystemSettingResponse>> GetAll();
     Task<SystemSettingResponse> Create(SystemSettingRequest request);
     Task<SystemSettingResponse> Update(int id, SystemSettingRequest request);
+    Task<bool> Delete(int id);
 }
