@@ -119,12 +119,12 @@ public class TeachingAssignmentService : ITeachingAssignmentService
     }
 
 
-    public async Task<bool> Update(int id, TeachingAssignmentRequest request)
+    public async Task<TeachingAssignmentResponse> Update(int id, TeachingAssignmentRequest request)
     {
         try
         {
             var assignment = await _context.TeachingAssignments.FindAsync(id);
-            if (assignment == null) return false;
+            if (assignment == null) return null;
 
             assignment.UserId = request.UserId;
             assignment.ClassId = request.ClassId;
@@ -135,7 +135,17 @@ public class TeachingAssignmentService : ITeachingAssignmentService
 
 
             await _context.SaveChangesAsync();
-            return true;
+            // Trả về response
+            return new TeachingAssignmentResponse
+            {
+                Id = assignment.Id,
+                UserId = assignment.UserId,
+                ClassId = assignment.ClassId,
+                SubjectId = assignment.SubjectId,
+                StartDate = assignment.StartDate,
+                EndDate = assignment.EndDate,
+                UpdateAt = assignment.UpdateAt,
+            };
         }
         catch (Exception ex)
         {
@@ -143,8 +153,6 @@ public class TeachingAssignmentService : ITeachingAssignmentService
             throw;
         }
     }
-
-
 
     public async Task<bool> Delete(int id)
     {

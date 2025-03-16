@@ -1,0 +1,19 @@
+meta {
+  name: CreateSystemSetting
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}api/SystemSetting
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "captchaEnabled": true,
+    "currentTheme": "black",
+    "language": "EngLish"
+  }
+}
