@@ -7,7 +7,7 @@ namespace Project_LMS.Interfaces
     {
         Task<PaginatedResponse<LessonResponse>> GetLessonAsync(PaginationRequest request);
         Task<ApiResponse<LessonResponse>> CreateLessonAsync(CreateLessonRequest createLessonRequest);
-        Task<ApiResponse<LessonResponse>> UpdateLessonAsync(string id, UpdateLessonRequest updateLessonRequest);
-        Task<ApiResponse<LessonResponse>> DeleteLessonAsync(string id);
+        Task<ApiResponse<LessonResponse>> UpdateLessonAsync(UpdateLessonRequest updateLessonRequest);
+        Task<ApiResponse<LessonResponse>> DeleteLessonAsync(DeleteRequest deleteRequest);
     }
 }

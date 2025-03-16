@@ -14,5 +14,6 @@ public class LessonResponse
     public bool? IsResearchable { get; set; }
     public bool? IsAutoStart { get; set; }
     public bool? IsSave { get; set; }
-  
+    public bool? IsDelete { get; set; }
+
 }

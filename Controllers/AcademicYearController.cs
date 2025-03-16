@@ -71,12 +71,12 @@ namespace Project_LMS.Controllers
                 request));
         }
 
-        [HttpPut("{id}")]
-        public async Task<ActionResult<ApiResponse<UpdateAcademicYearRequest>>> Update(int id, [FromBody] UpdateAcademicYearRequest request)
+        [HttpPut]
+        public async Task<ActionResult<ApiResponse<UpdateAcademicYearRequest>>> Update([FromBody] UpdateAcademicYearRequest request)
         {
             try
             {
-                await _service.UpdateAcademicYear(id, request);
+                await _service.UpdateAcademicYear(request);
                 return Ok(new ApiResponse<UpdateAcademicYearRequest>(
                     0,
                     "Update success",

@@ -38,10 +38,10 @@ public async Task<IActionResult> CreateFavouriteAsync([FromBody] CreateLessonReq
     return Ok(new ApiResponse<LessonResponse>(response.Status, response.Message, response.Data));
 }
 
-[HttpPut("{id?}")]
-public async Task<IActionResult> UpdateFavourite(String id, [FromBody] UpdateLessonRequest request)
+[HttpPut]
+public async Task<IActionResult> UpdateLesson([FromBody] UpdateLessonRequest request)
 {
-    var response =   await _lessonsService.UpdateLessonAsync(id, request);
+    var response =   await _lessonsService.UpdateLessonAsync(request);
     if (response.Status == 1)
     {
         return BadRequest(new ApiResponse<LessonResponse>(response.Status, response.Message,response.Data)); 
@@ -50,10 +50,10 @@ public async Task<IActionResult> UpdateFavourite(String id, [FromBody] UpdateLes
     return Ok(new ApiResponse<LessonResponse>(response.Status, response.Message, response.Data));
 }
 
-[HttpDelete("{id?}")]
-public async Task<IActionResult> DeleteDepartment(String id)
+[HttpDelete]
+public async Task<IActionResult> DeleteLesson(DeleteRequest ids)
 {
-    var response = await _lessonsService.DeleteLessonAsync(id);
+    var response = await _lessonsService.DeleteLessonAsync(ids);
     if (response.Status == 1)
     {
         return BadRequest(new ApiResponse<LessonResponse>(response.Status, response.Message,response.Data)); 

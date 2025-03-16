@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Helpers;
 using Project_LMS.Interfaces;
 using Project_LMS.Interfaces.Repositories;
 using Project_LMS.Interfaces.Responsitories;
@@ -13,13 +14,15 @@ namespace Project_LMS.Services
     {
         private readonly ISemesterRepository _semesterRepository;
         private readonly IAcademicYearRepository _academicYearRepository;
+        private readonly ILogger<LessonsService> _logger;
         private readonly IMapper _mapper;
 
-        public AcademicYearsService(IAcademicYearRepository academicYearRepository, ISemesterRepository semesterRepository, IMapper mapper)
+        public AcademicYearsService(IAcademicYearRepository academicYearRepository,  ISemesterRepository semesterRepository, IMapper mapper, ILogger<LessonsService> logger)
         {
             _semesterRepository = semesterRepository;
             _academicYearRepository = academicYearRepository;
             _mapper = mapper;
+            _logger = logger;
         }
 
         public async Task<PaginatedResponse<AcademicYearResponse>> GetPagedAcademicYears(PaginationRequest request)
@@ -67,16 +70,26 @@ namespace Project_LMS.Services
             await _academicYearRepository.AddAsync(academicYear);
         }
 
-        public async Task UpdateAcademicYear(int id, UpdateAcademicYearRequest request)
+        public async Task<ApiResponse<AcademicYearResponse>> UpdateAcademicYear(UpdateAcademicYearRequest request)
         {
-            var existingAcademicYear = await _academicYearRepository.GetByIdAsync(id);
-            if (existingAcademicYear == null)
+            if (!int.TryParse(request.Id.ToString(), out int academicYearId))
             {
-                throw new Exception("Academic Year not found");
+                return new ApiResponse<AcademicYearResponse>(1, "ID không hợp lệ. Vui lòng kiểm tra lại.", null);
             }
-
-            _mapper.Map(request, existingAcademicYear);
-            await _academicYearRepository.UpdateAsync(existingAcademicYear);
+            try
+            {
+                var academicYear = _mapper.Map<AcademicYear>(request);
+                academicYear.CreateAt = TimeHelper.Now;
+                await _academicYearRepository.UpdateAsync(academicYear);
+                var response = _mapper.Map<AcademicYearResponse>(academicYear);
+                return new ApiResponse<AcademicYearResponse>(0, "Academic Year đã cập nhật thành công", response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while updating an academic year.");
+                return new ApiResponse<AcademicYearResponse>(1, "Cập nhật Academic Year thất bại.", null);
+            }
+            
         }
 
         public async Task<bool> DeleteAcademicYear(int id)
