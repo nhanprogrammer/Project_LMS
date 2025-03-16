@@ -2,6 +2,7 @@
 using Project_LMS.DTOs;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Exceptions;
 using Project_LMS.Interfaces;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -27,25 +28,43 @@ namespace Project_LMS.Controllers
         }
 
 
-        [HttpPost("save")]
-        public async Task<IActionResult> SaveClass([FromBody] ClassSaveRequest request)
+        [HttpPost("create")]
+        public async Task<IActionResult> CreateClass([FromBody] ClassSaveRequest request)
         {
             try
             {
                 await _classService.SaveClass(request);
-                return Ok(new ApiResponse<string>(0, "Lưu lớp học thành công", null));
+                return CreatedAtAction(nameof(CreateClass), new ApiResponse<string>(0, "Tạo lớp học thành công", null));
             }
-            catch (KeyNotFoundException ex)
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new ApiResponse<string>(1, ex.Message, null));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(1, new ApiResponse<string>(1, "Đã xảy ra lỗi, vui lòng thử lại.", null));
+            }
+        }
+
+        [HttpPut("update")]
+        public async Task<IActionResult> UpdateClass([FromBody] ClassSaveRequest request)
+        {
+            try
+            {
+                await _classService.SaveClass(request);
+                return Ok(new ApiResponse<string>(0, "Cập nhật lớp học thành công", null));
+            }
+            catch (NotFoundException ex)
             {
                 return NotFound(new ApiResponse<string>(1, ex.Message, null));
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new ApiResponse<string>(2, ex.Message, null));
+                return BadRequest(new ApiResponse<string>(1, ex.Message, null));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<string>(3, "Đã xảy ra lỗi, vui lòng thử lại.", null));
+                return StatusCode(1, new ApiResponse<string>(1, "Đã xảy ra lỗi, vui lòng thử lại.", null));
             }
         }
 
@@ -74,31 +93,30 @@ namespace Project_LMS.Controllers
         }
 
 
-        [HttpGet("detail/{classId}")]
-        public async Task<IActionResult> GetClassDetail(int classId)
+        [HttpGet("detail")]
+        public async Task<IActionResult> GetClassDetail([FromQuery] ClassIdRequest classId)
         {
             try
             {
-                var response = await _classService.GetClassDetail(classId);
-
-                if (response == null)
-                {
-                    return (IActionResult)response;
-                }
+                var response = await _classService.GetClassDetail(classId.Id);
 
                 return Ok(new ApiResponse<object>(0, "Lấy thông tin lớp học thành công.", response));
             }
+            catch (NotFoundException ex)
+            {
+                return StatusCode(404, new ApiResponse<string>(1, ex.Message, null));
+            }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<string>(2, "Đã xảy ra lỗi, vui lòng thử lại.", null));
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi, vui lòng thử lại." + ex.Message, null));
             }
         }
 
 
         [HttpGet("subjects/excluding")]
-        public async Task<IActionResult> GetSubjectsExcluding([FromQuery] ClassListIdRequest request)
+        public async Task<IActionResult> GetSubjectsExcluding([FromQuery] ClassListStringId request)
         {
-            var response = await _classService.GetSubjectsExcluding(request.Ids);
+            var response = await _classService.GetSubjectsExcluding(request.ids);
             return Ok(response);
         }
 
@@ -125,24 +143,26 @@ namespace Project_LMS.Controllers
         }
 
         [HttpGet("export-class-list")]
-        public async Task<IActionResult> ExportClassListToExcel([FromQuery] ClassAcademicDepartmentRequest request)
+        public async Task<IActionResult> ExportClassList(int academicYearId, int departmentId)
         {
-            var fileResult = await _classService.ExportClassListToExcel(request.AcademicYearId, request.DepartmentId);
-            return fileResult;
+            var fileData = await _classService.ExportClassListToExcel(academicYearId, departmentId);
+
+            return File(fileData, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        $"ClassList_{DateTime.Now:yyyyMMddHHmmss}.xlsx");
         }
 
 
         [HttpPost("upload")]
-        public async Task<IActionResult> UploadClassFile([FromForm] IFormFile file)
+        public async Task<IActionResult> UploadClassFile([FromBody] ClassBase64FileRequest request)
         {
-            if (file == null || file.Length == 0)
+            if (request == null || string.IsNullOrWhiteSpace(request.Base64File))
             {
-                return BadRequest(new ApiResponse<string>(1, "Vui lòng chọn file Excel hợp lệ.", null));
+                return BadRequest(new ApiResponse<string>(1, "Vui lòng cung cấp file Excel hợp lệ dưới dạng Base64.", null));
             }
 
             try
             {
-                await _classService.CreateClassByFile(file);
+                await _classService.CreateClassByBase64(request.Base64File);
                 return Ok(new ApiResponse<string>(0, "Tải lên và xử lý file thành công!", null));
             }
             catch (Exception ex)
@@ -150,6 +170,23 @@ namespace Project_LMS.Controllers
                 return BadRequest(new ApiResponse<string>(1, "Xử lý file thất bại: " + ex.Message, null));
             }
         }
+
+
+        [HttpGet("download-excel")]
+        public async Task<IActionResult> DownloadClassTemplate()
+        {
+            var fileBytes = await _classService.GenerateClassTemplate();
+
+            if (fileBytes is { Length: > 0 }) // Kiểm tra dữ liệu hợp lệ
+            {
+                return File(fileBytes,
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            $"ClassTemplate_{DateTime.Now:yyyyMMddHHmmss}.xlsx");
+            }
+
+            return BadRequest("Không thể tạo file mẫu.");
+        }
+
 
     }
 }

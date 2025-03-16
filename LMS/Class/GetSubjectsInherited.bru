@@ -1,16 +1,16 @@
 meta {
   name: GetSubjectsInherited
   type: http
-  seq: 6
+  seq: 7
 }
 
 get {
-  url: {{base_url}}api/class/subjects/inherited?AcademicYearId=1&DepartmentId=1
+  url: {{base_url}}api/class/subjects/inherited?AcademicYearId=1&DepartmentId=2
   body: none
   auth: none
 }
 
 params:query {
   AcademicYearId: 1
-  DepartmentId: 1
+  DepartmentId: 2
 }

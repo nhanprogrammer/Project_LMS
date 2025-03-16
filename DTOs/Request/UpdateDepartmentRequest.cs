@@ -4,13 +4,15 @@ namespace Project_LMS.DTOs.Request;
 
 public class UpdateDepartmentRequest
 {
+    public int id { get; set; }
+
     [Required(ErrorMessage = "Tên không được để trống")]
-    public string Name { get; set; }
-        
-    public bool? IsDelete { get; set; }
-        
-    public DateTime? UpdateAt { get; set; }
-        
+    public string name { get; set; }
+
+    public bool? isDelete { get; set; }
+
+    public DateTime? updateAt { get; set; }
+
     // Người cập nhật: có thể là thông tin lấy từ context của hệ thống (nếu cần)
-    public int? UserUpdate { get; set; }
+    public int? userUpdate { get; set; }
 }

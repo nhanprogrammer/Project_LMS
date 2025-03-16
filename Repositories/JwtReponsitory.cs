@@ -38,7 +38,7 @@ namespace Project_LMS.Repositories
                 claims: claims,
                 expires: DateTime.Now.AddMinutes(30),
                 signingCredentials: creds);
-
+            // Trả token, trả list roles, trả list permissons
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
         public async Task<User> AuthenticateAsync(string userName, string password)

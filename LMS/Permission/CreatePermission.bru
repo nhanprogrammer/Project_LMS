@@ -1,0 +1,46 @@
+meta {
+  name: CreatePermission
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}api/permission/create
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+      "groupRoleName":"Nhóm quyền Admin7",
+      "description":"Mô tả mô tả",
+      "allPermission":false,
+      "permissions": [
+          {
+              "moduleId": 1,
+              "isView": false,
+              "isInsert": true,
+              "isUpdate": true,
+              "isDelete": true,
+              "enterScore": true
+          },
+          {
+              "moduleId": 2,
+              "isView": false,
+              "isInsert": true,
+              "isUpdate": true,
+              "isDelete": true,
+              "enterScore": true
+          },
+          {
+              "moduleId": 3,
+              "isView": false,
+              "isInsert": true,
+              "isUpdate": true,
+              "isDelete": true,
+              "enterScore": true
+          }
+      ]
+  }
+  
+}
