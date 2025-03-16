@@ -47,58 +47,67 @@ public class SystemSettingService : ISystemSettingService
 
     public async Task<SystemSettingResponse> Create(SystemSettingRequest request)
     {
-        if (string.IsNullOrEmpty(request.Language)) throw new ArgumentException("Ngôn ngữ không được để trống.");
-
-        var setting = new SystemSetting
+        try
         {
-            CaptchaEnabled = request.CaptchaEnabled,
-            CurrentTheme = request.CurrentTheme,
-            Language = request.Language,
-            CreateAt = DateTime.UtcNow
-        };
+            if (string.IsNullOrEmpty(request.Language)) throw new ArgumentException("Ngôn ngữ không được để trống.");
 
-        _context.SystemSettings.Add(setting);
-        await _context.SaveChangesAsync();
+            var setting = new SystemSetting
+            {
+                CaptchaEnabled = request.CaptchaEnabled,
+                CurrentTheme = request.CurrentTheme,
+                Language = request.Language,
+                CreateAt = DateTime.Now
+            };
 
-        return new SystemSettingResponse
+            _context.SystemSettings.Add(setting);
+            await _context.SaveChangesAsync();
+
+            return new SystemSettingResponse
+            {
+                Id = setting.Id,
+                CaptchaEnabled = setting.CaptchaEnabled,
+                CurrentTheme = setting.CurrentTheme,
+                Language = setting.Language,
+                CreateAt = setting.CreateAt
+            };
+        }
+        catch (Exception ex)
         {
-            Id = setting.Id,
-            CaptchaEnabled = setting.CaptchaEnabled,
-            CurrentTheme = setting.CurrentTheme,
-            Language = setting.Language,
-            CreateAt = setting.CreateAt
-        };
+            Console.WriteLine($"Lỗi Create: {ex.Message} | {ex.StackTrace}");
+            throw;
+        }
     }
+
 
     public async Task<SystemSettingResponse> Update(int id, SystemSettingRequest request)
     {
-        var setting = await _context.SystemSettings.FindAsync(id);
-        if (setting == null) throw new KeyNotFoundException("Không tìm thấy cài đặt hệ thống.");
-
-        setting.CaptchaEnabled = request.CaptchaEnabled;
-        setting.CurrentTheme = request.CurrentTheme;
-        setting.Language = request.Language;
-        setting.UpdateAt = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync();
-
-        return new SystemSettingResponse
+        try
         {
-            Id = setting.Id,
-            CaptchaEnabled = setting.CaptchaEnabled,
-            CurrentTheme = setting.CurrentTheme,
-            Language = setting.Language,
-            CreateAt = setting.CreateAt
-        };
+            var setting = await _context.SystemSettings.FindAsync(id);
+            if (setting == null) throw new KeyNotFoundException("Không tìm thấy cài đặt hệ thống.");
+
+            setting.CaptchaEnabled = request.CaptchaEnabled;
+            setting.CurrentTheme = request.CurrentTheme;
+            setting.Language = request.Language;
+            setting.UpdateAt = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+
+            return new SystemSettingResponse
+            {
+                Id = setting.Id,
+                CaptchaEnabled = setting.CaptchaEnabled,
+                CurrentTheme = setting.CurrentTheme,
+                Language = setting.Language,
+                CreateAt = setting.CreateAt
+            };
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Lỗi Update: {ex.Message} | {ex.StackTrace}");
+            throw;
+        }
     }
 
-    public async Task<bool> Delete(int id)
-    {
-        var setting = await _context.SystemSettings.FindAsync(id);
-        if (setting == null) throw new KeyNotFoundException("Không tìm thấy cài đặt hệ thống.");
 
-        setting.IsDelete = true;
-        await _context.SaveChangesAsync();
-        return true;
-    }
 }
