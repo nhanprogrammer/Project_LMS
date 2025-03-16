@@ -16,7 +16,7 @@ public class MappingProfile : Profile
         //         .ForMember(ah => ah.SemesterName, opt => opt.MapFrom(src => src.User.Students.FirstOrDefault().AcademicYear.Semesters.FirstOrDefault().Name));
 
         CreateMap<CreateAcademicHoldRequest, AcademicHold>()
-            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.StudentId))
+            //.ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.StudentId))
             .ForMember(dest => dest.HoldDate, opt => opt.MapFrom(src => src.HoldDate))
             .ForMember(dest => dest.HoldDuration, opt => opt.MapFrom(src => src.HoldDuration))
             .ForMember(dest => dest.Reason, opt => opt.MapFrom(src => src.Reason))
@@ -25,7 +25,7 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.UserCreate, opt => opt.MapFrom(src => src.UserCreate));
 
         CreateMap<UpdateAcademicHoldRequest, AcademicHold>()
-            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.StudentId))
+            //.ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.StudentId))
             .ForMember(dest => dest.HoldDate, opt => opt.MapFrom(src => src.HoldDate))
             .ForMember(dest => dest.HoldDuration, opt => opt.MapFrom(src => src.HoldDuration))
             .ForMember(dest => dest.Reason, opt => opt.MapFrom(src => src.Reason))
