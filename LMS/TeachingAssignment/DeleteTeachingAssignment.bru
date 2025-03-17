@@ -5,7 +5,15 @@ meta {
 }
 
 delete {
-  url: {{base_url}}api/TeachingAssignment/7
-  body: none
+  url: {{base_url}}api/TeachingAssignment/deleteList
+  body: json
   auth: none
+}
+
+body:json {
+  {
+    "ids": [
+      3
+    ]
+  }
 }
