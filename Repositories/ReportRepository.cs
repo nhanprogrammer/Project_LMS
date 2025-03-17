@@ -28,9 +28,9 @@ namespace Project_LMS.Repositories
 
         public async Task<int> GetTotalTeachersAsync(int academicYearId)
         {
-            return await _context.Classes
-                .Where(c => c.AcademicYearId == academicYearId && c.IsDelete == false)
-                .Select(c => c.UserId)
+            return await _context.TeachingAssignments
+                .Where(ta => ta.Class != null && ta.Class.AcademicYearId == academicYearId && ta.IsDelete == false)
+                .Select(ta => ta.UserId)
                 .Distinct()
                 .CountAsync();
         }
@@ -127,7 +127,7 @@ namespace Project_LMS.Repositories
                                                && c.IsDelete == false
                                                && c.Department != null
                                                && allowedDepartmentIds.Contains(c.Department.DepartmentCode ?? "")
-                                            group c by c.Department.DepartmentCode into g
+                                         group c by c.Department.DepartmentCode into g
                                          select new GradeStatistics
                                          {
                                              DepartmentCode = g.Key.ToString(),
