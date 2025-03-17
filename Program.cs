@@ -17,8 +17,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using Project_LMS.Configurations;
-
-
+using Project_LMS.Hubs;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -128,6 +127,9 @@ builder.Services.AddScoped<ISubjectGroupService, SubjectGroupService>();
 builder.Services.AddScoped<IDepartmentsService, DepartmentsService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IStudentStatusService, StudentStatusService>();
+builder.Services.AddScoped<ITopicService, TopicService>();
+builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
+
 // Repositories
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<ISchoolRepository, SchoolRepository>();
@@ -156,6 +158,7 @@ builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
 builder.Services.AddScoped<ITestExamTypeRepository, TestExamTypeRepository>();
 builder.Services.AddScoped<ISubjectTypeRepository, SubjectTypeRepository>();
 builder.Services.AddScoped<IJwtReponsitory, JwtReponsitory>();
+builder.Services.AddScoped<ITopicRepository,TopicRepository>();
 
 builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
 builder.Services.AddScoped<ITeachingAssignmentService, TeachingAssignmentService>();
@@ -167,6 +170,9 @@ builder.Services.AddScoped<IStudentStatusRepository, StudenStatusRepository>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 // builder.Services.AddScoped<IDepartmentsService, Deparmen>();
+
+// Add Service SignalR
+builder.Services.AddSignalR();
 
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
@@ -204,6 +210,8 @@ app.UseExceptionHandler(errorApp =>
         await context.Response.WriteAsync(JsonSerializer.Serialize(error));
     });
 });
+// Mapping Hub
+app.MapHub<RealtimeHub>("/realtimeHub");
 
 app.UseCors("AllowFrontend");
 app.UseHttpsRedirection();
