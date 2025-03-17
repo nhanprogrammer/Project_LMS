@@ -19,8 +19,8 @@ namespace Project_LMS.Interfaces
         Task<bool> DeleteClass(List<int> classId);
         Task<ClassDetailResponse> GetClassDetail(int classId);
         Task<bool> SaveStudentStatus(int studentId, int statusId);
-         Task<byte[]> ExportClassListToExcel(int academicYearId, int departmentId);
+        Task<string> ExportClassListToExcel(int academicYearId, int departmentId);
         Task CreateClassByBase64(string base64File);
-        Task<byte[]> GenerateClassTemplate();
+        Task<string> GenerateClassTemplate();
     }
 }
