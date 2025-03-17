@@ -1255,7 +1255,7 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.Mark).HasColumnName("mark");
 
-                entity.Property(e => e.Question1).HasColumnName("question");
+                entity.Property(e => e.QuestionText).HasColumnName("question");
 
                 entity.Property(e => e.TestExamId).HasColumnName("test_exam_id");
 

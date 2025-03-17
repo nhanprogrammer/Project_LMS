@@ -68,4 +68,9 @@ public class AcademicHoldRepository : IAcademicHoldRepository
             .FirstOrDefaultAsync(ah => ah.UserId == studentId);  // Sử dụng StudentId để tìm kiếm
     }
 
+    public IQueryable<AcademicHold> GetQueryable()
+    {
+        return _context.AcademicHolds.AsQueryable();
+    }
+
 }

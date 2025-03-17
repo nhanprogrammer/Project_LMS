@@ -15,12 +15,12 @@ namespace Project_LMS.Controllers
             _reportService = reportService;
         }
 
-        [HttpGet("academic-year/{id}")]
-        public async Task<ActionResult<ApiResponse<AcademicYearReportResponse>>> GetAcademicYearOverviewAsync(int id)
+        [HttpGet("academic-year")]
+        public async Task<ActionResult<ApiResponse<AcademicYearReportResponse>>> GetAcademicYearOverviewAsync([FromQuery] int academicId)
         {
             try
             {
-                var report = await _reportService.GetAcademicYearOverviewAsync(id);
+                var report = await _reportService.GetAcademicYearOverviewAsync(academicId);
                 return Ok(new ApiResponse<AcademicYearReportResponse>(0, "Lấy báo cáo thành công", report));
             }
             catch (NotFoundException ex)
@@ -44,6 +44,21 @@ namespace Project_LMS.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi khi lấy báo cáo", ex.Message));
+            }
+        }
+
+        [HttpGet("school-level-statistics")]
+        public async Task<ActionResult<ApiResponse<SchoolLevelStatisticsResponse>>> GetSchoolLevelStatistics(
+    [FromQuery] int academicYearId, [FromQuery] bool isJuniorHigh)
+        {
+            try
+            {
+                var statistics = await _reportService.GetSchoolLevelStatisticsAsync(academicYearId, isJuniorHigh);
+                return Ok(new ApiResponse<SchoolLevelStatisticsResponse>(0, "Lấy thống kê thành công", statistics));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi khi lấy thống kê", ex.Message));
             }
         }
     }
