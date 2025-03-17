@@ -7,6 +7,7 @@ using Project_LMS.Interfaces;
 using Project_LMS.Interfaces.Repositories;
 using Project_LMS.Interfaces.Responsitories;
 using Project_LMS.Models;
+using Project_LMS.Repositories;
 
 namespace Project_LMS.Services
 {
@@ -82,28 +83,59 @@ namespace Project_LMS.Services
                 academicYear.CreateAt = TimeHelper.Now;
                 await _academicYearRepository.UpdateAsync(academicYear);
                 var response = _mapper.Map<AcademicYearResponse>(academicYear);
-                return new ApiResponse<AcademicYearResponse>(0, "Academic Year đã cập nhật thành công", response);
+                return new ApiResponse<AcademicYearResponse>(0, "Niên khóa đã cập nhật thành công", response);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred while updating an academic year.");
-                return new ApiResponse<AcademicYearResponse>(1, "Cập nhật Academic Year thất bại.", null);
+                return new ApiResponse<AcademicYearResponse>(1, "Cập nhật niên khóa thất bại.", null);
             }
             
         }
 
-        public async Task<bool> DeleteAcademicYear(int id)
+        public async Task<ApiResponse<AcademicYearResponse>> DeleteLessonAsync(DeleteRequest deleteRequest)
         {
-            var existingAcademicYear = await _academicYearRepository.GetByIdAsync(id);
-            if (existingAcademicYear == null)
+            if (deleteRequest == null || deleteRequest.ids == null || deleteRequest.ids.Count == 0)
             {
-                return false;
+                return new ApiResponse<AcademicYearResponse>(1, "Danh sách ID rỗng. Vui lòng kiểm tra lại.", null);
             }
 
-            existingAcademicYear.IsDelete = true;
-            await _academicYearRepository.UpdateAsync(existingAcademicYear);
+            try
+            {
+                var academicYears = await _academicYearRepository.GetByIdsAsync(deleteRequest.ids);
 
-            return true;
+                if (academicYears == null || academicYears.Count == 0)
+                {
+                    return new ApiResponse<AcademicYearResponse>(1, "Không tìm thấy niên khóa nào cần xóa.", null);
+                }
+
+                var alreadyDeletedIds = new List<int>();
+
+                foreach (var lesson in academicYears)
+                {
+                    if (lesson.IsDelete.HasValue && lesson.IsDelete.Value)
+                    {
+                        alreadyDeletedIds.Add(lesson.Id);
+                        continue;
+                    }
+                    lesson.IsDelete = true;
+                }
+
+                if (alreadyDeletedIds.Count > 0)
+                {
+                    return new ApiResponse<AcademicYearResponse>(1,
+                        $"Các niên khóa có ID {string.Join(", ", alreadyDeletedIds)} đã bị xóa trước đó.", null);
+                }
+
+                await _academicYearRepository.UpdateRangeAsync(academicYears);
+
+                return new ApiResponse<AcademicYearResponse>(0, "Niên khóa đã xóa thành công");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while deleting the lessons.");
+                return new ApiResponse<AcademicYearResponse>(1, "Xóa niên khóa thất bại.", null);
+            }
         }
     }
 }
