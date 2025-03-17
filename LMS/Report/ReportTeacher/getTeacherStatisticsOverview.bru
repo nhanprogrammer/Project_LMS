@@ -1,0 +1,15 @@
+meta {
+  name: getTeacherStatisticsOverview
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}api/report/teacher-statistics?userId=2
+  body: none
+  auth: none
+}
+
+params:query {
+  userId: 2
+}

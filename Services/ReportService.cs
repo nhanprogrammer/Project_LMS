@@ -35,9 +35,32 @@ namespace Project_LMS.Services
             };
         }
 
-         public async Task<List<ClassPerformanceReport>> GetClassPerformanceReportAsync(int academicYearId, int departmentId)
+        public async Task<List<ClassPerformanceReport>> GetClassPerformanceReportAsync(int academicYearId, int departmentId)
         {
             return await _reportRepository.GetClassPerformanceReportAsync(academicYearId, departmentId);
+        }
+
+        public async Task<SchoolLevelStatisticsResponse> GetSchoolLevelStatisticsAsync(int academicYearId, bool isJuniorHigh)
+        {
+            var statistics = await _reportRepository.GetSchoolLevelStatisticsAsync(academicYearId, isJuniorHigh);
+            return statistics;
+        }
+
+        //Thống kê teacher
+        public async Task<TeacherStatisticsResponse> GetTeacherStatisticsAsync(int userId)
+        {
+            var totalClasses = await _reportRepository.GetTotalClassesByTeacherAsync(userId);
+            var totalOnlineClasses = await _reportRepository.GetTotalOnlineClassesByTeacherAsync(userId);
+            var totalUngradedAssignments = await _reportRepository.GetTotalUngradedAssignmentsByTeacherAsync(userId);
+            var totalQuestionsReceived = await _reportRepository.GetTotalQuestionsReceivedByTeacherAsync(userId);
+
+            return new TeacherStatisticsResponse
+            {
+                TotalClasses = totalClasses,
+                TotalOnlineClasses = totalOnlineClasses,
+                TotalUngradedAssignments = totalUngradedAssignments,
+                TotalQuestionsReceived = totalQuestionsReceived
+            };
         }
     }
 }

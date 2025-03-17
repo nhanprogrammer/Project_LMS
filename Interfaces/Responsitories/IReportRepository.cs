@@ -10,6 +10,12 @@ namespace Project_LMS.Repositories
         Task<int> GetTotalStudentsAsync(int academicYearId);
         Task<int> GetTotalTeachersAsync(int academicYearId);
         Task<int> GetTotalClassesAsync(int academicYearId);
+        Task<SchoolLevelStatisticsResponse> GetSchoolLevelStatisticsAsync(int academicYearId, bool isJuniorHigh);
 
+        //Thống kê teacher
+        Task<int> GetTotalClassesByTeacherAsync(int userId);
+        Task<int> GetTotalOnlineClassesByTeacherAsync(int userId);
+        Task<int> GetTotalUngradedAssignmentsByTeacherAsync(int userId);
+        Task<int> GetTotalQuestionsReceivedByTeacherAsync(int userId);
     }
 }

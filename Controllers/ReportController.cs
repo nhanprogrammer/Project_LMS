@@ -46,5 +46,35 @@ namespace Project_LMS.Controllers
                 return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi khi lấy báo cáo", ex.Message));
             }
         }
+
+        [HttpGet("school-level-statistics")]
+        public async Task<ActionResult<ApiResponse<SchoolLevelStatisticsResponse>>> GetSchoolLevelStatistics(
+    [FromQuery] int academicYearId, [FromQuery] bool isJuniorHigh)
+        {
+            try
+            {
+                var statistics = await _reportService.GetSchoolLevelStatisticsAsync(academicYearId, isJuniorHigh);
+                return Ok(new ApiResponse<SchoolLevelStatisticsResponse>(0, "Lấy thống kê thành công", statistics));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi khi lấy thống kê", ex.Message));
+            }
+        }
+
+        // Thống kê Teacher
+        [HttpGet("teacher-statistics")]
+        public async Task<ActionResult<ApiResponse<TeacherStatisticsResponse>>> GetTeacherStatistics([FromQuery] int userId)
+        {
+            try
+            {
+                var statistics = await _reportService.GetTeacherStatisticsAsync(userId);
+                return Ok(new ApiResponse<TeacherStatisticsResponse>(0, "Lấy thống kê thành công", statistics));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi khi lấy thống kê", ex.Message));
+            }
+        }
     }
 }
