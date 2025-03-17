@@ -57,9 +57,11 @@ public class TeachingAssignmentService : ITeachingAssignmentService
             {
                 Id = t.Id,
                 UserId = t.UserId,
+
                 ClassId = t.ClassId,
                 ClassName = t.Class.Name,
                 SubjectId = t.SubjectId,
+
                 StartDate = t.StartDate,
                 EndDate = t.EndDate,
                 CreateAt = t.CreateAt,
@@ -109,8 +111,10 @@ public class TeachingAssignmentService : ITeachingAssignmentService
         {
             Id = assignment.Id,
             UserId = assignment.UserId,
+
             ClassId = assignment.ClassId,
             SubjectId = assignment.SubjectId,
+
             StartDate = assignment.StartDate,
             EndDate = assignment.EndDate,
             CreateAt = assignment.CreateAt

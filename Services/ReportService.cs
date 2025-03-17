@@ -39,5 +39,11 @@ namespace Project_LMS.Services
         {
             return await _reportRepository.GetClassPerformanceReportAsync(academicYearId, departmentId);
         }
+
+        public async Task<SchoolLevelStatisticsResponse> GetSchoolLevelStatisticsAsync(int academicYearId, bool isJuniorHigh)
+        {
+            var statistics = await _reportRepository.GetSchoolLevelStatisticsAsync(academicYearId, isJuniorHigh);
+            return statistics;
+        }
     }
 }
