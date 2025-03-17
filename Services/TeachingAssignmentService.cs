@@ -35,11 +35,11 @@ public class TeachingAssignmentService : ITeachingAssignmentService
             {
                 Id = t.Id,
                 UserId = t.UserId,
-                UserName = t.User != null ? t.User.FullName : null,
+                // UserName = t.User != null ? t.User.FullName : null,
                 ClassId = t.ClassId,
-                ClassName = t.Class != null ? t.Class.Name : null,
+                // ClassName = t.Class != null ? t.Class.Name : null,
                 SubjectId = t.SubjectId,
-                SubjectName = t.Subject != null ? t.Subject.SubjectName : null,
+                // SubjectName = t.Subject != null ? t.Subject.SubjectName : null,
                 StartDate = t.StartDate,
                 EndDate = t.EndDate,
                 CreateAt = t.CreateAt
@@ -76,11 +76,11 @@ public class TeachingAssignmentService : ITeachingAssignmentService
         {
             Id = assignment.Id,
             UserId = assignment.UserId,
-            UserName = assignment.User?.FullName,
+            // UserName = assignment.User?.FullName,
             ClassId = assignment.ClassId,
-            ClassName = assignment.Class?.Name,
+            // ClassName = assignment.Class?.Name,
             SubjectId = assignment.SubjectId,
-            SubjectName = assignment.Subject?.SubjectName,
+            // SubjectName = assignment.Subject?.SubjectName,
             StartDate = assignment.StartDate,
             EndDate = assignment.EndDate,
             CreateAt = assignment.CreateAt

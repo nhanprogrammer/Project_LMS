@@ -114,5 +114,46 @@ namespace Project_LMS.Repositories
 
             return report;
         }
+        public async Task<SchoolLevelStatisticsResponse> GetSchoolLevelStatisticsAsync(int academicYearId, bool isJuniorHigh)
+        {
+
+            var allowedDepartmentIds = isJuniorHigh ? new[] { "K06", "K07", "K08", "K09" } : new[] { "K10", "K11", "K12" };
+
+            var gradeStatistics = await (from cs in _context.ClassStudents
+                                         join c in _context.Classes
+                                         on cs.ClassId equals c.Id
+                                         where cs.IsDelete == false
+                                               && c.AcademicYearId == academicYearId
+                                               && c.IsDelete == false
+                                               && c.Department != null
+                                               && allowedDepartmentIds.Contains(c.Department.DepartmentCode ?? "")
+                                            group c by c.Department.DepartmentCode into g
+                                         select new GradeStatistics
+                                         {
+                                             DepartmentCode = g.Key.ToString(),
+                                             TotalStudents = g.Count()
+                                         })
+                                       .ToListAsync();
+
+            var allGradeStatistics = allowedDepartmentIds
+                .Select(deptCode =>
+                {
+                    return new GradeStatistics
+                    {
+                        DepartmentCode = deptCode,
+                        TotalStudents = gradeStatistics.FirstOrDefault(gs => gs.DepartmentCode == deptCode)?.TotalStudents ?? 0
+                    };
+                })
+                .OrderBy(gs => gs.DepartmentCode)
+                .ToList();
+
+            return new SchoolLevelStatisticsResponse
+            {
+                AcademicYearId = academicYearId,
+                SchoolLevel = isJuniorHigh ? "Junior High School" : "High School",
+                GradeStatistics = allGradeStatistics
+            };
+        }
+
     }
 }
