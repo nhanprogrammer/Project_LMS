@@ -60,7 +60,6 @@ namespace Project_LMS.Data
         public virtual DbSet<SystemSetting> SystemSettings { get; set; } = null!;
         public virtual DbSet<TeacherClassSubject> TeacherClassSubjects { get; set; } = null!;
         public virtual DbSet<TeacherStatus> TeacherStatuses { get; set; } = null!;
-        public virtual DbSet<TeachingAssgnment> TeachingAssgnments { get; set; } = null!;
         public virtual DbSet<TeachingAssignment> TeachingAssignments { get; set; } = null!;
         public virtual DbSet<TestExam> TestExams { get; set; } = null!;
         public virtual DbSet<TestExamType> TestExamTypes { get; set; } = null!;
@@ -1255,7 +1254,7 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.Mark).HasColumnName("mark");
 
-                entity.Property(e => e.Question1).HasColumnName("question");
+                entity.Property(e => e.QuestionText).HasColumnName("question");
 
                 entity.Property(e => e.TestExamId).HasColumnName("test_exam_id");
 
@@ -1793,7 +1792,12 @@ namespace Project_LMS.Data
             {
                 entity.ToTable("subject_groups");
 
-                entity.Property(e => e.Id).HasColumnName("id");
+           
+                    entity.Property(e => e.Id)
+                        .HasColumnName("id")          
+                        .ValueGeneratedOnAdd()       
+                        .IsRequired();                
+               
 
                 entity.Property(e => e.CreateAt)
                     .HasColumnType("timestamp without time zone")
@@ -1829,7 +1833,10 @@ namespace Project_LMS.Data
             {
                 entity.ToTable("subject_group_subjects");
 
-                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.Id) 
+                    .HasColumnName("id")          
+                    .ValueGeneratedOnAdd()       
+                    .IsRequired();  
 
                 entity.Property(e => e.CreateAt)
                     .HasColumnType("timestamp without time zone")
@@ -2040,45 +2047,6 @@ namespace Project_LMS.Data
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                 entity.Property(e => e.UserCreate).HasColumnName("user_create");
-
-                entity.Property(e => e.UserUpdate).HasColumnName("user_update");
-            });
-
-            modelBuilder.Entity<TeachingAssgnment>(entity =>
-            {
-                entity.ToTable("teaching_assgnments");
-
-                entity.Property(e => e.Id).HasColumnName("id");
-
-                entity.Property(e => e.ClassId).HasColumnName("class_id");
-
-                entity.Property(e => e.CreateAt)
-                    .HasColumnType("timestamp without time zone")
-                    .HasColumnName("create_at")
-                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                entity.Property(e => e.EndDate)
-                    .HasColumnType("timestamp without time zone")
-                    .HasColumnName("end_date");
-
-                entity.Property(e => e.IsDelete)
-                    .HasColumnName("is_delete")
-                    .HasDefaultValueSql("false");
-
-                entity.Property(e => e.StartDate)
-                    .HasColumnType("timestamp without time zone")
-                    .HasColumnName("start_date");
-
-                entity.Property(e => e.SubjectId).HasColumnName("subject_id");
-
-                entity.Property(e => e.UpdateAt)
-                    .HasColumnType("timestamp without time zone")
-                    .HasColumnName("update_at")
-                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                entity.Property(e => e.UserCreate).HasColumnName("user_create");
-
-                entity.Property(e => e.UserId).HasColumnName("user_id");
 
                 entity.Property(e => e.UserUpdate).HasColumnName("user_update");
             });

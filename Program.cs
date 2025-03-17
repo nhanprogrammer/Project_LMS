@@ -125,7 +125,7 @@ builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<ITestExamService, TestExamService>();
 builder.Services.AddScoped<ISubjectTypeService, SubjectTypeService>();
 builder.Services.AddScoped<ISubjectGroupService, SubjectGroupService>();
-
+builder.Services.AddScoped<IDepartmentsService, DepartmentsService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IStudentStatusService, StudentStatusService>();
 // Repositories
@@ -156,14 +156,19 @@ builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
 builder.Services.AddScoped<ITestExamTypeRepository, TestExamTypeRepository>();
 builder.Services.AddScoped<ISubjectTypeRepository, SubjectTypeRepository>();
 builder.Services.AddScoped<IJwtReponsitory, JwtReponsitory>();
-builder.Services.AddScoped<ISystemSettingService, SystemSettingRepository>();
+
+builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
 builder.Services.AddScoped<ITeachingAssignmentService, TeachingAssignmentService>();
+
 builder.Services.AddScoped<ISubjectGroupRepository, SubjectGroupRepository>();
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IStudentStatusRepository, StudenStatusRepository>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
+// builder.Services.AddScoped<IDepartmentsService, Deparmen>();
+
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 
 //mapper

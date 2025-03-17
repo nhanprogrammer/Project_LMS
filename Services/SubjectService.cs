@@ -113,12 +113,6 @@ namespace Project_LMS.Services
                     return new ApiResponse<SubjectResponse>(1, "Subject type not found", null);
                 }
 
-                var subjectGroup = await _context.SubjectGroups.FindAsync(request.SubjectGroupId);
-                if (subjectGroup == null)
-                {
-                    return new ApiResponse<SubjectResponse>(1, "Subject group not found", null);
-                }
-
                 var subject = _mapper.Map<Subject>(request);
                 subject.CreateAt = DateTime.UtcNow.ToLocalTime();
                 subject.IsDelete = false;
@@ -179,12 +173,6 @@ namespace Project_LMS.Services
                 if (subjectType == null)
                 {
                     return new ApiResponse<SubjectResponse>(1, "Subject type not found", null);
-                }
-
-                var subjectGroup = await _context.SubjectGroups.FindAsync(request.SubjectGroupId);
-                if (subjectGroup == null)
-                {
-                    return new ApiResponse<SubjectResponse>(1, "Subject group not found", null);
                 }
 
                 // Update subject

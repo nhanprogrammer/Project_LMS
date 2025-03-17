@@ -76,10 +76,10 @@ namespace Project_LMS.Controllers
             return Ok(new ApiResponse<DepartmentResponse>(response.Status, response.Message, response.Data));
         }
 
-        [HttpPut("{id:int}")]
-        public async Task<IActionResult> UpdateDepartment(int id, [FromBody] UpdateDepartmentRequest request)
+        [HttpPut]
+        public async Task<IActionResult> UpdateDepartment([FromBody] UpdateDepartmentRequest request)
         {
-            var response = await _departmentsService.UpdateDepartmentAsync(id, request);
+            var response = await _departmentsService.UpdateDepartmentAsync(request);
 
             if (response.Status == 1)
             {
@@ -90,7 +90,7 @@ namespace Project_LMS.Controllers
             return Ok(new ApiResponse<DepartmentResponse>(response.Status, response.Message, response.Data));
         }
 
-        [HttpDelete("{id?}")]
+        [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteDepartment(string id)
         {
             var response = await _departmentsService.DeleteDepartmentAsync(id);
@@ -105,9 +105,9 @@ namespace Project_LMS.Controllers
         }
 
         [HttpDelete("batch-delete")]
-        public async Task<IActionResult> DeleteClasses([FromBody] List<int> classIds)
+        public async Task<IActionResult> DeleteClasses([FromBody] DeleteRequest request)
         {
-            var response = await _departmentsService.DeleteClassById(classIds);
+            var response = await _departmentsService.DeleteClassById(request.ids);
             return response.Status == 0 ? Ok(response) : BadRequest(response);
         }
 

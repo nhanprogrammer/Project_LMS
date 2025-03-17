@@ -34,9 +34,9 @@ namespace Project_LMS.Repositories
         /// </summary>
         public async Task<int> GetTotalTeachersAsync(int academicYearId)
         {
-            return await _context.Classes
-                .Where(c => c.AcademicYearId == academicYearId && c.IsDelete == false)
-                .Select(c => c.UserId)
+            return await _context.TeachingAssignments
+                .Where(ta => ta.Class != null && ta.Class.AcademicYearId == academicYearId && ta.IsDelete == false)
+                .Select(ta => ta.UserId)
                 .Distinct()
                 .CountAsync();
         }

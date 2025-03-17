@@ -15,12 +15,12 @@ namespace Project_LMS.Controllers
             _reportService = reportService;
         }
 
-        [HttpGet("academic-year/{id}")]
-        public async Task<ActionResult<ApiResponse<AcademicYearReportResponse>>> GetAcademicYearOverviewAsync(int id)
+        [HttpGet("academic-year")]
+        public async Task<ActionResult<ApiResponse<AcademicYearReportResponse>>> GetAcademicYearOverviewAsync([FromQuery] int academicId)
         {
             try
             {
-                var report = await _reportService.GetAcademicYearOverviewAsync(id);
+                var report = await _reportService.GetAcademicYearOverviewAsync(academicId);
                 return Ok(new ApiResponse<AcademicYearReportResponse>(0, "Lấy báo cáo thành công", report));
             }
             catch (NotFoundException ex)

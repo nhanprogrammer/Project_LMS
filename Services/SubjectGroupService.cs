@@ -157,15 +157,17 @@ public class SubjectGroupService : ISubjectGroupService
         );
     }
 
-public async Task<ApiResponse<SubjectGroupResponse>> UpdateSubjectGroupAsync(int id, UpdateSubjectGroupRequest updateSubjectGroupRequest)
+public async Task<ApiResponse<SubjectGroupResponse>> UpdateSubjectGroupAsync( UpdateSubjectGroupRequest updateSubjectGroupRequest)
 {
-    var subjectGroup = await _subjectGroupRepository.GetByIdAsync(id);
+    var subjectGroupId = updateSubjectGroupRequest.Id;
+    var subjectGroup = await _subjectGroupRepository.GetByIdAsync(subjectGroupId);
 
     if (subjectGroup == null)
     {
         return new ApiResponse<SubjectGroupResponse>(1, "Nhóm môn học không tồn tại", null);
     }
 
+    
     subjectGroup.Name = updateSubjectGroupRequest.Name;
     subjectGroup.UserId = updateSubjectGroupRequest.UserId;
     subjectGroup.UpdateAt = DateTime.UtcNow.ToLocalTime();
@@ -245,16 +247,22 @@ public async Task<ApiResponse<SubjectGroupResponse>> UpdateSubjectGroupAsync(int
 
 
 
-    public async Task<ApiResponse<SubjectGroupResponse>> DeleteSubjectGroupAsync(int id)
+public async Task<ApiResponse<SubjectGroupResponse>> DeleteSubjectGroupAsync(int id)
+{
+    if (id <= 0)
     {
-        await _subjectGroupRepository.DeleteAsync(id);
-        return new ApiResponse<SubjectGroupResponse>(0, "Cập nhật dữ liệu thành công", null);  
+        return new ApiResponse<SubjectGroupResponse>(1, "ID không hợp lệ", null);
     }
 
-    public async Task<ApiResponse<SubjectGroupResponse>> DeleteSubjectGroupSubject(List<int> ids)
+    await _subjectGroupRepository.DeleteAsync(id);
+    return new ApiResponse<SubjectGroupResponse>(0, "Xóa dữ liệu thành công", null);
+}
+
+
+    public async Task<ApiResponse<SubjectGroupResponse>> DeleteSubjectGroupSubject(DeleteRequest deleteRequest)
     {
         var subjectsToRemove = await _context.SubjectGroupSubjects
-            .Where(sgs => ids.Contains(sgs.Id))
+            .Where(sgs => deleteRequest.ids.Contains(sgs.Id))
             .ToListAsync();
 
         if (!subjectsToRemove.Any())
@@ -263,7 +271,6 @@ public async Task<ApiResponse<SubjectGroupResponse>> UpdateSubjectGroupAsync(int
         }
 
         _context.SubjectGroupSubjects.RemoveRange(subjectsToRemove);
-        await _context.SaveChangesAsync();
 
         return new ApiResponse<SubjectGroupResponse>(0, "Xóa môn học thành công", null);
     }
