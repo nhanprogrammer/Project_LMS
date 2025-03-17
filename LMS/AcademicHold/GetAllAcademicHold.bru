@@ -1,0 +1,16 @@
+meta {
+  name: GetAllAcademicHold
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}api/AcademicHolds?PageNumber=1&PageSize=1
+  body: none
+  auth: none
+}
+
+params:query {
+  PageNumber: 1
+  PageSize: 1
+}
