@@ -23,7 +23,7 @@ namespace Project_LMS.Controllers
             try
             {
                 var result = await _systemSettingService.GetById(id);
-                return Ok(new ApiResponse<object>(0, "Success", result));
+                return Ok(new ApiResponse<object>(0, "Tìm thấy", result));
             }
             catch (KeyNotFoundException ex)
             {
@@ -35,7 +35,7 @@ namespace Project_LMS.Controllers
         public async Task<IActionResult> GetAll()
         {
             var result = await _systemSettingService.GetAll();
-            return Ok(new ApiResponse<object>(0, "Success", result));
+            return Ok(new ApiResponse<object>(0, "Tìm thấy", result));
         }
 
         //[HttpPost]
