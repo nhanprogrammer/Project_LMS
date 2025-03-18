@@ -200,6 +200,12 @@ public class TeachingAssignmentService : ITeachingAssignmentService
 
             if (assignment == null)
                 throw new Exception("Không tìm thấy phân công giảng dạy cho giảng viên này.");
+            // Kiểm tra ClassId có tồn tại trong hệ thống
+            var classExists = await _context.Classes
+                .AnyAsync(c => c.Id == request.ClassId && c.IsDelete != true);
+
+            if (!classExists)
+                throw new Exception("Lớp học không tồn tại.");
 
             // Cập nhật thông tin
             assignment.ClassId = request.ClassId;
@@ -329,7 +335,8 @@ public class TeachingAssignmentService : ITeachingAssignmentService
                     SubjectId = t.SubjectId,
                     SubjectName = t.Subject.SubjectName,
                     StartDate = t.StartDate,
-                    EndDate = t.EndDate
+                    EndDate = t.EndDate,
+                    //Description = t.Description
                 })
                 .ToListAsync();
 
