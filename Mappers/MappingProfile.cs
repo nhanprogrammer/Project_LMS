@@ -80,7 +80,7 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.DepartmentName, opt => opt.MapFrom(src => src.Department.Name))
             .ForMember(dest => dest.ClassType, opt => opt.MapFrom(src => src.ClassType.Name))
             .ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => src.CreateAt ?? DateTime.MinValue))
-            .ForMember(dest => dest.IsDelete, opt => opt.MapFrom(src => src.IsDelete ?? false))
+            //.ForMember(dest => dest.IsDelete, opt => opt.MapFrom(src => src.IsDelete ?? false))
             .ForMember(dest => dest.CreatedBy, opt => opt.MapFrom(src => src.UserCreate.ToString()))
             .ForMember(dest => dest.UpdatedBy, opt => opt.MapFrom(src => src.UserUpdate.ToString()));
         CreateMap<CreateClassRequest, Class>();

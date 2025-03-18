@@ -214,6 +214,21 @@ namespace Project_LMS.Services
 
             try
             {
+                // Truy vết user để yêu cầu đăng nhập lại
+                // var lsUser = await _context.Users
+                //     .Where(u => u.GroupModulePermissonId == groupRoleId)
+                //     .ToListAsync();
+
+                // if (lsUser.Any())
+                // {
+                //     foreach (var user in lsUser)
+                //     {
+                //         user.PermissionChanged = true;
+                //     }
+                //     await _context.SaveChangesAsync();
+                // }
+
+
                 if (newPermissions.Any())
                 {
                     await _context.ModulePermissions.AddRangeAsync(newPermissions);
@@ -495,38 +510,41 @@ namespace Project_LMS.Services
 
         public async Task<List<string>> ListPermission(int userId)
         {
-            List<string> ls = new List<string>();
-
             var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Id == userId && u.IsDelete == false);
+                .Where(u => u.Id == userId && u.IsDelete == false && u.PermissionChanged == false && u.Disable == false)
+                .Select(u => new { u.GroupModulePermissonId })
+                .FirstOrDefaultAsync();
 
-            if (user == null)
-            {
-                return null;
-            }
+            if (user == null) return new List<string>();
 
             var modulePermissions = await _context.ModulePermissions
-                .Where(m => m.GroupRoleId == user.GroupModulePermissonId && user.Disable == false)
+                .Where(m => m.GroupRoleId == user.GroupModulePermissonId)
                 .ToListAsync();
 
-            if (modulePermissions == null || modulePermissions.Count == 0)
-            {
-                return null;
-            }
+            if (!modulePermissions.Any()) return new List<string>();
 
-            foreach (var item in modulePermissions)
-            {
-                var module = await _context.Modules.FirstOrDefaultAsync(m => m.Id == item.ModuleId);
-                if (module == null) continue;
+            // Load tất cả Modules trước để tránh truy vấn nhiều lần
+            var moduleIds = modulePermissions.Select(m => m.ModuleId).Distinct().ToList();
+            var modulesDict = await _context.Modules
+                .Where(m => moduleIds.Contains(m.Id))
+                .ToDictionaryAsync(m => m.Id, m => m.Name);
 
-                if (item.IsView == true) ls.Add(module.Name + "-VIEW");
-                if (item.IsInsert == true) ls.Add(module.Name + "-INSERT");
-                if (item.IsUpdate == true) ls.Add(module.Name + "-UPDATE");
-                if (item.IsDelete == true) ls.Add(module.Name + "-DELETE");
-                if (item.EnterScore == true) ls.Add(module.Name + "-ENTERSCORE");
-            }
+            // Chuyển đổi dữ liệu
+            var permissions = modulePermissions
+                .Where(m => m.ModuleId.HasValue && modulesDict.ContainsKey(m.ModuleId.Value)) // ✅ Kiểm tra null
+                .SelectMany(m => new[]
+                {
+                    m.IsView.GetValueOrDefault() ? $"{modulesDict[m.ModuleId.Value]}-VIEW" : null,
+                    m.IsInsert.GetValueOrDefault() ? $"{modulesDict[m.ModuleId.Value]}-INSERT" : null,
+                    m.IsUpdate.GetValueOrDefault() ? $"{modulesDict[m.ModuleId.Value]}-UPDATE" : null,
+                    m.IsDelete.GetValueOrDefault() ? $"{modulesDict[m.ModuleId.Value]}-DELETE" : null,
+                    m.EnterScore.GetValueOrDefault() ? $"{modulesDict[m.ModuleId.Value]}-ENTERSCORE" : null
+                })
+                .Where(p => p != null) // Lọc bỏ null
+                .ToList();
 
-            return ls;
+            return permissions;
         }
+
     }
 }
