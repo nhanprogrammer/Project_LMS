@@ -17,12 +17,16 @@ namespace Project_LMS.DTOs.Request
         public string Email { get; set; }
         public string Fullname { get; set; }
         public string Token { get; set; }
+        public string Role { get; set; }
+        public List<string> Permission { get; set; }
 
-        public AuthUserLoginResponse(string email, string fullname, string token)
+        public AuthUserLoginResponse(string email, string fullname, string token, string role, List<string> permission)
         {
             Email = email;
             Fullname = fullname;
             Token = token;
+            Role = role;
+            Permission = permission;
         }
     }
 

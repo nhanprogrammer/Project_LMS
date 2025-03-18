@@ -35,15 +35,18 @@ namespace Project_LMS.Services
 
         public async Task<AuthUserLoginResponse> LoginAsync(string email, string password)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email && u.IsDelete == false);
+            var user = await _context.Users
+                    .Include(u => u.Role) // Đảm bảo có Role khi trả về
+                    .FirstOrDefaultAsync(u => u.Email == email && u.IsDelete == false);
             if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.Password))
                 throw new Exception("Email hoặc mật khẩu không đúng!");
 
             // user.PermissionChanged = false;
             // await _context.SaveChangesAsync();
+            var permissions = await _permissionService.ListPermission(user.Id);
 
             var token = await GenerateJwtToken(user);
-            return new AuthUserLoginResponse(user.Email, user.FullName, token);
+            return new AuthUserLoginResponse(user.Email, user.FullName, token, user.Role.Name, permissions);
         }
 
         public async Task LogoutAsync(HttpContext context)
@@ -113,31 +116,24 @@ namespace Project_LMS.Services
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            var permissions = await _permissionService.ListPermission(user.Id);
-            if (permissions == null) permissions = new List<string>();
-
             var claims = new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Email),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()), // UUID đảm bảo token luôn khác nhau
                 new Claim(ClaimTypes.Email, user.Email)
             };
-
-            foreach (var permission in permissions)
-            {
-                claims.Add(new Claim("Permission", permission));
-            }
 
             var token = new JwtSecurityToken(
                 _config["Jwt:Issuer"],
                 _config["Jwt:Issuer"],
-                claims, // Bây giờ claims là danh sách động
+                claims,
                 expires: DateTime.UtcNow.AddHours(24),
                 signingCredentials: creds
             );
 
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            return await Task.FromResult(new JwtSecurityTokenHandler().WriteToken(token));
         }
+
 
         private async Task SendEmailAsync(string toEmail, string subject, string body)
         {
@@ -185,9 +181,9 @@ namespace Project_LMS.Services
             }
         }
 
-        public async Task<string> HashPassword()
+        public async Task<string> HashPassword(string password)
         {
-            string password = "123456";
+            //string password = "123456";
             return await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(password));
         }
 

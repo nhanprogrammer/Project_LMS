@@ -10,7 +10,7 @@ namespace Project_LMS.Interfaces
         Task SendVerificationCodeAsync(string email);
         Task ResetPasswordWithCodeAsync(string email, string verificationCode, string newPassword, string confirmPassword);
         Task<User?> GetUserAsync();
-        Task<string> HashPassword();
+        Task<string> HashPassword(string password);
 
     }
 
