@@ -1,4 +1,5 @@
-﻿using Project_LMS.Data;
+﻿using Microsoft.EntityFrameworkCore;
+using Project_LMS.Data;
 using Project_LMS.Interfaces.Responsitories;
 using Project_LMS.Models;
 
@@ -36,5 +37,17 @@ public class ClassRepository : IClassRepository
     public Task DeleteAsync(int id)
     {
         throw new NotImplementedException();
+    }
+
+    public async Task<List<Class>> GetAllClassByAcademicDepartment(int academicId, int departmentId)
+    {
+        if (academicId > 0) {
+            return await _context.Classes.Where(c => c.AcademicYearId == academicId && c.DepartmentId == departmentId && c.IsDelete == false).ToListAsync();
+        }
+        else
+        {
+            return await _context.Classes.Where(c => c.AcademicYearId == academicId && c.IsDelete == false).ToListAsync();
+        }
+
     }
 }

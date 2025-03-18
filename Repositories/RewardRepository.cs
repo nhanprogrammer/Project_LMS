@@ -16,7 +16,7 @@ namespace Project_LMS.Repositories
             _context = context;
         }
 
-        public async Task<IEnumerable<Reward>> GetAllAsync()
+        public async Task<List<Reward>> GetAllAsync()
         {
             return await _context.Rewards.ToListAsync();
         }

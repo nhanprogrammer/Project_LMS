@@ -4,7 +4,7 @@ namespace Project_LMS.Interfaces.Repositories
 {
     public interface IRewardRepository
     {
-        Task<IEnumerable<Reward>> GetAllAsync();
+        Task<List<Reward>> GetAllAsync();
         Task<Reward?> GetByIdAsync(int id);
         Task AddAsync(Reward reward);
         Task UpdateAsync(Reward reward);
