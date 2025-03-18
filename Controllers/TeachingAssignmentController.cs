@@ -20,10 +20,10 @@ namespace Project_LMS.Controllers
 
         [HttpGet("getAll")]
         public async Task<IActionResult> GetAll(
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 10,
-        [FromQuery] int? academicYearId = null,
-        [FromQuery] int? subjectGroupId = null)
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] int? academicYearId = null,
+            [FromQuery] int? subjectGroupId = null)
         {
             var result = await _service.GetAll(pageNumber, pageSize, academicYearId, subjectGroupId);
             if (result.TotalItems == 0)
@@ -34,7 +34,9 @@ namespace Project_LMS.Controllers
                     data = result
                 });
             }
-            return Ok(new ApiResponse<PaginatedResponse<TeachingAssignmentResponse>>(0, "Lấy dữ liệu thành công!", result));
+
+            return Ok(new ApiResponse<PaginatedResponse<TeachingAssignmentResponse>>(0, "Lấy dữ liệu thành công!",
+                result));
         }
 
 
@@ -47,6 +49,7 @@ namespace Project_LMS.Controllers
                 Console.WriteLine($"API GetById: Không tìm thấy TeachingAssignment với ID: {id}");
                 return NotFound(new ApiResponse<object>(1, $"Không tìm thấy phân công giảng dạy với ID: {id}"));
             }
+
             return Ok(new ApiResponse<object>(0, "Success", result));
         }
 
@@ -59,6 +62,7 @@ namespace Project_LMS.Controllers
                 Console.WriteLine($"API GetUserById: Không tìm thấy TeachingAssignment với UserId: {userId}");
                 return NotFound(new ApiResponse<object>(1, $"Không tìm thấy phân công giảng dạy với UserId: {userId}"));
             }
+
             return Ok(new ApiResponse<object>(0, "Success", result));
         }
 
@@ -74,12 +78,15 @@ namespace Project_LMS.Controllers
                 {
                     return Ok(new ApiResponse<object>(0, "Phân công giảng dạy đã được tạo!", response));
                 }
+
                 return BadRequest(new ApiResponse<object>(1, "Tạo phân công thất bại!"));
             }
             catch (DbUpdateException dbEx)
             {
                 Console.WriteLine($"Lỗi khi lưu vào database: {dbEx.InnerException?.Message ?? dbEx.Message}");
-                return StatusCode(500, new ApiResponse<object>(1, "Lỗi khi lưu dữ liệu vào database.", dbEx.InnerException?.Message ?? dbEx.Message));
+                return StatusCode(500,
+                    new ApiResponse<object>(1, "Lỗi khi lưu dữ liệu vào database.",
+                        dbEx.InnerException?.Message ?? dbEx.Message));
             }
             catch (Exception ex)
             {
@@ -98,7 +105,6 @@ namespace Project_LMS.Controllers
         }
 
 
-
         [HttpDelete("deleteList")]
         public async Task<IActionResult> Delete([FromBody] DeleteRequest request)
         {
@@ -107,9 +113,5 @@ namespace Project_LMS.Controllers
                 ? Ok(new ApiResponse<object>(0, "Xóa danh sách thành công!"))
                 : NotFound(new ApiResponse<object>(1, "Không tìm thấy các phân công giảng dạy!"));
         }
-
-
-
     }
-
 }

@@ -1,6 +1,7 @@
 using AutoMapper;
 using CloudinaryDotNet;
 using Microsoft.AspNetCore.SignalR;
+using Project_LMS.Data;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Helpers;
@@ -19,10 +20,11 @@ public class TopicService : ITopicService
     private readonly IHubContext<RealtimeHub> _hubContext;
     private readonly IUserRepository _userRepository;
     private readonly ITeachingAssignmentService _teachingAssignmentRepository;
+    private readonly ApplicationDbContext _context;
 
     public TopicService(ITopicRepository topicRepository, IMapper mapper, ICloudinaryService cloudinary,
         IHubContext<RealtimeHub> hubContext, ITeachingAssignmentService teachingAssignmentService,
-        IUserRepository userRepository)
+        IUserRepository userRepository, ApplicationDbContext context)
     {
         _topicRepository = topicRepository;
         _mapper = mapper;
@@ -30,6 +32,7 @@ public class TopicService : ITopicService
         _hubContext = hubContext;
         _teachingAssignmentRepository = teachingAssignmentService;
         _userRepository = userRepository;
+        _context = context;
     }
 
     public async Task<ApiResponse<PaginatedResponse<TopicResponse>>> GetAllTopicsAsync(int pageNumber, int pageSize)
@@ -70,7 +73,7 @@ public class TopicService : ITopicService
             }
 
             // 2) Kiểm tra phân công giảng dạy
-            var teachingAssignment = await _teachingAssignmentRepository.GetById(request.TeachingAssignmentId);
+            var teachingAssignment = await _context.TeachingAssignments.FindAsync(request.TeachingAssignmentId);
             if (teachingAssignment == null)
             {
                 return new ApiResponse<TopicResponse>(1, "Phân công giảng dạy không tồn tại!", null);
@@ -79,7 +82,7 @@ public class TopicService : ITopicService
             if (teachingAssignment.UserId != user.Id)
             {
                 return new ApiResponse<TopicResponse>(1,
-                    $"Giáo viên không thuộc lớp học {teachingAssignment.ClassName} này để giảng dạy!", null);
+                    $"Giáo viên không thuộc lớp học {teachingAssignment.ClassId} này để giảng dạy!", null);
             }
 
             // 3) Map DTO -> Entity
@@ -139,7 +142,7 @@ public class TopicService : ITopicService
 
             // 3) Kiểm tra phân công giảng dạy của topic hiện có
             var teachingAssignment =
-                await _teachingAssignmentRepository.GetById(existingTopic.TeachingAssignmentId ?? 1);
+                await _context.TeachingAssignments.FindAsync(existingTopic.TeachingAssignmentId ?? 1);
             if (teachingAssignment == null)
             {
                 return new ApiResponse<TopicResponse>(1, "Phân công giảng dạy không tồn tại!", null);
@@ -148,7 +151,7 @@ public class TopicService : ITopicService
             if (teachingAssignment.UserId != user.Id)
             {
                 return new ApiResponse<TopicResponse>(1,
-                    $"Giáo viên không thuộc lớp học {teachingAssignment.ClassName} này để cập nhật topic!", null);
+                    $"Giáo viên không thuộc lớp học {teachingAssignment.ClassId} này để cập nhật topic!", null);
             }
 
             // 4) Cập nhật các trường nếu có trong request

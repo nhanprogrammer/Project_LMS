@@ -29,8 +29,8 @@ public class SystemSettingService : ISystemSettingService
             CaptchaEnabled = setting.CaptchaEnabled,
             CurrentTheme = setting.CurrentTheme,
             Language = setting.Language,
-            CreateAt = setting.CreateAt,
-            UpdateAt = setting.UpdateAt
+            //CreateAt = setting.CreateAt,
+            //UpdateAt = setting.UpdateAt
         };
     }
 
@@ -47,8 +47,8 @@ public class SystemSettingService : ISystemSettingService
             CaptchaEnabled = s.CaptchaEnabled,
             CurrentTheme = s.CurrentTheme,
             Language = s.Language,
-            CreateAt = s.CreateAt,
-            UpdateAt = s.UpdateAt
+            //CreateAt = s.CreateAt,
+            //UpdateAt = s.UpdateAt
         });
     }
 
@@ -75,7 +75,7 @@ public class SystemSettingService : ISystemSettingService
                 CaptchaEnabled = setting.CaptchaEnabled,
                 CurrentTheme = setting.CurrentTheme,
                 Language = setting.Language,
-                CreateAt = setting.CreateAt
+                //CreateAt = setting.CreateAt
             };
         }
         catch (Exception ex)
@@ -106,8 +106,8 @@ public class SystemSettingService : ISystemSettingService
                 CaptchaEnabled = setting.CaptchaEnabled,
                 CurrentTheme = setting.CurrentTheme,
                 Language = setting.Language,
-                CreateAt = setting.CreateAt,
-                UpdateAt = setting.UpdateAt
+                //CreateAt = setting.CreateAt,
+                //UpdateAt = setting.UpdateAt
             };
         }
         catch (Exception ex)
