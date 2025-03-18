@@ -4,7 +4,6 @@ using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces.Services;
 using Project_LMS.Models;
-using TeachingAssignmentRequestCreate = Project_LMS.DTOs.Request.TeachingAssignmentRequestCreate;
 
 namespace Project_LMS.Services;
 
