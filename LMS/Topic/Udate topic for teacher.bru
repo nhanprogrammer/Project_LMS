@@ -1,0 +1,24 @@
+meta {
+  name: Udate topic for teacher
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{base_url}}api/topic
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "id": 25,
+    "teachingAssignmentId": 17,
+    "userId": 2,
+    "topicId": null,
+    "title": "Những điều thú vị về NodeJS",
+    "fileName": "",
+    "description": "NodeJS là gì ?",
+    "closeAt": "2025-03-18T06:26:59.227Z"
+  }
+}

@@ -1,0 +1,16 @@
+meta {
+  name: Gell All Topic
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}api/Topic?pageNumber=1&pageSize=10
+  body: none
+  auth: none
+}
+
+params:query {
+  pageNumber: 1
+  pageSize: 10
+}

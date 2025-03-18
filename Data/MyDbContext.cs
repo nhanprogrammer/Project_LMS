@@ -1350,6 +1350,24 @@ namespace Project_LMS.Data
                 entity.Property(e => e.UserId).HasColumnName("user_id");
 
                 entity.Property(e => e.UserUpdate).HasColumnName("user_update");
+
+                entity.HasOne(d => d.Topic)
+                    .WithMany(t => t.QuestionAnswerTopicViews)
+                    .HasForeignKey(d => d.TopicId)
+                    .HasConstraintName("fk_topic_question_answer_topic_views")
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(d => d.User)
+                    .WithMany(u => u.QuestionAnswerTopicViews)
+                    .HasForeignKey(d => d.UserId)
+                    .HasConstraintName("fk_User_question_answer_topic_views")
+                    .OnDelete(DeleteBehavior.Cascade);
+                
+                entity.HasOne(d => d.QuestionAnswer)
+                    .WithMany(q => q.QuestionAnswerTopicViews) 
+                    .HasForeignKey(d => d.QuestionsAnswerId)
+                    .HasConstraintName("fk_question_answer_topic_views_questions_answers")
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<Reward>(entity =>
@@ -2239,7 +2257,7 @@ namespace Project_LMS.Data
                 entity.Property(e => e.Id).HasColumnName("id");
 
                 entity.Property(e => e.CloseAt)
-                    .HasColumnType("timestamp without time zone")
+                    .HasColumnType("timestamp with time zone")
                     .HasColumnName("close_at");
 
                 entity.Property(e => e.CreateAt)

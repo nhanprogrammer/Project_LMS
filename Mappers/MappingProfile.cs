@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Helpers;
 using Project_LMS.Models;
 
 public class MappingProfile : Profile
@@ -300,9 +301,9 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.CreateAt,
                 opt => opt.MapFrom(src =>
                     src.CreateAt.HasValue
-                        ? TimeZoneInfo.ConvertTimeFromUtc(src.CreateAt.Value, TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")) // Múi giờ GMT+7
+                        ? TimeZoneInfo.ConvertTimeFromUtc(src.CreateAt.Value,
+                            TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")) // Múi giờ GMT+7
                         : (DateTime?)null))
-
             .ForMember(dest => dest.UserCreate, opt => opt.MapFrom(src => src.UserCreate))
             .ForMember(dest => dest.SubjectGroupSubjects,
                 opt => opt.MapFrom(src => MapSubjectGroupSubjects(src.SubjectIds)));
@@ -317,6 +318,49 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.StatusExam, opt => opt.MapFrom(src => src.ExamScheduleStatus.Names))
             .ForMember(dest => dest.Examiner,
                 opt => opt.MapFrom(src => string.Join(", ", src.Examiners.Select(e => e.User.FullName))));
+
+        // Create Topic Mapping
+        CreateMap<CreateTopicRequest, Topic>()
+            .ForMember(dest => dest.TeachingAssignmentId, otp => otp.MapFrom(src => src.TeachingAssignmentId))
+            .ForMember(dest => dest.UserId, otp => otp.MapFrom(src => src.UserId))
+            .ForMember(dest => dest.TopicId, otp => otp.MapFrom(src => src.TopicId))
+            .ForMember(dest => dest.Title, otp => otp.MapFrom(src => src.Title))
+            .ForMember(dest => dest.FileName, otp => otp.MapFrom(src => src.FileName))
+            .ForMember(dest => dest.Description, otp => otp.MapFrom(src => src.Description))
+            .ForMember(dest => dest.CloseAt, opt =>
+                opt.MapFrom(src => TimeHelper.NowUsingTimeZone));
+        // Update Topic Mapping
+        CreateMap<UpdateTopicRequest, Topic>()
+            .ForMember(dest => dest.TeachingAssignmentId, otp => otp.MapFrom(src => src.TeachingAssignmentId))
+            .ForMember(dest => dest.UserId, otp => otp.MapFrom(src => src.UserId))
+            .ForMember(dest => dest.TopicId, otp => otp.MapFrom(src => src.TopicId))
+            .ForMember(dest => dest.Title, otp => otp.MapFrom(src => src.Title))
+            .ForMember(dest => dest.FileName, otp => otp.MapFrom(src => src.FileName))
+            .ForMember(dest => dest.Description, otp => otp.MapFrom(src => src.Description))
+            .ForMember(dest => dest.CloseAt, otp =>
+                otp.MapFrom(src => TimeHelper.NowUsingTimeZone));
+
+        // Topic -> TopicResponse
+        CreateMap<Topic, TopicResponse>();
+
+        // PaginatedResponse<Topic> -> PaginatedResponse<TopicResponse>
+        CreateMap<PaginatedResponse<Topic>, PaginatedResponse<TopicResponse>>()
+            .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.Items));
+
+        // Mapping từ CreateQuestionsAnswerRequest sang QuestionAnswer
+        CreateMap<CreateQuestionsAnswerRequest, QuestionAnswer>()
+            .ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => TimeHelper.NowUsingTimeZone))
+            .ForMember(dest => dest.IsDelete, opt => opt.MapFrom(src => false));
+
+        // Mapping từ UpdateQuestionsAnswerRequest sa   ng QuestionAnswer
+        CreateMap<UpdateQuestionsAnswerRequest, QuestionAnswer>()
+            .ForMember(dest => dest.UpdateAt, opt => opt.MapFrom(src => TimeHelper.NowUsingTimeZone));
+
+        // Mapping từ QuestionAnswer sang QuestionsAnswerResponse
+        CreateMap<QuestionAnswer, QuestionsAnswerResponse>();
+        CreateMap(typeof(PaginatedResponse<>), typeof(PaginatedResponse<>));
+
+        
     }
 
     private List<SubjectGroupSubject> MapSubjectGroupSubjects(List<int> subjectIds)

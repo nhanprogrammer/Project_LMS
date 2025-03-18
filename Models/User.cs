@@ -116,7 +116,9 @@ namespace Project_LMS.Models
         public virtual ICollection<Topic> Topics { get; set; }
         public virtual ICollection<UserTrainingRank> UserTrainingRanks { get; set; }
         public virtual ICollection<Department> Departments { get; set; }
+        public virtual ICollection<QuestionAnswerTopicView> QuestionAnswerTopicViews { get; set; }
     }
+
     public class Jwt
     {
         public string Key { get; set; }
@@ -130,9 +132,11 @@ namespace Project_LMS.Models
         public string Username { get; set; }
         public string Password { get; set; }
     }
+
     public class RegisterModel
     {
         public string Username { get; set; }
+
         public string Password { get; set; }
         //public string Email { get; set; }
     }

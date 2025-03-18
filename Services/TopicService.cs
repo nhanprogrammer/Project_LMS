@@ -1,153 +1,208 @@
-using Microsoft.EntityFrameworkCore;
-using Project_LMS.Data;
+using AutoMapper;
+using CloudinaryDotNet;
+using Microsoft.AspNetCore.SignalR;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Helpers;
+using Project_LMS.Hubs;
+using Project_LMS.Interfaces.Responsitories;
 using Project_LMS.Interfaces.Services;
 using Project_LMS.Models;
-
 
 namespace Project_LMS.Services;
 
 public class TopicService : ITopicService
 {
+    private readonly ITopicRepository _topicRepository;
+    private readonly IMapper _mapper;
+    private readonly ICloudinaryService _cloudinary;
+    private readonly IHubContext<RealtimeHub> _hubContext;
+    private readonly IUserRepository _userRepository;
+    private readonly ITeachingAssignmentService _teachingAssignmentRepository;
 
-    private readonly ApplicationDbContext _context;
-    public TopicService(ApplicationDbContext context)
+    public TopicService(ITopicRepository topicRepository, IMapper mapper, ICloudinaryService cloudinary,
+        IHubContext<RealtimeHub> hubContext, ITeachingAssignmentService teachingAssignmentService,
+        IUserRepository userRepository)
     {
-        _context = context;
+        _topicRepository = topicRepository;
+        _mapper = mapper;
+        _cloudinary = cloudinary;
+        _hubContext = hubContext;
+        _teachingAssignmentRepository = teachingAssignmentService;
+        _userRepository = userRepository;
     }
-    public async Task<ApiResponse<PaginatedResponse<TopicResponse>>> GetAllTopicsAsync(string? keyword, int pageNumber, int pageSize)
+
+    public async Task<ApiResponse<PaginatedResponse<TopicResponse>>> GetAllTopicsAsync(int pageNumber, int pageSize)
     {
-        var query = _context.Topics.Where(t => !t.IsDelete.HasValue || !t.IsDelete.Value);
-
-        if (!string.IsNullOrWhiteSpace(keyword))
-        {
-            keyword = keyword.Trim().ToLower();
-            query = query.Where(t => t.Title.ToLower().Contains(keyword) || t.Description.ToLower().Contains(keyword));
-        }
-
-        var totalItems = await query.CountAsync();
-        var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
-
-        var topics = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
-        var topicResponses = topics.Select(ToTopicResponse).ToList();
-
-        var paginatedResponse = new PaginatedResponse<TopicResponse>
-        {
-            Items = topicResponses,
-            PageNumber = pageNumber,
-            PageSize = pageSize,
-            TotalItems = totalItems,
-            TotalPages = totalPages,
-            HasPreviousPage = pageNumber > 1,
-            HasNextPage = pageNumber < totalPages
-        };
-
-        return new ApiResponse<PaginatedResponse<TopicResponse>>(0, "Success", paginatedResponse);
+        // 1) Gọi repo lấy PaginatedResponse<Topic
+        var response = await _topicRepository.GetAllTopic(pageNumber, pageSize);
+        // 2) Map sang PaginatedResponse<TopicResponse>
+        var mappedResponse = _mapper.Map<PaginatedResponse<TopicResponse>>(response);
+        return new ApiResponse<PaginatedResponse<TopicResponse>>(0, "Lấy danh sách topic thành công!", mappedResponse);
     }
 
     public async Task<ApiResponse<TopicResponse>> GetTopicByIdAsync(int id)
     {
-        var topic = await _context.Topics.FindAsync(id);
-        if (topic == null || topic.IsDelete == true)
-            return new ApiResponse<TopicResponse>(1, "Topic not found", null);
+        var topic = await _topicRepository.GetTopicById(id);
+        if (topic == null)
+        {
+            return new ApiResponse<TopicResponse>(1, "Không tìm thấy topic!", null);
+        }
 
-        return new ApiResponse<TopicResponse>(0, "Success", ToTopicResponse(topic));
+        var mappedResponse = _mapper.Map<TopicResponse>(topic);
+        return new ApiResponse<TopicResponse>(0, "Lấy topic thành công!", mappedResponse);
     }
 
-    public async Task<ApiResponse<TopicResponse>> CreateTopicAsync(TopicRequest request)
+    public async Task<ApiResponse<TopicResponse>> CreateTopicAsync(CreateTopicRequest request)
     {
         try
         {
-            var topic = ToTopic(request);
-            topic.CreateAt = DateTime.UtcNow.ToLocalTime();
-            _context.Topics.Add(topic);
-            await _context.SaveChangesAsync();
-            return new ApiResponse<TopicResponse>(0, "Topic created successfully", ToTopicResponse(topic));
+            // 1) Kiểm tra thông tin người dùng
+            var user = await _userRepository.FindAsync(request.UserId ?? 1);
+            if (user == null)
+            {
+                return new ApiResponse<TopicResponse>(1, "User không tồn tại!", null);
+            }
+
+            if (user.RoleId != 2)
+            {
+                return new ApiResponse<TopicResponse>(1, "Chỉ giáo viên mới được tạo topic.", null);
+            }
+
+            // 2) Kiểm tra phân công giảng dạy
+            var teachingAssignment = await _teachingAssignmentRepository.GetById(request.TeachingAssignmentId);
+            if (teachingAssignment == null)
+            {
+                return new ApiResponse<TopicResponse>(1, "Phân công giảng dạy không tồn tại!", null);
+            }
+
+            if (teachingAssignment.UserId != user.Id)
+            {
+                return new ApiResponse<TopicResponse>(1,
+                    $"Giáo viên không thuộc lớp học {teachingAssignment.ClassName} này để giảng dạy!", null);
+            }
+
+            // 3) Map DTO -> Entity
+            var topicEntity = _mapper.Map<Topic>(request);
+
+            // 4) Upload file nếu có
+            if (!string.IsNullOrEmpty(request.FileName))
+            {
+                topicEntity.FileName = await _cloudinary.UploadImageAsync(request.FileName);
+            }
+
+            topicEntity.CreateAt = TimeHelper.NowUsingTimeZone;
+            topicEntity.IsDelete = false;
+
+            // 5) Lưu topic vào DB (thông qua repository)
+            var savedTopic = await _topicRepository.AddTopic(topicEntity);
+
+            // 6) Map Entity -> Response DTO
+            var topicResponse = _mapper.Map<TopicResponse>(savedTopic);
+
+            // 7) Gửi sự kiện SignalR cho các client khác (ngoại trừ người tạo)
+            await _hubContext.Clients.AllExcept(new[] { topicResponse.UserId.ToString() })
+                .SendAsync("TopicCreated", topicResponse);
+
+            return new ApiResponse<TopicResponse>(0, "Thêm topic thành công!", topicResponse);
         }
         catch (Exception ex)
         {
-            return new ApiResponse<TopicResponse>(1, $"Error creating Topic: {ex.Message}", null);
+            // Log exception nếu cần
+            return new ApiResponse<TopicResponse>(1, ex.Message, null);
         }
     }
 
-    public async Task<ApiResponse<TopicResponse>> UpdateTopicAsync(int id, TopicRequest request)
+
+    public async Task<ApiResponse<TopicResponse>> UpdateTopicAsync(UpdateTopicRequest request)
     {
         try
         {
-            var topic = await _context.Topics.FindAsync(id);
-            if (topic == null || topic.IsDelete == true)
-                return new ApiResponse<TopicResponse>(1, "Topic not found", null);
+            // 1) Tìm topic cũ
+            var existingTopic = await _topicRepository.GetTopicById(request.Id);
+            if (existingTopic == null)
+            {
+                return new ApiResponse<TopicResponse>(1, "Topic không tồn tại", null);
+            }
 
-            topic.Title = request.Title;
-            topic.FileName = request.FileName;
-            topic.Description = request.Description;
-            topic.CloseAt = request.CloseAt;
-            topic.UpdateAt = DateTime.UtcNow.ToLocalTime();
+            // 2) Kiểm tra thông tin người dùng (nếu UpdateTopicRequest có UserId, nếu không bạn có thể sử dụng existingTopic.UserId)
+            var user = await _userRepository.FindAsync(request.UserId ?? existingTopic.UserId ?? 1);
+            if (user == null)
+            {
+                return new ApiResponse<TopicResponse>(1, "User không tồn tại!", null);
+            }
 
-            await _context.SaveChangesAsync();
-            return new ApiResponse<TopicResponse>(0, "Topic updated successfully", ToTopicResponse(topic));
+            if (user.RoleId != 2)
+            {
+                return new ApiResponse<TopicResponse>(1, "Chỉ giáo viên mới được cập nhật topic.", null);
+            }
+
+            // 3) Kiểm tra phân công giảng dạy của topic hiện có
+            var teachingAssignment =
+                await _teachingAssignmentRepository.GetById(existingTopic.TeachingAssignmentId ?? 1);
+            if (teachingAssignment == null)
+            {
+                return new ApiResponse<TopicResponse>(1, "Phân công giảng dạy không tồn tại!", null);
+            }
+
+            if (teachingAssignment.UserId != user.Id)
+            {
+                return new ApiResponse<TopicResponse>(1,
+                    $"Giáo viên không thuộc lớp học {teachingAssignment.ClassName} này để cập nhật topic!", null);
+            }
+
+            // 4) Cập nhật các trường nếu có trong request
+            existingTopic.Title = !string.IsNullOrEmpty(request.Title) ? request.Title : existingTopic.Title;
+            existingTopic.Description = !string.IsNullOrEmpty(request.Description)
+                ? request.Description
+                : existingTopic.Description;
+
+            // 5) Nếu có ảnh mới thì upload lên Cloudinary
+            if (!string.IsNullOrEmpty(request.FileName))
+            {
+                existingTopic.FileName = await _cloudinary.UploadImageAsync(request.FileName);
+            }
+
+            // 6) Gọi repository update
+            var updatedTopic = await _topicRepository.UpdateTopict(existingTopic);
+            var topicResponse = _mapper.Map<TopicResponse>(updatedTopic);
+
+            // 7) Gửi sự kiện SignalR cho các client khác (ngoại trừ người tạo)
+            await _hubContext.Clients.AllExcept(new[] { topicResponse.UserId.ToString() })
+                .SendAsync("TopicUpdated", topicResponse);
+
+            return new ApiResponse<TopicResponse>(0, "Cập nhật topic thành công!", topicResponse);
         }
         catch (Exception ex)
         {
-            return new ApiResponse<TopicResponse>(1, $"Error updating Topic: {ex.Message}", null);
+            // Ghi log lỗi nếu cần
+            return new ApiResponse<TopicResponse>(1, ex.Message, null);
         }
     }
+
 
     public async Task<ApiResponse<bool>> DeleteTopicAsync(int id)
     {
-        try
+        var success = await _topicRepository.DeleteTopic(id);
+        if (!success)
         {
-            var topic = await _context.Topics.FindAsync(id);
-            if (topic == null || topic.IsDelete == true)
-                return new ApiResponse<bool>(1, "Topic not found", false);
-
-            topic.IsDelete = true;
-            topic.UpdateAt = DateTime.UtcNow.ToLocalTime();
-
-            await _context.SaveChangesAsync();
-            return new ApiResponse<bool>(0, "Topic deleted successfully", true);
+            return new ApiResponse<bool>(1, "Topic không tồn tại", false);
         }
-        catch (Exception ex)
+
+        await _hubContext.Clients.All.SendAsync("TopicDeleted", id);
+
+        return new ApiResponse<bool>(0, "Xóa topic thành công!", true);
+    }
+
+    public async Task<ApiResponse<IEnumerable<TopicResponse>>> SearchTopicsAsync(string? keyword)
+    {
+        var topics = await _topicRepository.SearchTopic(keyword);
+        if (topics == null || !topics.Any())
         {
-            return new ApiResponse<bool>(1, $"Error deleting Topic: {ex.Message}", false);
+            return new ApiResponse<IEnumerable<TopicResponse>>(1, "Không tìm thấy topic!", null);
         }
-    }
 
-    private TopicResponse ToTopicResponse(Topic topic)
-    {
-        return new TopicResponse
-        {
-            Id = topic.Id,
-            TeachingAssignmentId = topic.TeachingAssignmentId,
-            UserId = topic.UserId,
-            TopicId = topic.TopicId,
-            UpdateAt = topic.UpdateAt,
-            CreateAt = topic.CreateAt,
-            UserCreate = topic.UserCreate,
-            UserUpdate = topic.UserUpdate,
-            IsDelete = topic.IsDelete,
-            Title = topic.Title,
-            FileName = topic.FileName,
-            Description = topic.Description,
-            CloseAt = topic.CloseAt
-        };
+        return new ApiResponse<IEnumerable<TopicResponse>>(0, "Tìm kiếm topic thành công!",
+            _mapper.Map<IEnumerable<TopicResponse>>(topics));
     }
-
-    private Topic ToTopic(TopicRequest request)
-    {
-        return new Topic
-        {
-            TeachingAssignmentId = request.TeachingAssignmentId,
-            UserId = request.UserId,
-            TopicId = request.TopicId,
-            UserCreate = request.UserCreate,
-            UserUpdate = request.UserUpdate,
-            Title = request.Title,
-            FileName = request.FileName,
-            Description = request.Description,
-            CloseAt = request.CloseAt
-        };
-    }
-
 }
