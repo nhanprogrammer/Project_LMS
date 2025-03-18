@@ -2,6 +2,7 @@
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces;
+using Project_LMS.Services;
 
 namespace Project_LMS.Controllers
 {
@@ -9,17 +10,17 @@ namespace Project_LMS.Controllers
     [Route("api/[controller]")]
     public class AcademicYearController : ControllerBase
     {
-        private readonly IAcademicYearsService _service;
+        private readonly IAcademicYearsService _academicYearsService;
 
-        public AcademicYearController(IAcademicYearsService service)
+        public AcademicYearController(IAcademicYearsService academicYearsService)
         {
-            _service = service;
+            _academicYearsService = academicYearsService;
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<ApiResponse<AcademicYearResponse>>> GetById(int id)
         {
-            var result = await _service.GetByIdAcademicYear(id);
+            var result = await _academicYearsService.GetByIdAcademicYear(id);
             if (result == null)
             {
                 return NotFound(new ApiResponse<AcademicYearResponse>(
@@ -37,7 +38,7 @@ namespace Project_LMS.Controllers
         [HttpGet]
         public async Task<ActionResult<ApiResponse<PaginatedResponse<AcademicYearResponse>>>> GetAll([FromQuery] PaginationRequest request)
         {
-            var result = await _service.GetPagedAcademicYears(request);
+            var result = await _academicYearsService.GetPagedAcademicYears(request);
             return Ok(new ApiResponse<PaginatedResponse<AcademicYearResponse>>(
                 0,
                 "Success",
@@ -64,19 +65,19 @@ namespace Project_LMS.Controllers
                     ex.Message,
                     null));
             }
-            await _service.AddAcademicYear(request);
+            await _academicYearsService.AddAcademicYear(request);
             return Ok(new ApiResponse<CreateAcademicYearRequest>(
                 0,
                 "Add success",
                 request));
         }
 
-        [HttpPut("{id}")]
-        public async Task<ActionResult<ApiResponse<UpdateAcademicYearRequest>>> Update(int id, [FromBody] UpdateAcademicYearRequest request)
+        [HttpPut]
+        public async Task<ActionResult<ApiResponse<UpdateAcademicYearRequest>>> Update([FromBody] UpdateAcademicYearRequest request)
         {
             try
             {
-                await _service.UpdateAcademicYear(id, request);
+                await _academicYearsService.UpdateAcademicYear(request);
                 return Ok(new ApiResponse<UpdateAcademicYearRequest>(
                     0,
                     "Update success",
@@ -91,22 +92,16 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [HttpDelete("{id}")]
-        public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
+        [HttpDelete]
+        public async Task<IActionResult> DeleteLesson(DeleteRequest ids)
         {
-            var result = await _service.DeleteAcademicYear(id);
-            if (!result)
+            var response = await _academicYearsService.DeleteLessonAsync(ids);
+            if (response.Status == 1)
             {
-                return NotFound(new ApiResponse<bool>(
-                    1,
-                    "Academic Year not found",
-                    false));
+                return BadRequest(new ApiResponse<AcademicYearResponse>(response.Status, response.Message, response.Data));
             }
 
-            return Ok(new ApiResponse<bool>(
-                0,
-                "Delete success",
-                true));
+            return Ok(new ApiResponse<AcademicYearResponse>(response.Status, response.Message, response.Data));
         }
     }
 }

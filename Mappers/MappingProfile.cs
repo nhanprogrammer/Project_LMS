@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Helpers;
 using Project_LMS.Models;
 
 public class MappingProfile : Profile
@@ -37,8 +38,10 @@ public class MappingProfile : Profile
 
 
         CreateMap<AcademicYear, AcademicYearResponse>();
-        CreateMap<CreateAcademicYearRequest, AcademicYear>();
-        CreateMap<UpdateAcademicYearRequest, AcademicYear>();
+        CreateMap<CreateAcademicYearRequest, AcademicYear>()
+            .ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => TimeHelper.Now)); // Chuyển về UTC+7
+        CreateMap<UpdateAcademicYearRequest, AcademicYear>()
+            .ForMember(dest => dest.UpdateAt, opt => opt.MapFrom(src => TimeHelper.Now)); // Chuyển về UTC+7
 
         CreateMap<Answer, AnswerResponse>()
             .ForMember(dest => dest.Answer, opt => opt.MapFrom(src => src.Answer1));
@@ -156,14 +159,19 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description)) // Map Description
             .ForMember(dest => dest.Topic, opt => opt.MapFrom(src => src.Topic)) // Map Topic
             .ForMember(dest => dest.Duration, opt => opt.MapFrom(src => src.Duration)) // Map Duration
-            .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate)) // Map StartDate
-            .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate)) // Map EndDate
+            .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
+            .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate))
             //    .ForMember(dest => dest.Password, opt => opt.MapFrom(src => src.Password))  // Map Password
             .ForMember(dest => dest.IsResearchable, opt => opt.MapFrom(src => src.IsResearchable)) // Map IsResearchable
             .ForMember(dest => dest.IsAutoStart, opt => opt.MapFrom(src => src.IsAutoStart)) // Map IsAutoStart
             .ForMember(dest => dest.IsSave, opt => opt.MapFrom(src => src.IsSave)); // Map IsSave3
+        
         CreateMap<Lesson, CreateLessonRequest>();
+        CreateMap<CreateLessonRequest, Lesson>()
+           .ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => TimeHelper.Now)); // Chuyển về UTC+7
         CreateMap<Lesson, UpdateLessonRequest>();
+        CreateMap<UpdateLessonRequest, Lesson>()
+            .ForMember(dest => dest.UpdateAt, opt => opt.MapFrom(src => TimeHelper.Now)); // Chuyển về UTC+7
 
         CreateMap<Module, ModuleResponse>()
             .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name));
