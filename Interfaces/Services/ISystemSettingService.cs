@@ -8,6 +8,5 @@ public interface ISystemSettingService
     Task<SystemSettingResponse> GetById(int id);
     Task<IEnumerable<SystemSettingResponse>> GetAll();
     Task<SystemSettingResponse> Create(SystemSettingRequest request);
-    Task<SystemSettingResponse> UpdateByUserId(int userId, SystemSettingRequest request);
-    Task<bool> Delete(int id);
+    Task<SystemSettingResponse> Update(int id, SystemSettingRequest request);
 }

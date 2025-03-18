@@ -26,7 +26,7 @@ namespace Project_LMS.Repositories
             {
             new Claim(ClaimTypes.Name, user.Username),
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim("Role", user.Role.Name.ToString())
+            new Claim("Role", user.Role.ToString())
         };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
@@ -38,7 +38,7 @@ namespace Project_LMS.Repositories
                 claims: claims,
                 expires: DateTime.Now.AddMinutes(30),
                 signingCredentials: creds);
-            // Trả token, trả list roles, trả list permissons
+
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
         public async Task<User> AuthenticateAsync(string userName, string password)

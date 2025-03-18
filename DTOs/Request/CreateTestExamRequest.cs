@@ -7,30 +7,30 @@ namespace Project_LMS.DTOs.Request
 {
     public class CreateTestExamRequest
     {
-        public int? subjectId { get; set; }
-        public string? topic { get; set; }
-        public int? semestersId { get; set; }
-        public int? durationInMinutes { get; set; }
+        public int? SubjectId { get; set; }
+        public string? Topic { get; set; }
+        public int? SemestersId { get; set; }
+        public int? DurationInMinutes { get; set; }
 
         [JsonConverter(typeof(DateOnlyJsonConverter))]
-        public DateOnly? examDate { get; set; }
+        public DateOnly? ExamDate { get; set; }
 
-        public List<int>? classIds { get; set; }
-        public string? classOption { get; set; }
-        public int? selectedClassTypeId { get; set; }
-        public bool? applyExaminerForAllClasses { get; set; }
-        public List<int>? examinerIds { get; set; }
-        public List<ExaminerForClassRequest>? examinersForClass { get; set; }
-        public string? description { get; set; }
-        public int? testExamTypeId { get; set; }
-        public bool? isExam { get; set; }
-        public string? form { get; set; }
-        public int? departmentId { get; set; }
+        public List<int>? ClassIds { get; set; }
+        public string? ClassOption { get; set; }
+        public int? SelectedClassTypeId { get; set; }
+        public bool? ApplyExaminerForAllClasses { get; set; }
+        public List<int>? ExaminerIds { get; set; }
+        public List<ExaminerForClassRequest>? ExaminersForClass { get; set; }
+        public string? Description { get; set; }
+        public int? TestExamTypeId { get; set; }
+        public bool? IsExam { get; set; }
+        public string? Form { get; set; }
+        public int? DepartmentId { get; set; }
     }
 
     public class ExaminerForClassRequest
     {
-        public int classId { get; set; }
-        public List<int> examinerIds { get; set; }
+        public int ClassId { get; set; }
+        public List<int> ExaminerIds { get; set; }
     }
 }

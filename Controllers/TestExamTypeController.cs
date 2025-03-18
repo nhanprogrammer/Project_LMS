@@ -43,28 +43,10 @@ namespace Project_LMS.Controllers
         {
             return _service.Create(request);
         }
-        [HttpPut]
-        public async Task<ActionResult<ApiResponse<TestExamTypeResponse>>> Update([FromBody] TestExamTypeRequest request)
+        [HttpPut("{id}")]
+        public Task<ApiResponse<TestExamTypeResponse>> Update(int id, TestExamTypeRequest request)
         {
-            try
-            {
-                if (request == null || request.Id == null || request.Id <= 0)
-                {
-                    return BadRequest(new ApiResponse<string>(1, "Request body hoặc Id không được để trống hoặc không hợp lệ", null));
-                }
-
-                var response = await _service.Update(request.Id.Value, request);
-                if (response == null)
-                {
-                    return NotFound(new ApiResponse<TestExamTypeResponse>(1, "Không tìm thấy loại điểm cần cập nhật", null));
-                }
-
-                return Ok(new ApiResponse<TestExamTypeResponse>(0, "Cập nhật loại điểm thành công", response.Data));
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi khi cập nhật loại điểm", ex.Message));
-            }
+            return _service.Update(id, request);
         }
         [HttpDelete("{id}")]
         public Task<ApiResponse<TestExamTypeResponse>> Delete(int id)

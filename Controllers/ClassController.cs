@@ -2,7 +2,6 @@
 using Project_LMS.DTOs;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
-using Project_LMS.Exceptions;
 using Project_LMS.Interfaces;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -21,154 +20,77 @@ namespace Project_LMS.Controllers
         }
 
         [HttpGet("list")]
-        public async Task<IActionResult> GetClassList([FromQuery] ClassRequest classRequest)
+        public async Task<IActionResult> GetClassList([FromQuery] int AcademicYearId, [FromQuery] int DepartmentId, [FromQuery] int PageNumber = 1, [FromQuery] int PageSize = 10)
         {
-            var response = await _classService.GetClassList(classRequest);
+            var response = await _classService.GetClassList(AcademicYearId, DepartmentId, PageNumber, PageSize);
             return Ok(response);
         }
 
 
-        [HttpPost("create")]
-        public async Task<IActionResult> CreateClass([FromBody] ClassSaveRequest request)
+        [HttpPost("save")]
+        public async Task<IActionResult> SaveClass([FromBody] ClassSaveRequest request)
         {
-            try
-            {
-                await _classService.SaveClass(request);
-                return CreatedAtAction(nameof(CreateClass), new ApiResponse<string>(0, "Tạo lớp học thành công", null));
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new ApiResponse<string>(1, ex.Message, null));
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(1, new ApiResponse<string>(1, "Đã xảy ra lỗi, vui lòng thử lại.", null));
-            }
+            await _classService.SaveClass(request);
+            return Ok(new ApiResponse<string>(0, "Lưu lớp học thành công", null));
         }
-
-        [HttpPut("update")]
-        public async Task<IActionResult> UpdateClass([FromBody] ClassSaveRequest request)
-        {
-            try
-            {
-                await _classService.SaveClass(request);
-                return Ok(new ApiResponse<string>(0, "Cập nhật lớp học thành công", null));
-            }
-            catch (NotFoundException ex)
-            {
-                return NotFound(new ApiResponse<string>(1, ex.Message, null));
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new ApiResponse<string>(1, ex.Message, null));
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(1, new ApiResponse<string>(1, "Đã xảy ra lỗi, vui lòng thử lại.", null));
-            }
-        }
-
 
         [HttpDelete("delete")]
-        public async Task<IActionResult> DeleteClass([FromBody] ClassListIdRequest request)
+        public async Task<IActionResult> DeleteClass([FromQuery] List<int> classIds)
         {
-            if (request?.Ids == null || !request.Ids.Any())
-            {
-                return BadRequest(new ApiResponse<string>(1, "Danh sách ID lớp học không hợp lệ.", null));
-            }
-
-            try
-            {
-                bool isDeleted = await _classService.DeleteClass(request.Ids);
-
-                if (isDeleted)
-                    return Ok(new ApiResponse<string>(0, "Xóa lớp học thành công", null));
-
-                return NotFound(new ApiResponse<string>(1, "Không tìm thấy lớp học", null));
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new ApiResponse<string>(1, ex.Message, null));
-            }
+            bool isDeleted = await _classService.DeleteClass(classIds);
+            if (isDeleted)
+                return Ok(new ApiResponse<string>(0, "Xóa lớp học thành công", null));
+            return NotFound(new ApiResponse<string>(1, "Không tìm thấy lớp học", null));
         }
 
-
-        [HttpGet("detail")]
-        public async Task<IActionResult> GetClassDetail([FromQuery] ClassIdRequest classId)
+        [HttpGet("detail/{classId}")]
+        public async Task<IActionResult> GetClassDetail(int classId)
         {
-            try
-            {
-                var response = await _classService.GetClassDetail(classId.Id);
-
-                return Ok(new ApiResponse<object>(0, "Lấy thông tin lớp học thành công.", response));
-            }
-            catch (NotFoundException ex)
-            {
-                return StatusCode(404, new ApiResponse<string>(1, ex.Message, null));
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi, vui lòng thử lại." + ex.Message, null));
-            }
+            var response = await _classService.GetClassDetail(classId);
+            return Ok(response);
         }
-
 
         [HttpGet("subjects/excluding")]
-        public async Task<IActionResult> GetSubjectsExcluding([FromQuery] ClassListStringId request)
+        public async Task<IActionResult> GetSubjectsExcluding([FromQuery] List<int> excludedSubjectIds)
         {
-            var response = await _classService.GetSubjectsExcluding(request.ids);
+            var response = await _classService.GetSubjectsExcluding(excludedSubjectIds);
             return Ok(response);
         }
 
         [HttpGet("subjects/inherited")]
-        public async Task<IActionResult> GetInheritedSubjects([FromQuery] ClassAcademicDepartmentRequest request)
+        public async Task<IActionResult> GetInheritedSubjects([FromQuery] int academicYearId, [FromQuery] int departmentId)
         {
-            var response = await _classService.GetInheritedSubjects(request.AcademicYearId, request.DepartmentId);
+            var response = await _classService.GetInheritedSubjects(academicYearId, departmentId);
             return Ok(response);
         }
 
         [HttpPut("student-status")]
-        public async Task<IActionResult> SaveStudentStatus([FromBody] ClassStudentStatusRequest request)
+        public async Task<IActionResult> SaveStudentStatus([FromQuery] int studentId, [FromQuery] int statusId)
         {
-            if (request == null || request.StudentId <= 0 || request.StatusId <= 0)
-            {
-                return BadRequest(new ApiResponse<string>(1, "Dữ liệu không hợp lệ", null));
-            }
-
-            bool isUpdated = await _classService.SaveStudentStatus(request.StudentId, request.StatusId);
+            bool isUpdated = await _classService.SaveStudentStatus(studentId, statusId);
             if (isUpdated)
                 return Ok(new ApiResponse<string>(0, "Cập nhật trạng thái học sinh thành công", null));
-
             return BadRequest(new ApiResponse<string>(1, "Cập nhật trạng thái học sinh thất bại", null));
         }
 
         [HttpGet("export-class-list")]
-        public async Task<IActionResult> ExportClassList(int academicYearId, int departmentId)
+        public async Task<IActionResult> ExportClassListToExcel([FromQuery] int academicYearId, [FromQuery] int departmentId)
         {
-            try
-            {
-                var base64String = await _classService.ExportClassListToExcel(academicYearId, departmentId);
-                return Ok(new ApiResponse<string>(0, "Xuất danh sách lớp thành công!", base64String));
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new ApiResponse<string>(1, "Lỗi khi xuất danh sách lớp: " + ex.Message, null));
-            }
+            var fileResult = await _classService.ExportClassListToExcel(academicYearId, departmentId);
+            return fileResult;
         }
-
-
-
+        
         [HttpPost("upload")]
-        public async Task<IActionResult> UploadClassFile([FromBody] ClassBase64FileRequest request)
+        public async Task<IActionResult> UploadClassFile([FromForm] IFormFile file)
         {
-            if (request == null || string.IsNullOrWhiteSpace(request.Base64File))
+            if (file == null || file.Length == 0)
             {
-                return BadRequest(new ApiResponse<string>(1, "Vui lòng cung cấp file Excel hợp lệ dưới dạng Base64.", null));
+                return BadRequest(new ApiResponse<string>(1, "Vui lòng chọn file Excel hợp lệ.", null));
             }
 
             try
             {
-                await _classService.CreateClassByBase64(request.Base64File);
+                await _classService.CreateClassByFile(file);
                 return Ok(new ApiResponse<string>(0, "Tải lên và xử lý file thành công!", null));
             }
             catch (Exception ex)
@@ -176,23 +98,6 @@ namespace Project_LMS.Controllers
                 return BadRequest(new ApiResponse<string>(1, "Xử lý file thất bại: " + ex.Message, null));
             }
         }
-
-
-        [HttpGet("download-excel")]
-        public async Task<IActionResult> DownloadClassTemplate()
-        {
-            try
-            {
-                var base64String = await _classService.GenerateClassTemplate();
-                return Ok(new ApiResponse<string>(0, "Tạo file mẫu thành công!", base64String));
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new ApiResponse<string>(1, "Lỗi khi tạo file mẫu: " + ex.Message, null));
-            }
-        }
-
-
 
     }
 }

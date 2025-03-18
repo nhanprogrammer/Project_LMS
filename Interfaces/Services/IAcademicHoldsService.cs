@@ -5,12 +5,10 @@ namespace Project_LMS.Interfaces
 {
     public interface IAcademicHoldsService
     {
-        //Task<IEnumerable<AcademicHoldResponse>> GetAllAcademicHold();
-        Task<User_AcademicHoldResponse> GetById(int id);
+        Task<IEnumerable<AcademicHoldResponse>> GetAllAcademicHold();
+        Task<AcademicHoldResponse> GetByIdAcademicHold(int id);
         Task AddAcademicHold(CreateAcademicHoldRequest academicHold);
         Task UpdateAcademicHold(UpdateAcademicHoldRequest academicHold);
-        Task<bool> DeleteAcademicHold(int id);
-        Task<PaginatedResponse<AcademicHoldResponse>> GetPagedAcademicHolds(PaginationRequest request);
-
+        Task DeleteAcademicHold(int id);
     }
 }

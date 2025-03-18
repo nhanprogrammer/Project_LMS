@@ -1,148 +1,146 @@
-using Project_LMS.Data;
-using Project_LMS.DTOs.Request;
-using Project_LMS.DTOs.Response;
-using Project_LMS.Interfaces;
-using Project_LMS.Interfaces.Responsitories;
-using Project_LMS.Models;
-using Microsoft.Extensions.Logging;
-using AutoMapper;
-using Project_LMS.Repositories;
-using Microsoft.EntityFrameworkCore;
+// using Project_LMS.Data;
+// using Project_LMS.DTOs.Request;
+// using Project_LMS.DTOs.Response;
+// using Project_LMS.Interfaces;
+// using Project_LMS.Interfaces.Responsitories;
+// using Project_LMS.Models;
 
-namespace Project_LMS.Services
-{
-    public class LessonsService : ILessonsService
-    {
-        private readonly ILessonRepository _lessonRepository;
-        private readonly ILogger<LessonsService> _logger;
-        private readonly IMapper _mapper;
+// namespace Project_LMS.Services
+// {
+//     public class LessonsService : ILessonsService
+//     {
+//         private readonly ILessonRepository _lessonRepository;
+//         private readonly ApplicationDbContext _context;
 
-        public LessonsService(ILessonRepository lessonRepository, ILogger<LessonsService> logger, IMapper mapper)
-        {
-            _lessonRepository = lessonRepository;
-            _logger = logger;
-            _mapper = mapper;
-        }
+//         public LessonsService(ILessonRepository lessonRepository, ApplicationDbContext context)
+//         {
+//             _lessonRepository = lessonRepository;
+//             _context = context;
+//         }
 
-        public async Task<PaginatedResponse<LessonResponse>> GetLessonAsync(PaginationRequest request)
-        {
-            try
-            {
-                var query = await _lessonRepository.GetQueryable();
+//         public async Task<ApiResponse<List<LessonResponse>>> GetAllLessonAsync()
+//         {
+//             var lessons = await _lessonRepository.GetAllAsync();
+//             var data = lessons.Select(c => new LessonResponse
+//             {
+//                 ClassId = c.ClassId,
+//                 TeacherId = c.UserId,
+//                 ClassLessonCode = c.ClassLessonCode,
+//                 Description = c.Description,
+//                 Topic = c.Topic,
+//                 StartDate = c.StartDate,
+//                 EndDate = c.EndDate,
+//                 Duration = c.Duration,
+//                 Password = c.PaswordLeassons,
+//                 IsSave = c.IsSave,
+//                 IsAutoStart = c.IsAutoStart,
+//                 IsResearchable = c.IsResearchable,
+//             }).ToList();
+    
+//             return new ApiResponse<List<LessonResponse>>(0, "Fill dữ liệu thành công ", data);
+//         }
 
-                int totalItems = await query.CountAsync();
-                int pageSize = request.PageSize > 0 ? request.PageSize : 10;
+//         public async Task<ApiResponse<LessonResponse>> CreateLessonAsync(CreateLessonRequest createLessonRequest)
+//         {
+//             var lesson = new Lesson
+//             {
+//                 ClassId = createLessonRequest.ClassId,
+//                 UserId = createLessonRequest.TeacherId,
+//                 ClassLessonCode = createLessonRequest.ClassLessonCode,
+//                 Description = createLessonRequest.Description,
+//                 Topic = createLessonRequest.Topic,
+//                 StartDate = DateTime.SpecifyKind(createLessonRequest.StartDate, DateTimeKind.Unspecified),
+//                 EndDate = DateTime.SpecifyKind(createLessonRequest.EndDate, DateTimeKind.Unspecified),
+//                 Duration = createLessonRequest.Duration,
+//                 PaswordLeassons = createLessonRequest.Password,
+//                 IsSave = createLessonRequest.IsSave,
+//                 IsAutoStart = createLessonRequest.IsAutoStart,
+//                 IsResearchable = createLessonRequest.IsResearchable,
+//                 CreateAt = DateTime.Now,
+//             };
+                    
+//             await _lessonRepository.AddAsync(lesson);
+//             var response = new LessonResponse
+//             {
+//                 ClassId = lesson.ClassId,
+//                 TeacherId = lesson.UserId,
+//                 ClassLessonCode = lesson.ClassLessonCode,
+//                 Description = lesson.Description,
+//                 Topic = lesson.Topic,
+//                 StartDate = lesson.StartDate,
+//                 EndDate = lesson.EndDate,
+//                 Duration = lesson.Duration,
+//                 Password = lesson.PaswordLeassons,
+//                 IsSave = lesson.IsSave,
+//                 IsAutoStart = lesson.IsAutoStart,
+//                 IsResearchable = lesson.IsResearchable,
+//             };
+//             return new ApiResponse<LessonResponse>(0, "Department đã thêm thành công", response);
+//         }
 
-                var lessonList = await query
-                    .Skip((request.PageNumber - 1) * pageSize)
-                    .Take(pageSize)
-                    .ToListAsync();
+//         public async Task<ApiResponse<LessonResponse>> UpdateLessonAsync(string id, UpdateLessonRequest updateLessonRequest)
+//         {
+//             if (!int.TryParse(id, out int lessonId))
+//             {
+//                 return new ApiResponse<LessonResponse>(1, "ID không hợp lệ. Vui lòng kiểm tra lại.", null);
+//             }
 
-                return new PaginatedResponse<LessonResponse>
-                {
-                    Items = _mapper.Map<List<LessonResponse>>(lessonList),
-                    PageNumber = request.PageNumber,
-                    PageSize = pageSize,
-                    TotalItems = totalItems,
-                    TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize),
-                    HasPreviousPage = request.PageNumber > 1,
-                    HasNextPage = request.PageNumber * pageSize < totalItems
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error occurred while getting all lessons.");
-                return new PaginatedResponse<LessonResponse>
-                {
-                    Items = new List<LessonResponse>(),
-                    PageNumber = 0,
-                    PageSize = 0,
-                    TotalItems = 0,
-                    TotalPages = 0,
-                    HasPreviousPage = false,
-                    HasNextPage = false
-                };
-            }
-        }
+//             var lesson = await _lessonRepository.GetByIdAsync(lessonId);
+//             if (lesson == null)
+//             {
+//                 return new ApiResponse<LessonResponse>(1, "Không tìm thấy lesson.", null);
+//             }
 
-        public async Task<ApiResponse<LessonResponse>> CreateLessonAsync(CreateLessonRequest createLessonRequest)
-        {
-            if (createLessonRequest == null)
-            {
-                return new ApiResponse<LessonResponse>(1, "Invalid request data.", null);
-            }
+//             lesson.ClassId = updateLessonRequest.ClassId;
+//             lesson.UserId = updateLessonRequest.TeacherId;
+//             lesson.ClassLessonCode = updateLessonRequest.ClassLessonCode;
+//             lesson.Description = updateLessonRequest.Description;
+//             lesson.Topic = updateLessonRequest.Topic;
+//             lesson.StartDate = DateTime.SpecifyKind(updateLessonRequest.StartDate, DateTimeKind.Unspecified);
+//             lesson.EndDate = DateTime.SpecifyKind(updateLessonRequest.EndDate, DateTimeKind.Unspecified);
+//             lesson.Duration = updateLessonRequest.Duration;
+//             lesson.PaswordLeassons = updateLessonRequest.Password;
+//             lesson.IsSave = updateLessonRequest.IsSave;
+//             lesson.IsAutoStart = updateLessonRequest.IsAutoStart;
+//             lesson.IsResearchable = updateLessonRequest.IsResearchable;
+//             lesson.UpdateAt = DateTime.Now;
+    
+//             await _lessonRepository.UpdateAsync(lesson);
+//             var response = new LessonResponse
+//             {
+//                 ClassId = lesson.ClassId,
+//                 TeacherId = lesson.UserId,
+//                 ClassLessonCode = lesson.ClassLessonCode,
+//                 Description = lesson.Description,
+//                 Topic = lesson.Topic,
+//                 StartDate = lesson.StartDate,
+//                 EndDate = lesson.EndDate,
+//                 Duration = lesson.Duration,
+//                 Password = lesson.PaswordLeassons,
+//                 IsSave = lesson.IsSave,
+//                 IsAutoStart = lesson.IsAutoStart,
+//                 IsResearchable = lesson.IsResearchable,
+//             };
 
-            try
-            {
-                var lesson = _mapper.Map<Lesson>(createLessonRequest);
-                lesson.CreateAt = DateTime.Now;
+//             return new ApiResponse<LessonResponse>(0, "Department đã cập nhật thành công", response);
+//         }
 
-                await _lessonRepository.AddAsync(lesson);
-                var response = _mapper.Map<LessonResponse>(lesson);
+//         public async Task<ApiResponse<LessonResponse>> DeleteLessonAsync(string id)
+//         {
+//             if (!int.TryParse(id, out int lessonId))
+//             {
+//                 return new ApiResponse<LessonResponse>(1, "ID không hợp lệ. Vui lòng kiểm tra lại.", null);
+//             }
 
-                return new ApiResponse<LessonResponse>(0, "Department đã thêm thành công", response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error occurred while creating a lesson.");
-                return new ApiResponse<LessonResponse>(1, "An error occurred while creating the lesson.", null);
-            }
-        }
+//             var lesson = await _lessonRepository.GetByIdAsync(lessonId);
+//             if (lesson == null)
+//             {
+//                 return new ApiResponse<LessonResponse>(1, "Không tìm thấy lesson.", null);
+//             }
+//             lesson.IsDelete = true;
+//             await _lessonRepository.UpdateAsync(lesson);
 
-        public async Task<ApiResponse<LessonResponse>> UpdateLessonAsync(string id, UpdateLessonRequest updateLessonRequest)
-        {
-            if (!int.TryParse(id, out int lessonId))
-            {
-                return new ApiResponse<LessonResponse>(1, "ID không hợp lệ. Vui lòng kiểm tra lại.", null);
-            }
-
-            try
-            {
-                var lesson = await _lessonRepository.GetByIdAsync(lessonId);
-                if (lesson == null)
-                {
-                    return new ApiResponse<LessonResponse>(1, "Không tìm thấy lesson.", null);
-                }
-
-                _mapper.Map(updateLessonRequest, lesson);
-                lesson.UpdateAt = DateTime.Now;
-
-                await _lessonRepository.UpdateAsync(lesson);
-                var response = _mapper.Map<LessonResponse>(lesson);
-
-                return new ApiResponse<LessonResponse>(0, "Department đã cập nhật thành công", response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error occurred while updating the lesson.");
-                return new ApiResponse<LessonResponse>(1, "An error occurred while updating the lesson.", null);
-            }
-        }
-
-        public async Task<ApiResponse<LessonResponse>> DeleteLessonAsync(string id)
-        {
-            if (!int.TryParse(id, out int lessonId))
-            {
-                return new ApiResponse<LessonResponse>(1, "ID không hợp lệ. Vui lòng kiểm tra lại.", null);
-            }
-
-            try
-            {
-                var lesson = await _lessonRepository.GetByIdAsync(lessonId);
-                if (lesson == null)
-                {
-                    return new ApiResponse<LessonResponse>(1, "Không tìm thấy lesson.", null);
-                }
-                lesson.IsDelete = true;
-                await _lessonRepository.UpdateAsync(lesson);
-
-                return new ApiResponse<LessonResponse>(0, "Lesson đã xóa thành công");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error occurred while deleting the lesson.");
-                return new ApiResponse<LessonResponse>(1, "An error occurred while deleting the lesson.", null);
-            }
-        }
-    }
-}
+//             return new ApiResponse<LessonResponse>(0, "Lesson đã xóa thành công ");
+//         }
+//     }
+// }

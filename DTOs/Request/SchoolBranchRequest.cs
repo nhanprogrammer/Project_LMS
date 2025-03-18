@@ -5,7 +5,6 @@ namespace Project_LMS.DTOs.Request
     public class SchoolBranchRequest
     {
 
-        public int? Id { get; set; }
         [Required(ErrorMessage = "Mã trường là bắt buộc")]
         public int? SchoolId { get; set; }
 

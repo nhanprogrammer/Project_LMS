@@ -17,12 +17,14 @@ namespace Project_LMS.Services
         private readonly ISchoolBranchRepository _schoolBranchRepository;
         private readonly ISchoolRepository _schoolRepository;
         private readonly IMapper _mapper;
+        private readonly IServiceProvider _serviceProvider;
 
-        public SchoolBranchService(ISchoolBranchRepository schoolBranchRepository, ISchoolRepository schoolRepository, IMapper mapper)
+        public SchoolBranchService(ISchoolBranchRepository schoolBranchRepository, ISchoolRepository schoolRepository, IMapper mapper, IServiceProvider serviceProvider)
         {
             _schoolBranchRepository = schoolBranchRepository;
             _schoolRepository = schoolRepository;
             _mapper = mapper;
+            _serviceProvider = serviceProvider;
         }
 
         public async Task<IEnumerable<SchoolBranchResponse>> GetAllAsync()
@@ -74,7 +76,15 @@ namespace Project_LMS.Services
             var branch = _mapper.Map<SchoolBranch>(branchRequest);
             branch.UserCreate = 1;
             branch.IsDelete = false;
-
+            if (!string.IsNullOrEmpty(branchRequest.Image))
+            {
+                var cloudinaryService = _serviceProvider.GetService<ICloudinaryService>();
+                if (cloudinaryService == null)
+                {
+                    throw new Exception("Cloudinary service not available");
+                }
+                branch.Image = await cloudinaryService.UploadImageAsync(branchRequest.Image);
+            }
             await _schoolBranchRepository.AddAsync(branch);
 
             return _mapper.Map<SchoolBranchResponse>(branch);
@@ -120,7 +130,15 @@ namespace Project_LMS.Services
 
             _mapper.Map(branchRequest, branch);
             branch.UserUpdate = 1;
-
+            if (!string.IsNullOrEmpty(branchRequest.Image))
+            {
+                var cloudinaryService = _serviceProvider.GetService<ICloudinaryService>();
+                if (cloudinaryService == null)
+                {
+                    throw new Exception("Cloudinary service not available");
+                }
+                branch.Image = await cloudinaryService.UploadImageAsync(branchRequest.Image);
+            }
             await _schoolBranchRepository.UpdateAsync(branch);
 
             return _mapper.Map<SchoolBranchResponse>(branch);
@@ -132,10 +150,6 @@ namespace Project_LMS.Services
             if (branch == null)
             {
                 throw new NotFoundException("Không tìm thấy chi nhánh trường");
-            }
-            if(branch.IsDelete == true)
-            {
-                throw new BadRequestException("Chi nhánh trường đã bị xóa", new List<ValidationError>());
             }
 
             branch.IsDelete = true;

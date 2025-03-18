@@ -17,7 +17,6 @@ namespace Project_LMS.Models
         public int? SubjectId { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
-        //public string? Describe { get; set; }
         public DateTime? CreateAt { get; set; }
         public DateTime? UpdateAt { get; set; }
         public int? UserCreate { get; set; }

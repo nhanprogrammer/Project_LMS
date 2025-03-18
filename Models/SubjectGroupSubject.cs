@@ -6,8 +6,8 @@ namespace Project_LMS.Models
     public partial class SubjectGroupSubject
     {
         public int Id { get; set; }
-        public int SubjectId { get; set; }
-        public int SubjectGroupId { get; set; }
+        public int? SubjectId { get; set; }
+        public int? SubjectGroupId { get; set; }
         public DateTime? CreateAt { get; set; }
         public DateTime? UpdateAt { get; set; }
         public int? UserCreate { get; set; }

@@ -13,7 +13,8 @@ namespace Project_LMS.Interfaces
 
         Task<ApiResponse<DepartmentResponse>> CreateDepartmentAsync(CreateDepartmentRequest createDepartmentRequest);
 
-        Task<ApiResponse<DepartmentResponse>> UpdateDepartmentAsync(UpdateDepartmentRequest updateDepartmentRequest);
+        Task<ApiResponse<DepartmentResponse>> UpdateDepartmentAsync(int id,
+            UpdateDepartmentRequest updateDepartmentRequest);
 
         Task<ApiResponse<DepartmentResponse>> DeleteDepartmentAsync(string id);
         Task <ApiResponse<PaginatedResponse<DepartmentResponse>>> SearchDepartmentsAsync(string? keyword, int? pageNumber,

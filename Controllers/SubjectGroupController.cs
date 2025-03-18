@@ -61,10 +61,11 @@ public class SubjectGroupController : ControllerBase
         return Ok(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
     }
 
-    [HttpPut]
-    public async Task<IActionResult> UpdateDepartment([FromBody] UpdateSubjectGroupRequest updateSubjectGroupRequest)
+    [HttpPut("{id?}")]
+    public async Task<IActionResult> UpdateDepartment(int id,
+        [FromBody] UpdateSubjectGroupRequest updateSubjectGroupRequest)
     {
-        var response = await _subjectGroupService.UpdateSubjectGroupAsync(updateSubjectGroupRequest);
+        var response = await _subjectGroupService.UpdateSubjectGroupAsync(id, updateSubjectGroupRequest);
         if (response.Status == 1)
         {
             return BadRequest(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
@@ -85,20 +86,15 @@ public class SubjectGroupController : ControllerBase
         return Ok(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
     }
 
- [HttpDelete]
- public async Task<IActionResult> DeleteListSubject([FromBody] DeleteRequest deleteRequest)
-{
-    Console.WriteLine($"Received IDs: {string.Join(", ", deleteRequest)}");
-
-
-    var response = await _subjectGroupService.DeleteSubjectGroupSubject(deleteRequest);
-    
-    if (response.Status == 1)
+    [HttpDelete ("/SubjectList")]
+    public async Task<IActionResult> DeleteListSubject([FromBody] List<int> ids)
     {
-        return BadRequest(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
+        var response = await _subjectGroupService.DeleteSubjectGroupSubject(ids);
+        if (response.Status == 1)
+        {
+            return BadRequest(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
+        }
+
+        return Ok(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
     }
-
-    return Ok(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
-}
-
 }

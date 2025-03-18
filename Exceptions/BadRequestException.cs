@@ -9,7 +9,6 @@
             Errors = errors;
         }
 
-
         public static BadRequestException BadRequest(string message)
         {
             return new BadRequestException(message, new List<ValidationError>());

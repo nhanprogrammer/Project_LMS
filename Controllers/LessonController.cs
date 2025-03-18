@@ -16,16 +16,20 @@ public LessonController(ILessonsService lessonsService)
     _lessonsService = lessonsService;
 }
 
-    [HttpGet]
-    public async Task<ActionResult<ApiResponse<PaginatedResponse<LessonResponse>>>> GetAll([FromQuery] PaginationRequest request)
-    {
-        var result = await _lessonsService.GetLessonAsync(request);
+[HttpGet]
+public async Task<IActionResult>  GetAllLessonAsync()
+{
+    var response = await _lessonsService.GetAllLessonAsync();
 
-        return Ok(new ApiResponse<PaginatedResponse<LessonResponse>>(0, "Success", result));
+    if (response.Status == 1)
+    {
+        return BadRequest(new ApiResponse<List<LessonResponse>>(response.Status, response.Message,response.Data)); 
     }
 
+    return Ok(new ApiResponse<List<LessonResponse>>(response.Status, response.Message, response.Data));
+}
 
-    [HttpPost]
+[HttpPost]
 public async Task<IActionResult> CreateFavouriteAsync([FromBody] CreateLessonRequest request)
 {
     var response = await _lessonsService.CreateLessonAsync(request);

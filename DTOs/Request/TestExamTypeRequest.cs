@@ -4,7 +4,6 @@ namespace Project_LMS.DTOs.Request
 {
     public class TestExamTypeRequest
     {
-        public int? Id { get; set; }
         [Required(ErrorMessage = "Tên loại điểm là bắt buộc.")]
         [StringLength(255, ErrorMessage = "Tên loại điểm không được vượt quá 255 ký tự.")]
         public string PointTypeName { get; set; }
