@@ -358,6 +358,29 @@ public class TeachingAssignmentService : ITeachingAssignmentService
             TeachingAssignments = assignments
         };
     }
+    public async Task<List<TopicResponseByAssignmentId>> GetTopicsByAssignmentIdAsync(int assignmentId)
+    {
+        var topics = await (from ta in _context.TeachingAssignments
+                            join t in _context.Topics on ta.Id equals t.TeachingAssignmentId
+                            join u in _context.Users on ta.UserId equals u.Id
+                            join c in _context.Classes on ta.ClassId equals c.Id
+                            join s in _context.Subjects on ta.SubjectId equals s.Id
+                            where ta.Id == assignmentId
+                            select new TopicResponseByAssignmentId
+                            {
+                                Id = t.Id,
+                                TeachingAssignmentId = ta.Id,
+                                UserId = u.Id,
+                                UserName = u.FullName,
+                                TopicId = t.Id,
+                                ClassName = c.Name,
+                                SubjectName = s.SubjectName,
+                                Title = t.Title,
+                                Description = t.Description,
+                                CloseAt = t.CloseAt
+                            }).ToListAsync();
 
+        return topics;
+    }
 
 }

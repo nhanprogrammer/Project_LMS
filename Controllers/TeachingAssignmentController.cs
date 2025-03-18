@@ -136,7 +136,18 @@ namespace Project_LMS.Controllers
 
             return Ok(new ApiResponse<object>(0, "Lấy dữ liệu thành công!", result));
         }
+        [HttpGet("{id}/topics")]
+        public async Task<IActionResult> GetTopicsByAssignment(int id)
+        {
+            var topics = await _service.GetTopicsByAssignmentIdAsync(id);
 
+            if (topics == null || !topics.Any())
+            {
+                return BadRequest(new ApiResponse<object>(1, "Không tìm thấy"));
+            }
+
+            return Ok(new ApiResponse<object>(0, "Lấy dữ liệu thành công!", topics));
+        }
     }
-
 }
+    
