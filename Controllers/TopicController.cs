@@ -44,6 +44,11 @@ namespace Project_LMS.Controllers
             }
 
             var result = await _topicService.CreateTopicAsync(request);
+            if (result.Status == 1)
+            {
+                // Nếu topic không tồn tại
+                return NotFound(result);
+            }
             // 201 - Created nếu muốn chuẩn REST
             return Ok(result);
         }

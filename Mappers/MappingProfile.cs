@@ -344,6 +344,21 @@ public class MappingProfile : Profile
         // PaginatedResponse<Topic> -> PaginatedResponse<TopicResponse>
         CreateMap<PaginatedResponse<Topic>, PaginatedResponse<TopicResponse>>()
             .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.Items));
+
+        // Mapping từ CreateQuestionsAnswerRequest sang QuestionAnswer
+        CreateMap<CreateQuestionsAnswerRequest, QuestionAnswer>()
+            .ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => TimeHelper.NowUsingTimeZone))
+            .ForMember(dest => dest.IsDelete, opt => opt.MapFrom(src => false));
+
+        // Mapping từ UpdateQuestionsAnswerRequest sa   ng QuestionAnswer
+        CreateMap<UpdateQuestionsAnswerRequest, QuestionAnswer>()
+            .ForMember(dest => dest.UpdateAt, opt => opt.MapFrom(src => TimeHelper.NowUsingTimeZone));
+
+        // Mapping từ QuestionAnswer sang QuestionsAnswerResponse
+        CreateMap<QuestionAnswer, QuestionsAnswerResponse>();
+        CreateMap(typeof(PaginatedResponse<>), typeof(PaginatedResponse<>));
+
+        
     }
 
     private List<SubjectGroupSubject> MapSubjectGroupSubjects(List<int> subjectIds)

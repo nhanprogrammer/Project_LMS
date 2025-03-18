@@ -18,15 +18,18 @@ namespace Project_LMS.Repositories
 
         public async Task<PaginatedResponse<Topic>> GetAllTopic(int pageNumber, int pageSize)
         {
-            // Nếu pageNumber <= 0 hoặc pageSize <= 0, ta coi như "không phân trang" => lấy tất cả
+            // Nếu pageNumber <= 0 hoặc pageSize <= 0 => lấy tất cả topic chưa xóa
             if (pageNumber <= 0 || pageSize <= 0)
             {
-                var allItems = await _context.Topics.ToListAsync();
+                var allItems = await _context.Topics
+                    .Where(c => c.IsDelete == false)
+                    .ToListAsync();
+
                 return new PaginatedResponse<Topic>
                 {
                     Items = allItems,
-                    PageNumber = 1, // Hoặc 0
-                    PageSize = allItems.Count, // Để phản ánh "lấy hết"
+                    PageNumber = 1,
+                    PageSize = allItems.Count,
                     TotalItems = allItems.Count,
                     TotalPages = 1,
                     HasPreviousPage = false,
@@ -34,11 +37,14 @@ namespace Project_LMS.Repositories
                 };
             }
 
-            // Ngược lại, nếu pageNumber > 0 và pageSize > 0, ta phân trang bình thường
-            var totalItems = await _context.Topics.CountAsync();
+            // Nếu có phân trang => cũng phải lọc IsDelete == false
+            var query = _context.Topics
+                .Where(c => c.IsDelete == false);
+
+            var totalItems = await query.CountAsync();
             var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
 
-            var items = await _context.Topics
+            var items = await query
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -55,7 +61,6 @@ namespace Project_LMS.Repositories
             };
         }
 
-
         public async Task<Topic?> GetTopicById(int id)
         {
             return await _context.Topics.FindAsync(id);
@@ -63,6 +68,32 @@ namespace Project_LMS.Repositories
 
         public async Task<Topic> AddTopic(Topic topic)
         {
+            // Lấy thông tin user dựa trên topic.UserId
+            var user = await _context.Users.FindAsync(topic.UserId);
+            if (user == null)
+            {
+                throw new Exception("User không tồn tại!");
+            }
+
+            // Kiểm tra xem user có phải là giáo viên
+            if (user.RoleId != 2)
+            {
+                throw new Exception("Chỉ giáo viên mới được tạo topic.");
+            }
+
+            // Lấy thông tin phân công giảng dạy dựa trên topic.TeachingAssignmentId
+            var teachingAssignment = await _context.TeachingAssignments.FindAsync(topic.TeachingAssignmentId);
+            if (teachingAssignment == null)
+            {
+                throw new Exception("Phân công giảng dạy không tồn tại!");
+            }
+
+            // Kiểm tra xem giáo viên có thuộc phân công giảng dạy của lớp/bài học đó không
+            if (teachingAssignment.UserId != topic.UserId)
+            {
+                throw new Exception("Giáo viên không thuộc phân công giảng dạy này!");
+            }
+
             topic.CreateAt = TimeHelper.NowUsingTimeZone;
             topic.IsDelete = false;
 
@@ -103,24 +134,23 @@ namespace Project_LMS.Repositories
             return true;
         }
 
-        public async Task<Topic?> SearchTopic(string? keyword)
+        public async Task<IEnumerable<Topic?>> SearchTopic(string? keyword)
         {
-            // Nếu không có từ khoá thì có thể return null hoặc throw exception tuỳ logic.
             if (string.IsNullOrWhiteSpace(keyword))
             {
-                return null!;
+                return await _context.Topics.ToListAsync();
             }
 
-            // Xử lý chuỗi keyword
             keyword = keyword.Trim().ToLower();
 
-            // Tìm kiếm trong Title hoặc Description 
-            var topic = await _context.Topics
+            // Lấy danh sách topic khớp với từ khoá
+            var topics = await _context.Topics
                 .Where(x => x.Description != null && x.Title != null &&
                             (x.Title.ToLower().Contains(keyword) || x.Description.ToLower().Contains(keyword)))
-                .FirstOrDefaultAsync();
+                .ToListAsync();
 
-            return topic;
+            return topics;
         }
+
     }
 }

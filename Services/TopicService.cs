@@ -3,6 +3,7 @@ using CloudinaryDotNet;
 using Microsoft.AspNetCore.SignalR;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Helpers;
 using Project_LMS.Hubs;
 using Project_LMS.Interfaces.Responsitories;
 using Project_LMS.Interfaces.Services;
@@ -16,15 +17,19 @@ public class TopicService : ITopicService
     private readonly IMapper _mapper;
     private readonly ICloudinaryService _cloudinary;
     private readonly IHubContext<RealtimeHub> _hubContext;
-    private static readonly object _lock = new object();
+    private readonly IUserRepository _userRepository;
+    private readonly ITeachingAssignmentService _teachingAssignmentRepository;
 
     public TopicService(ITopicRepository topicRepository, IMapper mapper, ICloudinaryService cloudinary,
-        IHubContext<RealtimeHub> hubContext)
+        IHubContext<RealtimeHub> hubContext, ITeachingAssignmentService teachingAssignmentService,
+        IUserRepository userRepository)
     {
         _topicRepository = topicRepository;
         _mapper = mapper;
         _cloudinary = cloudinary;
         _hubContext = hubContext;
+        _teachingAssignmentRepository = teachingAssignmentService;
+        _userRepository = userRepository;
     }
 
     public async Task<ApiResponse<PaginatedResponse<TopicResponse>>> GetAllTopicsAsync(int pageNumber, int pageSize)
@@ -50,59 +55,129 @@ public class TopicService : ITopicService
 
     public async Task<ApiResponse<TopicResponse>> CreateTopicAsync(CreateTopicRequest request)
     {
-        // 1) Map DTO -> Entity
-        var topicResquest = _mapper.Map<Topic>(request);
-
-        // 2) Upload file (nếu có)
-        if (!string.IsNullOrEmpty(request.FileName))
+        try
         {
-            topicResquest.FileName = await _cloudinary.UploadImageAsync(request.FileName);
+            // 1) Kiểm tra thông tin người dùng
+            var user = await _userRepository.FindAsync(request.UserId ?? 1);
+            if (user == null)
+            {
+                return new ApiResponse<TopicResponse>(1, "User không tồn tại!", null);
+            }
+
+            if (user.RoleId != 2)
+            {
+                return new ApiResponse<TopicResponse>(1, "Chỉ giáo viên mới được tạo topic.", null);
+            }
+
+            // 2) Kiểm tra phân công giảng dạy
+            var teachingAssignment = await _teachingAssignmentRepository.GetById(request.TeachingAssignmentId);
+            if (teachingAssignment == null)
+            {
+                return new ApiResponse<TopicResponse>(1, "Phân công giảng dạy không tồn tại!", null);
+            }
+
+            if (teachingAssignment.UserId != user.Id)
+            {
+                return new ApiResponse<TopicResponse>(1,
+                    $"Giáo viên không thuộc lớp học {teachingAssignment.ClassName} này để giảng dạy!", null);
+            }
+
+            // 3) Map DTO -> Entity
+            var topicEntity = _mapper.Map<Topic>(request);
+
+            // 4) Upload file nếu có
+            if (!string.IsNullOrEmpty(request.FileName))
+            {
+                topicEntity.FileName = await _cloudinary.UploadImageAsync(request.FileName);
+            }
+
+            topicEntity.CreateAt = TimeHelper.NowUsingTimeZone;
+            topicEntity.IsDelete = false;
+
+            // 5) Lưu topic vào DB (thông qua repository)
+            var savedTopic = await _topicRepository.AddTopic(topicEntity);
+
+            // 6) Map Entity -> Response DTO
+            var topicResponse = _mapper.Map<TopicResponse>(savedTopic);
+
+            // 7) Gửi sự kiện SignalR cho các client khác (ngoại trừ người tạo)
+            await _hubContext.Clients.AllExcept(new[] { topicResponse.UserId.ToString() })
+                .SendAsync("TopicCreated", topicResponse);
+
+            return new ApiResponse<TopicResponse>(0, "Thêm topic thành công!", topicResponse);
         }
-
-        // 3) Lưu vào DB
-        var savedTopic = await _topicRepository.AddTopic(topicResquest);
-
-        // 4) Map Entity -> DTO
-        var topicResponse = _mapper.Map<TopicResponse>(savedTopic);
-
-        // 5) Gửi sự kiện SignalR
-        lock (_lock)
+        catch (Exception ex)
         {
-            _ = Task.Run(() => _hubContext.Clients.All.SendAsync("TopicCreated", topicResponse));
+            // Log exception nếu cần
+            return new ApiResponse<TopicResponse>(1, ex.Message, null);
         }
-
-        return new ApiResponse<TopicResponse>(0, "Thêm topic thành công!", topicResponse);
     }
+
 
     public async Task<ApiResponse<TopicResponse>> UpdateTopicAsync(UpdateTopicRequest request)
     {
-        // 1) Tìm topic cũ
-        var existingTopic = await _topicRepository.GetTopicById(request.Id);
-
-        if (existingTopic == null)
+        try
         {
-            return new ApiResponse<TopicResponse>(1, "Topic không tồn tại", null);
+            // 1) Tìm topic cũ
+            var existingTopic = await _topicRepository.GetTopicById(request.Id);
+            if (existingTopic == null)
+            {
+                return new ApiResponse<TopicResponse>(1, "Topic không tồn tại", null);
+            }
+
+            // 2) Kiểm tra thông tin người dùng (nếu UpdateTopicRequest có UserId, nếu không bạn có thể sử dụng existingTopic.UserId)
+            var user = await _userRepository.FindAsync(request.UserId ?? existingTopic.UserId ?? 1);
+            if (user == null)
+            {
+                return new ApiResponse<TopicResponse>(1, "User không tồn tại!", null);
+            }
+
+            if (user.RoleId != 2)
+            {
+                return new ApiResponse<TopicResponse>(1, "Chỉ giáo viên mới được cập nhật topic.", null);
+            }
+
+            // 3) Kiểm tra phân công giảng dạy của topic hiện có
+            var teachingAssignment =
+                await _teachingAssignmentRepository.GetById(existingTopic.TeachingAssignmentId ?? 1);
+            if (teachingAssignment == null)
+            {
+                return new ApiResponse<TopicResponse>(1, "Phân công giảng dạy không tồn tại!", null);
+            }
+
+            if (teachingAssignment.UserId != user.Id)
+            {
+                return new ApiResponse<TopicResponse>(1,
+                    $"Giáo viên không thuộc lớp học {teachingAssignment.ClassName} này để cập nhật topic!", null);
+            }
+
+            // 4) Cập nhật các trường nếu có trong request
+            existingTopic.Title = !string.IsNullOrEmpty(request.Title) ? request.Title : existingTopic.Title;
+            existingTopic.Description = !string.IsNullOrEmpty(request.Description)
+                ? request.Description
+                : existingTopic.Description;
+
+            // 5) Nếu có ảnh mới thì upload lên Cloudinary
+            if (!string.IsNullOrEmpty(request.FileName))
+            {
+                existingTopic.FileName = await _cloudinary.UploadImageAsync(request.FileName);
+            }
+
+            // 6) Gọi repository update
+            var updatedTopic = await _topicRepository.UpdateTopict(existingTopic);
+            var topicResponse = _mapper.Map<TopicResponse>(updatedTopic);
+
+            // 7) Gửi sự kiện SignalR cho các client khác (ngoại trừ người tạo)
+            await _hubContext.Clients.AllExcept(new[] { topicResponse.UserId.ToString() })
+                .SendAsync("TopicUpdated", topicResponse);
+
+            return new ApiResponse<TopicResponse>(0, "Cập nhật topic thành công!", topicResponse);
         }
-
-        // 2) Cập nhật từng trường nếu có trong request
-        existingTopic.Title = !string.IsNullOrEmpty(request.Title) ? request.Title : existingTopic.Title;
-        existingTopic.Description =
-            !string.IsNullOrEmpty(request.Description) ? request.Description : existingTopic.Description;
-
-        // 3) Nếu có ảnh mới thì upload lên Cloudinary
-        if (!string.IsNullOrEmpty(request.FileName))
+        catch (Exception ex)
         {
-            existingTopic.FileName = await _cloudinary.UploadImageAsync(request.FileName);
+            // Ghi log lỗi nếu cần
+            return new ApiResponse<TopicResponse>(1, ex.Message, null);
         }
-
-        // 4) Gọi repo update
-        var updatedTopic = await _topicRepository.UpdateTopict(existingTopic);
-        var topicResponse = _mapper.Map<TopicResponse>(updatedTopic);
-
-        // 5) Realtime SignalR
-        await _hubContext.Clients.All.SendAsync("TopicUpdated", topicResponse);
-
-        return new ApiResponse<TopicResponse>(0, "Cập nhật topic thành công!", topicResponse);
     }
 
 
@@ -122,7 +197,7 @@ public class TopicService : ITopicService
     public async Task<ApiResponse<IEnumerable<TopicResponse>>> SearchTopicsAsync(string? keyword)
     {
         var topics = await _topicRepository.SearchTopic(keyword);
-        if (topics == null)
+        if (topics == null || !topics.Any())
         {
             return new ApiResponse<IEnumerable<TopicResponse>>(1, "Không tìm thấy topic!", null);
         }

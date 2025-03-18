@@ -10,5 +10,5 @@ public interface ITopicRepository
     Task<Topic> AddTopic(Topic subject);
     Task<Topic?> UpdateTopict(Topic subject);
     Task<bool> DeleteTopic(int id);
-    Task<Topic?> SearchTopic(string? keyword);
+    Task<IEnumerable<Topic?>> SearchTopic(string? keyword);
 }

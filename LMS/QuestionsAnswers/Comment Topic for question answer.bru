@@ -1,0 +1,21 @@
+meta {
+  name: Comment Topic for question answer
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}api/QuestionsAnswers
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "userId": 1,
+    "topicId": 1,
+    "message": "Tuyệt vời",
+    "fileName": "",
+    "questionsAnswerId": null
+  }
+}

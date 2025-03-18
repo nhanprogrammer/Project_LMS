@@ -1,0 +1,23 @@
+meta {
+  name: Update comment edit
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{base_url}}api/QuestionsAnswers?newTopicId=1
+  body: json
+  auth: none
+}
+
+params:query {
+  newTopicId: 1
+}
+
+body:json {
+  {
+    "id": 27,
+    "message": "oke",
+    "fileName": ""
+  }
+}
