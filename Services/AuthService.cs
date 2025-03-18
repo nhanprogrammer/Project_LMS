@@ -4,6 +4,7 @@ using System.Security.Claims;
 using System.Text;
 using MailKit.Net.Smtp;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 using MimeKit;
 using Project_LMS.Data;
@@ -20,12 +21,16 @@ namespace Project_LMS.Services
         private readonly IConfiguration _config;
         private readonly IPermissionService _permissionService;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        public AuthService(ApplicationDbContext context, IConfiguration config, IPermissionService permissionService, IHttpContextAccessor httpContextAccessor)
+        private readonly IMemoryCache _cache;
+        private readonly TimeSpan _tokenExpiry = TimeSpan.FromHours(24); // Token hết hạn sau 24 giờ
+
+        public AuthService(ApplicationDbContext context, IConfiguration config, IPermissionService permissionService, IHttpContextAccessor httpContextAccessor, IMemoryCache cache)
         {
             _context = context;
             _config = config;
             _permissionService = permissionService;
             _httpContextAccessor = httpContextAccessor;
+            _cache = cache;
         }
 
         public async Task<AuthUserLoginResponse> LoginAsync(string email, string password)
@@ -43,10 +48,17 @@ namespace Project_LMS.Services
 
         public async Task LogoutAsync(HttpContext context)
         {
+            var token = context.Items["Token"] as string;
+            if (!string.IsNullOrEmpty(token))
+            {
+                // Lưu token vào blacklist với TTL bằng thời gian sống của JWT
+                _cache.Set($"blacklist:{token}", true, _tokenExpiry);
+            }
+
             // Xóa cookie chứa token
             context.Response.Cookies.Delete("AuthToken");
 
-            // Xóa token trong context để đảm bảo không còn lưu
+            // Xóa token trong context
             context.Items.Remove("Token");
 
             await Task.CompletedTask;

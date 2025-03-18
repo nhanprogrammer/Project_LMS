@@ -19,6 +19,7 @@ using System.Text;
 using Project_LMS.Configurations;
 using Project_LMS.Authorization;
 using Project_LMS.DTOs.Response;
+using Microsoft.Extensions.Caching.Memory;
 
 
 
@@ -170,9 +171,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
         options.Events = new JwtBearerEvents
         {
-            OnMessageReceived = context =>
+            OnMessageReceived = async context =>
             {
+                var memoryCache = context.HttpContext.RequestServices.GetRequiredService<IMemoryCache>();
                 var token = context.Request.Cookies["AuthToken"];
+
                 if (string.IsNullOrEmpty(token) && context.Request.Headers.ContainsKey("Authorization"))
                 {
                     var authHeader = context.Request.Headers["Authorization"].ToString();
@@ -182,13 +185,21 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     }
                 }
 
+                // Kiểm tra token có trong blacklist không
+                if (!string.IsNullOrEmpty(token) && memoryCache.TryGetValue($"blacklist:{token}", out _))
+                {
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    context.Response.ContentType = "application/json";
+                    var response = new ApiResponse<string>(1, "Token đã bị vô hiệu hóa. Vui lòng đăng nhập lại.", null);
+                    await context.Response.WriteAsync(JsonSerializer.Serialize(response));
+                    return;
+                }
+
                 if (!string.IsNullOrEmpty(token))
                 {
                     context.HttpContext.Items["Token"] = token;
                     context.Token = token;
                 }
-
-                return Task.CompletedTask;
             },
             OnChallenge = context =>
             {
@@ -205,14 +216,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 var response = new ApiResponse<string>(1, "Bạn không có quyền truy cập!", null);
                 return context.Response.WriteAsync(JsonSerializer.Serialize(response));
             }
-
         };
     });
+
 
 // Thêm Authorization
 builder.Services.AddAuthorization();
 builder.Services.AddPermissionAuthorization();
+
 builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddMemoryCache();
 
 
 var app = builder.Build();
