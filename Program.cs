@@ -172,37 +172,41 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.Events = new JwtBearerEvents
         {
             OnMessageReceived = async context =>
+        {
+            var memoryCache = context.HttpContext.RequestServices.GetRequiredService<IMemoryCache>();
+            var token = context.Request.Cookies["AuthToken"];
+            Console.WriteLine($"Cookie AuthToken: {token}");
+
+            if (string.IsNullOrEmpty(token) && context.Request.Headers.ContainsKey("Authorization"))
             {
-                var memoryCache = context.HttpContext.RequestServices.GetRequiredService<IMemoryCache>();
-                var token = context.Request.Cookies["AuthToken"];
-
-                if (string.IsNullOrEmpty(token) && context.Request.Headers.ContainsKey("Authorization"))
+                var authHeader = context.Request.Headers["Authorization"].ToString();
+                Console.WriteLine($"Authorization Header: {authHeader}");
+                if (authHeader.StartsWith("Bearer "))
                 {
-                    var authHeader = context.Request.Headers["Authorization"].ToString();
-                    if (authHeader.StartsWith("Bearer "))
-                    {
-                        token = authHeader.Substring("Bearer ".Length).Trim();
-                    }
+                    token = authHeader.Substring("Bearer ".Length).Trim();
                 }
+            }
 
-                // Kiểm tra token có trong blacklist không
-                if (!string.IsNullOrEmpty(token) && memoryCache.TryGetValue($"blacklist:{token}", out _))
-                {
-                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                    context.Response.ContentType = "application/json";
-                    var response = new ApiResponse<string>(1, "Token đã bị vô hiệu hóa. Vui lòng đăng nhập lại.", null);
-                    await context.Response.WriteAsync(JsonSerializer.Serialize(response));
-                    return;
-                }
+            Console.WriteLine($"Extracted Token: {token}");
+            if (!string.IsNullOrEmpty(token) && memoryCache.TryGetValue($"blacklist:{token}", out _))
+            {
+                Console.WriteLine($"Token {token} is blacklisted");
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                context.Response.ContentType = "application/json";
+                var response = new ApiResponse<string>(1, "Token đã bị vô hiệu hóa. Vui lòng đăng nhập lại.", null);
+                await context.Response.WriteAsync(JsonSerializer.Serialize(response));
+                return;
+            }
 
-                if (!string.IsNullOrEmpty(token))
-                {
-                    context.HttpContext.Items["Token"] = token;
-                    context.Token = token;
-                }
-            },
+            if (!string.IsNullOrEmpty(token))
+            {
+                context.HttpContext.Items["Token"] = token;
+                context.Token = token;
+            }
+        },
             OnChallenge = context =>
             {
+                Console.WriteLine("OnChallenge");
                 context.HandleResponse();
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 context.Response.ContentType = "application/json";
