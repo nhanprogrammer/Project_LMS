@@ -1,0 +1,17 @@
+meta {
+  name: getAllSubject
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}api/subject?keyword=&pageNumber=1&pageSize=10
+  body: none
+  auth: none
+}
+
+params:query {
+  keyword: 
+  pageNumber: 1
+  pageSize: 10
+}

@@ -1,0 +1,26 @@
+meta {
+  name: ClassUpdate
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{base_url}}api/class/update
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+      "id": 13,
+      "academicYearId": 1,
+      "departmentId": 1,
+      "classTypeId": 1,
+      "userId": 2,
+      "ClassName":"Lớp 10_A",
+      "studentCount": 35,
+      "description": "Lớp chuyên Lý",
+      "ids":[1,2,3]
+  }
+  
+}

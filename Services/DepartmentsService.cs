@@ -1,8 +1,10 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Org.BouncyCastle.Asn1.Cms;
 using Project_LMS.Data;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Helpers;
 using Project_LMS.Interfaces;
 using Project_LMS.Interfaces.Responsitories;
 using Project_LMS.Models;
@@ -144,8 +146,8 @@ namespace Project_LMS.Services
                 var department = _mapper.Map<Department>(createDepartmentRequest);
 
                 // Cập nhật thời gian tạo và thông tin người tạo từ request
-                department.CreateAt = DateTime.Now;
-                department.UserCreate = createDepartmentRequest.UserId;
+                department.CreateAt = TimeHelper.NowUsingTimeZone;
+                department.UserCreate = createDepartmentRequest.userId;
 
                 // Thêm phòng ban vào cơ sở dữ liệu thông qua repository
                 await _departmentRepository.AddAsync(department);
@@ -154,7 +156,7 @@ namespace Project_LMS.Services
                 var response = _mapper.Map<DepartmentResponse>(department);
 
                 // Lấy thông tin User dựa trên UserId từ request để lấy tên của User
-                var user = _context.Users.FirstOrDefault(x => x.Id == createDepartmentRequest.UserId);
+                var user = _context.Users.FirstOrDefault(x => x.Id == createDepartmentRequest.userId);
                 response.UserName = user?.FullName;
 
                 // Gán DepartmentID từ entity vào response
@@ -173,13 +175,12 @@ namespace Project_LMS.Services
             }
         }
 
-        public async Task<ApiResponse<DepartmentResponse>> UpdateDepartmentAsync(int id,
-            UpdateDepartmentRequest updateDepartmentRequest)
+        public async Task<ApiResponse<DepartmentResponse>> UpdateDepartmentAsync(UpdateDepartmentRequest updateDepartmentRequest)
         {
             try
             {
                 // 1. Lấy thông tin phòng ban từ cơ sở dữ liệu theo id được cung cấp
-                var department = await _departmentRepository.GetByIdAsync(id);
+                var department = await _departmentRepository.GetByIdAsync(updateDepartmentRequest.id);
                 if (department == null)
                 {
                     // Nếu không tìm thấy, trả về thông báo lỗi
@@ -187,7 +188,7 @@ namespace Project_LMS.Services
                 }
 
                 // 2. Kiểm tra giá trị userUpdate (nếu cần)
-                if (updateDepartmentRequest.UserUpdate.HasValue && updateDepartmentRequest.UserUpdate < 0)
+                if (updateDepartmentRequest.userUpdate.HasValue && updateDepartmentRequest.userUpdate < 0)
                 {
                     // Trả về lỗi do giá trị âm
                     return new ApiResponse<DepartmentResponse>(1, "UserUpdate không hợp lệ (phải >= 0)", null);
@@ -199,7 +200,7 @@ namespace Project_LMS.Services
                 // 4. Cập nhật thời gian cập nhật (UpdateAt)
                 //    Nếu updateDepartmentRequest.UpdateAt là null, sử dụng thời gian hiện tại (DateTime.Now)
                 department.UpdateAt = DateTime.SpecifyKind(
-                    updateDepartmentRequest.UpdateAt ?? DateTime.Now,
+                    updateDepartmentRequest.updateAt ?? DateTime.Now,
                     DateTimeKind.Unspecified);
 
                 // 5. Lưu các thay đổi vào cơ sở dữ liệu thông qua repository
@@ -210,9 +211,9 @@ namespace Project_LMS.Services
 
                 // 7. Lấy thông tin của User (người cập nhật) từ bảng Users dựa trên updateDepartmentRequest.UserUpdate
                 //    và gán tên của User vào thuộc tính UserName trong response
-                if (updateDepartmentRequest.UserUpdate.HasValue && updateDepartmentRequest.UserUpdate > 0)
+                if (updateDepartmentRequest.userUpdate.HasValue && updateDepartmentRequest.userUpdate > 0)
                 {
-                    var updatingUser = _context.Users.FirstOrDefault(x => x.Id == updateDepartmentRequest.UserUpdate);
+                    var updatingUser = _context.Users.FirstOrDefault(x => x.Id == updateDepartmentRequest.userUpdate);
                     response.UserName = updatingUser?.FullName;
                 }
                 else

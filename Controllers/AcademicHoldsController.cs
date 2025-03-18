@@ -19,18 +19,13 @@ namespace Project_LMS.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<ActionResult<ApiResponse<PaginatedResponse<AcademicHoldResponse>>>> GetAll([FromQuery] PaginationRequest request)
         {
-            try
-            {
-                var hold = await _academicHoldsService.GetAllAcademicHold();
-                if (hold == null) return NotFound();
-                return Ok(new ApiResponse<IEnumerable<AcademicHoldResponse>>(0, "Success", hold));
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new ApiResponse<IEnumerable<AcademicHoldResponse>>(1, ex.Message, new List<AcademicHoldResponse>()));
-            }
+            var result = await _academicHoldsService.GetPagedAcademicHolds(request);
+            return Ok(new ApiResponse<PaginatedResponse<AcademicHoldResponse>>(
+                0,
+                "Success",
+                result));
         }
 
         [HttpGet("{id}")]
@@ -38,9 +33,9 @@ namespace Project_LMS.Controllers
         {
             try
             {
-                var hold = await _academicHoldsService.GetByIdAcademicHold(id);
+                var hold = await _academicHoldsService.GetById(id);
                 if (hold == null) return NotFound();
-                return Ok(new ApiResponse<AcademicHoldResponse>(0, "Success", hold));
+                return Ok(new ApiResponse<User_AcademicHoldResponse>(0, "Success", hold));
             }
             catch (Exception ex)
             {
@@ -62,7 +57,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [HttpPut]
+        [HttpPut("{id}")]
         public async Task<IActionResult> Update([FromBody] UpdateAcademicHoldRequest academicHoldRequest)
         {
             try
@@ -77,17 +72,21 @@ namespace Project_LMS.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
         {
-            try
+            var result = await _academicHoldsService.DeleteAcademicHold(id);
+            if (!result)
             {
-                await _academicHoldsService.DeleteAcademicHold(id);
-                return Ok(new ApiResponse<string>(0, "Delete success", "Delete success"));
+                return NotFound(new ApiResponse<bool>(
+                    1,
+                    "Academic Year not found",
+                    false));
             }
-            catch (Exception ex)
-            {
-                return BadRequest(new ApiResponse<string>(1, ex.Message, "Delete fail"));
-            }
+
+            return Ok(new ApiResponse<bool>(
+                0,
+                "Delete success",
+                true));
         }
     }
 }

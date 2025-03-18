@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Project_LMS.Data;
 using Project_LMS.Interfaces.Responsitories;
 using Project_LMS.Models;
@@ -45,5 +45,10 @@ public class LessonRepository : ILessonRepository
             _context.Lessons.Update(entity);
             await _context.SaveChangesAsync();
         }
+    }
+
+    public async Task<IQueryable<Lesson>> GetQueryable()
+    {
+        return await Task.FromResult(_context.Lessons.AsQueryable());
     }
 }

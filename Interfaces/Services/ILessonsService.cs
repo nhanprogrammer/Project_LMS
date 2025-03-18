@@ -5,7 +5,7 @@ namespace Project_LMS.Interfaces
 {
     public interface ILessonsService
     {
-        Task<ApiResponse<List<LessonResponse>>> GetAllLessonAsync();
+        Task<PaginatedResponse<LessonResponse>> GetLessonAsync(PaginationRequest request);
         Task<ApiResponse<LessonResponse>> CreateLessonAsync(CreateLessonRequest createLessonRequest);
         Task<ApiResponse<LessonResponse>> UpdateLessonAsync(string id, UpdateLessonRequest updateLessonRequest);
         Task<ApiResponse<LessonResponse>> DeleteLessonAsync(string id);

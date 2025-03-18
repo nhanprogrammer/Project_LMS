@@ -1,0 +1,17 @@
+meta {
+  name: DeleteSubjectGroup
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{base_url}}api/subjectgroup/4
+  body: none
+  auth: none
+}
+
+body:json {
+  {
+    "id" : 4
+  }
+}

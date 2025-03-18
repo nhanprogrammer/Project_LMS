@@ -1,0 +1,19 @@
+meta {
+  name: createSubjectType
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}api/subjecttype
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+      "name": "Môn nâng cao",
+      "status": true,
+      "note": "Môn học nâng cao"
+  }
+}

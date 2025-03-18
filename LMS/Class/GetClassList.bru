@@ -1,0 +1,20 @@
+meta {
+  name: GetClassList
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}api/class/list?AcademicYearId=1&DepartmentId=1&PageNumber=0&PageSize=0&Key=Lớp 14
+  body: multipartForm
+  auth: none
+}
+
+params:query {
+  AcademicYearId: 1
+  DepartmentId: 1
+  PageNumber: 0
+  PageSize: 0
+  Key: Lớp 14
+  ~Key: Lớp 14
+}

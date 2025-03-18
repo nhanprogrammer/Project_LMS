@@ -65,17 +65,17 @@ namespace Project_LMS.Controllers
                 var school = await _schoolService.GetByIdAsync(id);
                 if (school == null)
                 {
-                    return NotFound(new ApiResponse<SchoolResponse>(0, "Không tìm thấy trường"));
+                    return NotFound(new ApiResponse<SchoolResponse>(1, "Không tìm thấy trường"));
                 }
-                return Ok(new ApiResponse<SchoolResponse>(1, "Lấy trường thành công", school));
+                return Ok(new ApiResponse<SchoolResponse>(0, "Lấy trường thành công", school));
             }
             catch (NotFoundException ex)
             {
-                return NotFound(new ApiResponse<string>(0, ex.Message, null));
+                return NotFound(new ApiResponse<string>(1, ex.Message, null));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<string>(0, "Đã xảy ra lỗi khi lấy trường", ex.Message));
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi khi lấy trường", ex.Message));
             }
         }
 
@@ -88,28 +88,29 @@ namespace Project_LMS.Controllers
 
                 if (!JsonValidator.IsValidJson(jsonString))
                 {
-                    return BadRequest(new ApiResponse<string>(0, "Định dạng JSON không hợp lệ", null));
+                    return BadRequest(new ApiResponse<string>(1, "Định dạng JSON không hợp lệ", null));
                 }
+
                 if (schoolRequest == null)
                 {
-                    return BadRequest(new ApiResponse<string>(0, "Request body cannot be null", null));
+                    return BadRequest(new ApiResponse<string>(1, "Request body cannot be null", null));
                 }
 
                 var school = await _schoolService.CreateAsync(schoolRequest);
-                return CreatedAtAction(nameof(GetById), new { id = school.Id }, new ApiResponse<SchoolResponse>(1, "Tạo trường thành công", school));
+                return CreatedAtAction(nameof(GetById), new { id = school.Id }, new ApiResponse<SchoolResponse>(0, "Tạo trường thành công", school));
             }
             catch (BadRequestException ex)
             {
-                return BadRequest(new ApiResponse<List<ValidationError>>(400, "Validation failed.", ex.Errors));
+                return BadRequest(new ApiResponse<List<ValidationError>>(1, "Validation failed.", ex.Errors));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<string>(0, "Đã xảy ra lỗi khi tạo trường", ex.Message));
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi khi tạo trường", ex.Message));
             }
         }
 
-        [HttpPut("{id}")]
-        public async Task<ActionResult<ApiResponse<SchoolResponse>>> Update(int id, [FromBody] SchoolRequest schoolRequest)
+        [HttpPut]
+        public async Task<ActionResult<ApiResponse<SchoolResponse>>> Update([FromBody] SchoolRequest schoolRequest)
         {
             try
             {
@@ -117,31 +118,32 @@ namespace Project_LMS.Controllers
 
                 if (!JsonValidator.IsValidJson(jsonString))
                 {
-                    return BadRequest(new ApiResponse<string>(0, "Định dạng JSON không hợp lệ", null));
+                    return BadRequest(new ApiResponse<string>(1, "Định dạng JSON không hợp lệ", null));
                 }
 
-                if (schoolRequest == null)
+                if (schoolRequest == null || schoolRequest.Id == 0)
                 {
-                    return BadRequest(new ApiResponse<string>(0, "Request body cannot be null", null));
+                    return BadRequest(new ApiResponse<string>(1, "Request body hoặc Id không được để trống", null));
                 }
-                var school = await _schoolService.UpdateAsync(id, schoolRequest);
+
+                var school = await _schoolService.UpdateAsync(schoolRequest.Id ?? 0, schoolRequest);
                 if (school == null)
                 {
-                    return NotFound(new ApiResponse<SchoolResponse>(0, "Không tìm thấy trường"));
+                    return NotFound(new ApiResponse<SchoolResponse>(1, "Không tìm thấy trường"));
                 }
-                return Ok(new ApiResponse<SchoolResponse>(1, "Cập nhật trường thành công", school));
+                return Ok(new ApiResponse<SchoolResponse>(0, "Cập nhật trường thành công", school));
             }
             catch (NotFoundException ex)
             {
-                return NotFound(new ApiResponse<string>(0, ex.Message, null));
+                return NotFound(new ApiResponse<string>(1, ex.Message, null));
             }
             catch (BadRequestException ex)
             {
-                return BadRequest(new ApiResponse<List<ValidationError>>(400, "Validation failed.", ex.Errors));
+                return BadRequest(new ApiResponse<List<ValidationError>>(1, "Validation failed.", ex.Errors));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<string>(0, "Đã xảy ra lỗi khi cập nhật trường", ex.Message));
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi khi cập nhật trường", ex.Message));
             }
         }
 
@@ -153,17 +155,17 @@ namespace Project_LMS.Controllers
                 var school = await _schoolService.DeleteAsync(id);
                 if (school == null)
                 {
-                    return NotFound(new ApiResponse<SchoolResponse>(0, "Không tìm thấy trường"));
+                    return NotFound(new ApiResponse<SchoolResponse>(1, "Không tìm thấy trường"));
                 }
-                return Ok(new ApiResponse<SchoolResponse>(1, "Xóa trường thành công", school));
+                return Ok(new ApiResponse<SchoolResponse>(0, "Xóa trường thành công", school));
             }
             catch (NotFoundException ex)
             {
-                return NotFound(new ApiResponse<string>(0, ex.Message, null));
+                return NotFound(new ApiResponse<string>(1, ex.Message, null));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<string>(0, "Đã xảy ra lỗi khi xóa trường", ex.Message));
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi khi xóa trường", ex.Message));
             }
         }
 
@@ -175,7 +177,7 @@ namespace Project_LMS.Controllers
 
                 if (request == null || request.SchoolBranchIds == null || !request.SchoolBranchIds.Any())
                 {
-                    return BadRequest(new ApiResponse<string>(0, "SchoolId hoặc danh sách SchoolBranchIds không được để trống", null));
+                    return BadRequest(new ApiResponse<string>(1, "SchoolId hoặc danh sách SchoolBranchIds không được để trống", null));
                 }
 
 
@@ -183,12 +185,12 @@ namespace Project_LMS.Controllers
 
                 if (school == null)
                 {
-                    return NotFound(new ApiResponse<string>(0, "Không tìm thấy trường hoặc chi nhánh để xuất Excel", null));
+                    return NotFound(new ApiResponse<string>(1, "Không tìm thấy trường hoặc chi nhánh để xuất Excel", null));
                 }
 
                 var base64String = await _excelService.ExportSchoolAndBranchesToExcelAsync(school, request.SchoolId);
 
-                return Ok(new ApiResponse<string>(1, "Xuất Excel thành công", base64String));
+                return Ok(new ApiResponse<string>(0, "Xuất Excel thành công", base64String));
             }
             catch (NotFoundException ex)
             {
