@@ -23,8 +23,8 @@ namespace Project_LMS.Models
                 public bool? IsExam { get; set; }
                 public string? Form { get; set; }
                 public TimeOnly? Duration { get; set; }
-                public DateOnly? StartDate { get; set; }
-                public DateOnly? EndDate { get; set; }
+                public DateTime? StartDate { get; set; }
+                public DateTime? EndDate { get; set; }
                 public string? Description { get; set; }
                 public string? Attachment { get; set; }
                 public DateTime? CreateAt { get; set; }

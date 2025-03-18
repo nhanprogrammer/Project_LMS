@@ -16,13 +16,35 @@ public class TeachingAssignmentService : ITeachingAssignmentService
         _context = context;
     }
 
-    public async Task<PaginatedResponse<TeachingAssignmentResponse>> GetAll(int pageNumber, int pageSize)
+    public async Task<PaginatedResponse<TeachingAssignmentResponse>> GetAll(int pageNumber, int pageSize, int? academicYearId, int? subjectGroupId)
     {
-        var query = _context.TeachingAssignments
+        var queryBase = _context.TeachingAssignments
             .Where(t => t.IsDelete == false || t.IsDelete == null)
             .Include(t => t.User)
             .Include(t => t.Class)
-            .Include(t => t.Subject);
+                .ThenInclude(c => c.AcademicYear)
+            .Include(t => t.Subject)
+            .Include(x => x.Topics);
+
+        var query = queryBase.AsQueryable();
+
+        // Filter theo Niên khóa (nếu có)
+        if (academicYearId.HasValue)
+        {
+            query = query.Where(t => t.Class.AcademicYearId == academicYearId.Value);
+        }
+
+        // Filter theo Tổ bộ môn (nếu có)
+        if (subjectGroupId.HasValue)
+        {
+            query = query.Where(t =>
+                _context.SubjectGroupSubjects.Any(sgs =>
+                    sgs.SubjectId == t.SubjectId &&
+                    sgs.SubjectGroupId == subjectGroupId.Value &&
+                    (sgs.SubjectGroup.IsDelete == false || sgs.SubjectGroup.IsDelete == null)
+                )
+            );
+        }
 
         int totalItems = await query.CountAsync();
         var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
@@ -35,14 +57,25 @@ public class TeachingAssignmentService : ITeachingAssignmentService
             {
                 Id = t.Id,
                 UserId = t.UserId,
-                UserName = t.User != null ? t.User.FullName : null,
+
                 ClassId = t.ClassId,
-                ClassName = t.Class != null ? t.Class.Name : null,
+                ClassName = t.Class.Name,
                 SubjectId = t.SubjectId,
-                SubjectName = t.Subject != null ? t.Subject.SubjectName : null,
+
                 StartDate = t.StartDate,
                 EndDate = t.EndDate,
-                CreateAt = t.CreateAt
+                CreateAt = t.CreateAt,
+            //    Topics = t.Topics
+            //.Where(topic => topic.IsDelete == false || topic.IsDelete == null)
+            //.Select(topic => new TopicResponse
+            //{
+            //    Id = topic.Id,
+            //    Title = topic.Title,
+            //    FileName = topic.FileName,
+            //    Description = topic.Description,
+            //    CreateAt = topic.CreateAt
+            //})
+            //.ToList()
             })
             .ToListAsync();
 
@@ -57,6 +90,8 @@ public class TeachingAssignmentService : ITeachingAssignmentService
             HasNextPage = pageNumber < totalPages
         };
     }
+
+
 
     public async Task<TeachingAssignmentResponse?> GetById(int id)
     {
@@ -76,23 +111,53 @@ public class TeachingAssignmentService : ITeachingAssignmentService
         {
             Id = assignment.Id,
             UserId = assignment.UserId,
-            UserName = assignment.User?.FullName,
+
             ClassId = assignment.ClassId,
-            ClassName = assignment.Class?.Name,
             SubjectId = assignment.SubjectId,
-            SubjectName = assignment.Subject?.SubjectName,
+
             StartDate = assignment.StartDate,
             EndDate = assignment.EndDate,
             CreateAt = assignment.CreateAt
         };
     }
 
+    public async Task<List<TeachingAssignmentResponse>> GetByUserId(int userId)
+    {
+        var userExists = await _context.Users.AnyAsync(u => u.Id == userId && (u.IsDelete == false || u.IsDelete == null));
+        if (!userExists)
+        {
+            throw new Exception("Không tìm thấy giảng viên");
+        }
 
-    public async Task<TeachingAssignmentResponse> Create(TeachingAssignmentRequest request)
+        var assignments = await _context.TeachingAssignments
+            .Where(t => t.UserId == userId && (t.IsDelete == false || t.IsDelete == null))
+            .Include(t => t.Class)
+            .Include(t => t.Subject)
+            .ToListAsync();
+
+        if (!assignments.Any())
+        {
+            throw new Exception("Giảng viên chưa có phân công giảng dạy");
+        }
+
+        return assignments.Select(t => new TeachingAssignmentResponse
+        {
+            Id = t.Id,
+            UserId = t.UserId,
+            ClassId = t.ClassId,
+            SubjectId = t.SubjectId,
+            StartDate = t.StartDate,
+            EndDate = t.EndDate,
+            CreateAt = t.CreateAt
+        }).ToList();
+    }
+
+
+    public async Task<TeachingAssignmentResponse> Create(TeachingAssignmentRequestCreate request)
     {
         try
         {
-            Console.WriteLine($"Bắt đầu tạo TeachingAssignment: UserId={request.UserId}, ClassId={request.ClassId}, SubjectId={request.SubjectId}");
+            //Console.WriteLine($"Bắt đầu tạo TeachingAssignment: UserId={request.UserId}, ClassId={request.ClassId}, SubjectId={request.SubjectId}");
 
             var assignment = new TeachingAssignment
             {
@@ -119,23 +184,40 @@ public class TeachingAssignmentService : ITeachingAssignmentService
     }
 
 
-    public async Task<bool> Update(int id, TeachingAssignmentRequest request)
+    public async Task<TeachingAssignmentResponse> UpdateByUserId(int userId, TeachingAssignmentRequest request)
     {
         try
         {
-            var assignment = await _context.TeachingAssignments.FindAsync(id);
-            if (assignment == null) return false;
+            // Kiểm tra request đầu vào
+            if (request == null) throw new ArgumentNullException(nameof(request));
 
-            assignment.UserId = request.UserId;
+            // Tìm phân công theo userId (nếu 1 user chỉ có 1 phân công)
+            var assignment = await _context.TeachingAssignments
+                .FirstOrDefaultAsync(x => x.UserId == userId && x.IsDelete != true);
+
+            if (assignment == null)
+                throw new Exception("Không tìm thấy phân công giảng dạy cho giảng viên này.");
+
+            // Cập nhật thông tin
             assignment.ClassId = request.ClassId;
             assignment.SubjectId = request.SubjectId;
             assignment.StartDate = request.StartDate;
             assignment.EndDate = request.EndDate;
-            assignment.UpdateAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified);
-
+            assignment.UpdateAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
-            return true;
+
+            // Trả về response
+            return new TeachingAssignmentResponse
+            {
+                Id = assignment.Id,
+                UserId = assignment.UserId,
+                ClassId = assignment.ClassId,
+                SubjectId = assignment.SubjectId,
+                StartDate = assignment.StartDate,
+                EndDate = assignment.EndDate,
+                UpdateAt = assignment.UpdateAt,
+            };
         }
         catch (Exception ex)
         {
@@ -146,13 +228,21 @@ public class TeachingAssignmentService : ITeachingAssignmentService
 
 
 
-    public async Task<bool> Delete(int id)
+    public async Task<bool> Delete(List<int> ids)
     {
-        var assignment = await _context.TeachingAssignments.FindAsync(id);
-        if (assignment == null) return false;
+        var assignments = await _context.TeachingAssignments
+            .Where(x => ids.Contains(x.Id) && x.IsDelete != true)
+            .ToListAsync();
 
-        assignment.IsDelete = true;
+        if (assignments == null || !assignments.Any()) return false;
+
+        foreach (var assignment in assignments)
+        {
+            assignment.IsDelete = true;
+        }
+
         await _context.SaveChangesAsync();
         return true;
     }
+
 }

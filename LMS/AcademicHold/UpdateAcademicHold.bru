@@ -1,0 +1,25 @@
+meta {
+  name: UpdateAcademicHold
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{base_url}}api/AcademicHolds/1
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "id": 1,
+    "userId": 1,
+    "classId": 1,
+    "holdDate": "2025-03-17T18:42:55.489Z",
+    "holdDuration": 1000,
+    "reason": "Không rõ lí do",
+    "fileName": "file.pdf",
+    "updateAt": "2025-03-17T18:42:55.489Z",
+    "userUpdate": 0
+  }
+}
