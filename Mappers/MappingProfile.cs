@@ -36,7 +36,6 @@ public class MappingProfile : Profile
         CreateMap<AcademicHold, AcademicHoldResponse>();
 
 
-
         CreateMap<AcademicYear, AcademicYearResponse>();
         CreateMap<CreateAcademicYearRequest, AcademicYear>();
         CreateMap<UpdateAcademicYearRequest, AcademicYear>();
@@ -198,9 +197,19 @@ public class MappingProfile : Profile
             ))
 
             // ExamDate -> StartDate (hoặc EndDate, tùy ý)
-            .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.examDate))
+            .ForMember(dest => dest.StartDate,
+                opt => opt.MapFrom(src =>
+                    src.examDate.HasValue
+                        ? new DateTimeOffset(src.examDate.Value.ToDateTime(TimeOnly.MinValue), TimeSpan.FromHours(7))
+                        : (DateTimeOffset?)null
+                ))
             // Nếu bạn muốn EndDate giống StartDate:
-            .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.examDate))
+            .ForMember(dest => dest.EndDate,
+                opt => opt.MapFrom(src =>
+                    src.examDate.HasValue
+                        ? new DateTimeOffset(src.examDate.Value.ToDateTime(TimeOnly.MaxValue), TimeSpan.FromHours(7))
+                        : (DateTimeOffset?)null
+                ))
             // hoặc .ForMember(dest => dest.EndDate, opt => opt.Ignore())
 
             // Không map ClassId và UserId (vì quan hệ N-N, ta xử lý riêng)
@@ -238,8 +247,18 @@ public class MappingProfile : Profile
             ))
 
             // Map ExamDate sang StartDate và EndDate
-            .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.examDate))
-            .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.examDate))
+            .ForMember(dest => dest.StartDate,
+                opt => opt.MapFrom(src =>
+                    src.examDate.HasValue
+                        ? new DateTimeOffset(src.examDate.Value.ToDateTime(TimeOnly.MinValue), TimeSpan.FromHours(7))
+                        : (DateTimeOffset?)null
+                ))
+            .ForMember(dest => dest.EndDate,
+                opt => opt.MapFrom(src =>
+                    src.examDate.HasValue
+                        ? new DateTimeOffset(src.examDate.Value.ToDateTime(TimeOnly.MaxValue), TimeSpan.FromHours(7))
+                        : (DateTimeOffset?)null
+                ))
 
             // Không map các thuộc tính của mối quan hệ N-N (xử lý riêng)
             .ForMember(dest => dest.ClassId, opt => opt.Ignore())
@@ -359,8 +378,6 @@ public class MappingProfile : Profile
         // Mapping từ QuestionAnswer sang QuestionsAnswerResponse
         CreateMap<QuestionAnswer, QuestionsAnswerResponse>();
         CreateMap(typeof(PaginatedResponse<>), typeof(PaginatedResponse<>));
-
-        
     }
 
     private List<SubjectGroupSubject> MapSubjectGroupSubjects(List<int> subjectIds)

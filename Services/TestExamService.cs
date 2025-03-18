@@ -165,7 +165,7 @@ public class TestExamService : ITestExamService
         // 11) Trả về kết quả
         var classIds = _context.ClassTestExams
             .Where(x => x.TestExamId == testExam.Id && x.IsDelete == false)
-            .Select(x => x.Id)
+            .Select(x => x.ClassId)
             .ToList();
 
         var examiners = _context.Examiners
@@ -332,7 +332,7 @@ public class TestExamService : ITestExamService
         // 7) Chuẩn bị dữ liệu phản hồi
         var classIds = await _context.ClassTestExams
             .Where(x => x.TestExamId == testExam.Id && x.IsDelete == false)
-            .Select(x => x.Id)
+            .Select(x => x.ClassId)
             .ToListAsync();
         var examiners = await _context.Examiners
             .Where(e => e.TestExamId == testExam.Id && e.IsDelete == false)
