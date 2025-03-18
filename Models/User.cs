@@ -37,6 +37,9 @@ namespace Project_LMS.Models
         public int Id { get; set; }
         public int? GroupModulePermissonId { get; set; }
         public bool? Disable { get; set; }
+        public string? ResetCode { get; set; }
+        public DateTime? ResetCodeExpiry { get; set; }
+        public bool? PermissionChanged  { get; set; }
         public int? RoleId { get; set; }
         public int? StudentStatusId { get; set; }
         public int? TeacherStatusId { get; set; }

@@ -5,14 +5,18 @@ meta {
 }
 
 post {
-  url: {{base_url}}/api/auth/login
+  url: {{base_url}}api/auth/login
   body: json
-  auth: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: 
 }
 
 body:json {
   {
-    "username": "tranvanb",
-    "password": "123"
+    "Email": "nhutnmpc06411@fpt.edu.vn",
+    "Password": "123456"
   }
 }
