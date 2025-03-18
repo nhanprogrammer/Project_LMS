@@ -63,7 +63,7 @@ namespace Project_LMS.Repositories
             foreach (var classEntity in classes)
             {
                 var students = await _context.ClassStudents
-                    .Where(cs => cs.ClassId == classEntity.Id && cs.IsDelete == false)
+                    .Where(cs => classEntity != null && cs.ClassId == classEntity.Id && cs.IsDelete == false)
                     .Include(cs => cs.User)
                     .ToListAsync();
 
@@ -242,8 +242,83 @@ namespace Project_LMS.Repositories
             return totalQuestions;
         }
 
+        /// <summary>
+        /// Thống kê số học sinh giỏi, khá, trung bình, yếu của mỗi giảng viên
+        /// </summary>
+        public async Task<List<ClassPerformanceReport>> GetClassPerformanceByTeacherAsync(int userId)
+        {
+            var classes = await _context.TeachingAssignments
+                .Where(ta => ta.UserId == userId && ta.IsDelete == false)
+                .Select(ta => ta.Class)
+                .Where(c => c != null && c.IsDelete == false)
+                .ToListAsync();
 
+            var report = new List<ClassPerformanceReport>();
 
+            foreach (var classEntity in classes)
+            {
+                var students = await _context.ClassStudents
+                    .Where(cs => cs.ClassId == classEntity.Id && cs.IsDelete == false)
+                    .Include(cs => cs.User)
+                    .ToListAsync();
+
+                int excellentCount = 0, goodCount = 0, averageCount = 0, weakCount = 0;
+
+                foreach (var student in students)
+                {
+                    var assignments = await _context.Assignments
+                        .Where(a => a.UserId == student.UserId && a.IsDelete == false)
+                        .Include(a => a.TestExam)
+                        .ThenInclude(te => te.TestExamType)
+                        .ToListAsync();
+
+                    double totalScore = 0, totalCoefficient = 0;
+
+                    foreach (var assignment in assignments)
+                    {
+                        if (assignment.TestExam?.TestExamType != null)
+                        {
+                            var coefficient = assignment.TestExam.TestExamType.Coefficient ?? 1;
+                            totalScore += (assignment.TotalScore ?? 0) * coefficient;
+                            totalCoefficient += coefficient;
+                        }
+                    }
+
+                    double averageScore = totalCoefficient > 0 ? totalScore / totalCoefficient : 0;
+
+                    if (averageScore >= 8.5) excellentCount++;
+                    else if (averageScore >= 7.0) goodCount++;
+                    else if (averageScore >= 5.0) averageCount++;
+                    else weakCount++;
+                }
+
+                report.Add(new ClassPerformanceReport
+                {
+                    ClassId = classEntity.Id,
+                    ClassName = classEntity.Name ?? "Unknown",
+                    ExcellentCount = excellentCount,
+                    GoodCount = goodCount,
+                    AverageCount = averageCount,
+                    WeakCount = weakCount
+                });
+            }
+
+            return report;
+        }
+
+        /// <summary>
+        /// Thống kê các môn giảng dạy trong học kỳ
+        /// </summary>
+        public async Task<List<TeachingAssignment>> GetTeachingAssignmentsByTeacherAsync(int teacherId)
+        {
+            return await _context.TeachingAssignments
+                .Include(ta => ta.Class)
+                    .ThenInclude(c => c != null ? c.AcademicYear : null)
+                        .ThenInclude(ay => ay != null ? ay.Semesters : null)
+                .Include(ta => ta.Subject)
+                .Where(ta => ta.UserId == teacherId && ta.IsDelete == false)
+                .ToListAsync();
+        }
 
     }
 }

@@ -10,5 +10,7 @@ namespace Project_LMS.Interfaces.Services
 
         //Thống kê teacher
         Task<TeacherStatisticsResponse> GetTeacherStatisticsAsync(int userId);
+        Task<TeacherPerformanceReport> GetTeacherPerformanceReportAsync(int userId);
+        Task<List<TeacherSemesterStatisticsResponse>> GetTeacherSemesterStatisticsAsync(int teacherId);
     }
 }

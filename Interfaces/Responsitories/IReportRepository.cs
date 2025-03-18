@@ -17,5 +17,9 @@ namespace Project_LMS.Repositories
         Task<int> GetTotalOnlineClassesByTeacherAsync(int userId);
         Task<int> GetTotalUngradedAssignmentsByTeacherAsync(int userId);
         Task<int> GetTotalQuestionsReceivedByTeacherAsync(int userId);
+        Task<List<ClassPerformanceReport>> GetClassPerformanceByTeacherAsync(int userId);
+
+        Task<List<TeachingAssignment>> GetTeachingAssignmentsByTeacherAsync(int teacherId);
+
     }
 }
