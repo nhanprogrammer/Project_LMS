@@ -6,7 +6,7 @@ namespace Project_LMS.Interfaces
     public interface IAcademicHoldsService
     {
         //Task<IEnumerable<AcademicHoldResponse>> GetAllAcademicHold();
-        Task<AcademicHoldResponse> GetByIdAcademicHold(int id);
+        Task<User_AcademicHoldResponse> GetById(int id);
         Task AddAcademicHold(CreateAcademicHoldRequest academicHold);
         Task UpdateAcademicHold(UpdateAcademicHoldRequest academicHold);
         Task<bool> DeleteAcademicHold(int id);

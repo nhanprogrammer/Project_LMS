@@ -33,9 +33,9 @@ namespace Project_LMS.Controllers
         {
             try
             {
-                var hold = await _academicHoldsService.GetByIdAcademicHold(id);
+                var hold = await _academicHoldsService.GetById(id);
                 if (hold == null) return NotFound();
-                return Ok(new ApiResponse<AcademicHoldResponse>(0, "Success", hold));
+                return Ok(new ApiResponse<User_AcademicHoldResponse>(0, "Success", hold));
             }
             catch (Exception ex)
             {
