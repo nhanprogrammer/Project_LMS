@@ -1,0 +1,20 @@
+meta {
+  name: GetTranscript
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}api/Transcript
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "AcademicYearId": 1, //Năm học
+    "ClassId": 1, //Lớp học
+    "SubjectId": 1, //Môn học
+    "DepartmentId": 1 //Khối
+  }
+}
