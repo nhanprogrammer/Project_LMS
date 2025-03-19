@@ -1,0 +1,15 @@
+meta {
+  name: getStudentSubjectStatistics
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}api/report/student-subject-statistics?studentId=1
+  body: none
+  auth: none
+}
+
+params:query {
+  studentId: 1
+}

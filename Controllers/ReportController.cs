@@ -104,5 +104,47 @@ namespace Project_LMS.Controllers
                 return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi khi lấy thống kê", ex.Message));
             }
         }
+
+        [HttpGet("student-class-statistics")]
+        public async Task<ActionResult<ApiResponse<StudentClassStatisticsResponse>>> GetStudentClassStatistics([FromQuery] int studentId)
+        {
+            try
+            {
+                var statistics = await _reportService.GetStudentClassStatisticsAsync(studentId);
+                return Ok(new ApiResponse<StudentClassStatisticsResponse>(0, "Lấy thống kê thành công", statistics));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi khi lấy thống kê", ex.Message));
+            }
+        }
+
+        [HttpGet("student-subject-statistics")]
+        public async Task<ActionResult<ApiResponse<StudentSubjectStatisticsResponse>>> GetStudentSubjectStatistics([FromQuery] int studentId)
+        {
+            try
+            {
+                var statistics = await _reportService.GetStudentSubjectStatisticsAsync(studentId);
+                return Ok(new ApiResponse<StudentSubjectStatisticsResponse>(0, "Lấy thống kê thành công", statistics));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi khi lấy thống kê", ex.Message));
+            }
+        }
+
+        [HttpGet("student-semester-statistics")]
+        public async Task<ActionResult<ApiResponse<List<StudentSemesterStatisticsResponse>>>> GetStudentSemesterStatistics([FromQuery] int studentId)
+        {
+            try
+            {
+                var statistics = await _reportService.GetStudentSemesterStatisticsAsync(studentId);
+                return Ok(new ApiResponse<List<StudentSemesterStatisticsResponse>>(0, "Lấy thống kê thành công", statistics));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi khi lấy thống kê", ex.Message));
+            }
+        }
     }
 }
