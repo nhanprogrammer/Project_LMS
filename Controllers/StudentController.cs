@@ -78,10 +78,16 @@ namespace Project_LMS.Controllers
             return Ok(result);
         }
 
-        [HttpPost("update")]
-        public async Task<IActionResult> UpdateAsync([FromBody] UpdateStudentRequest request)
+        [HttpPut("update")]
+        public async Task<IActionResult> UpdateAsync([FromBody] StudentRequest request)
         {
             var result = await _studentService.UpdateAsync(request);
+            return Ok(result);
+        }        
+        [HttpDelete("delete")]
+        public async Task<IActionResult> DeleteAsync([FromBody] List<string> userCodes)
+        {
+            var result = await _studentService.DeleteAsync(userCodes);
             return Ok(result);
         }
         [HttpGet("learningoutcomes")]
@@ -89,6 +95,23 @@ namespace Project_LMS.Controllers
         {
             var result = await _studentService.LearningOutcomesOfStudent(studentId, classId);
             return Ok(result);
+        }
+        [HttpPost("importexcel")]
+        public async Task<IActionResult> AddStudentByImportExcel([FromForm] IFormFile fileExcel)
+        {
+            var result = await _studentService.ReadStudentsFromExcelAsync(fileExcel);
+            return Ok(result);
+        } 
+        [HttpGet("exportexcelstudent")]
+        public async Task<IActionResult> ExportExcel([FromQuery] int studentId, [FromQuery] int classId)
+        {
+            var result = await _studentService.ExportExcelLearningProcess(studentId,classId);
+            return Ok(result);
+        }
+        public async Task<IActionResult> GenerateUserCode()
+        {
+            var result = _studentService.GeneratedUserCode();
+            return Ok(result);  
         }
     }
 }

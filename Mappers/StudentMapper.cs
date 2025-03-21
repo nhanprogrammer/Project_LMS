@@ -13,9 +13,6 @@ namespace Project_LMS.Mappers
             CreateMap<StudentRequest,User>()
                 .ForMember(dest => dest.Gender, opt => opt.MapFrom(src => new BitArray(new bool[] { (bool)src.Gender })));
 
-            CreateMap<UpdateStudentRequest, User>()
-    .ForMember(dest => dest.Gender, opt => opt.MapFrom(src => new BitArray(new bool[] { (bool)src.Gender })));
-
             CreateMap<User, StudentResponse>()
                 .ForMember(dest => dest.Gender, opt => opt.MapFrom(src => src.Gender != null && src.Gender.Length > 0 ? src.Gender[0] : false));
         }

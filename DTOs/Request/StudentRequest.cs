@@ -11,7 +11,7 @@ namespace Project_LMS.DTOs.Request
         public string? Email { get; set; }
         public DateTime? StartDate { get; set; }
         //public bool? Active { get; set; }
-        public IFormFile? Image { get; set; }
+        public string? Image { get; set; }
         public bool? Gender { get; set; }
         public string? Ethnicity { get; set; }
         public string? Religion { get; set; }
@@ -38,12 +38,11 @@ namespace Project_LMS.DTOs.Request
         public DateTime? BirthGuardianship { get; set; }
         public string? WorkGuardianship { get; set; }
         public string? PhoneGuardianship { get; set; }
-        public int? UserCreate { get; set; }
-        public int? UserUpdate { get; set; }
+
 
     }
-    public class UpdateStudentRequest : StudentRequest
-    {
-        public int Id { get; set; }
-    }
+    //public class UpdateStudentRequest : StudentRequest
+    //{
+    //    public int Id { get; set; }
+    //}
 }

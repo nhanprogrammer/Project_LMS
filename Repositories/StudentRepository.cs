@@ -1,4 +1,5 @@
 ﻿using System.Net.WebSockets;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.FlowAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Project_LMS.Data;
@@ -37,7 +38,7 @@ namespace Project_LMS.Repositories
             return user;
         }
 
-        public async Task<int> CountStudentOfRewardByIds(bool isReward,List<int> ids, string searchItem)
+        public async Task<int> CountStudentOfRewardByIds(bool isReward, List<int> ids, string searchItem)
         {
             var query = _context.Users
           .Include(u => u.Rewards)
@@ -53,25 +54,43 @@ namespace Project_LMS.Repositories
             return await query.CountAsync();
         }
 
-        public async Task<User> FindById(int id)
+        public async Task<User> FindStudentByEmailOrderUserCode(string email, string userCode)
         {
-            return await _context.Users.FirstOrDefaultAsync(u => u.Id == id && u.IsDelete == false);
-
+            return await _context.Users.FirstOrDefaultAsync(u => u.Email == email && u.UserCode != userCode);
         }
 
         public async Task<User> FindStudentById(int studentId)
         {
-        return await _context.Users
-                .Include(u=>u.Assignments).ThenInclude(asm=>asm.TestExam).ThenInclude(te=>te.Semesters)
-                .Include(u=>u.Assignments).ThenInclude(asm=>asm.TestExam).ThenInclude(te=>te.TestExamType)
-                .Where(u=>u.Id == studentId).FirstOrDefaultAsync();
+            return await _context.Users
+                    .Include(u => u.Assignments).ThenInclude(asm => asm.TestExam).ThenInclude(te => te.Semesters)
+                    .Include(u => u.Assignments).ThenInclude(asm => asm.TestExam).ThenInclude(te => te.TestExamType)
+                    .Include(u => u.Assignments).ThenInclude(asm => asm.TestExam).ThenInclude(te => te.Subject)
+                    .Include(u => u.Rewards)
+                    .Include(u => u.Disciplines)
+                    .Where(u => u.Id == studentId)
+                    .FirstOrDefaultAsync();
         }
 
-        public async Task<List<User>> GetAllOfRewardByIds(bool isReward, List<int> ids,PaginationRequest request, string columnm, bool orderBy, string searchItem)
+        public async Task<User> FindStudentByEmail(string email)
+        {
+            return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+        }
+
+        public async Task<User> FindStudentByUserCode(string userCode)
+        {
+            return await _context.Users.FirstOrDefaultAsync(u => u.UserCode == userCode);
+        }
+
+        public async Task<List<User>> GetAll()
+        {
+            return await _context.Users.ToListAsync();
+        }
+
+        public async Task<List<User>> GetAllOfRewardByIds(bool isReward, List<int> ids, PaginationRequest request, string columnm, bool orderBy, string searchItem)
         {
             var query = _context.Users
                 .Include(u => u.Rewards)
-                .Where(u => isReward ?(u.Rewards.Count > 0):(u.Disciplines.Count>0) && u.IsDelete == false && u.Role.Name.Equals("Student"));
+                .Where(u => isReward ? (u.Rewards.Count > 0) : (u.Disciplines.Count > 0) && u.IsDelete == false && u.Role.Name.Equals("Student"));
             if (!string.IsNullOrWhiteSpace(searchItem))
             {
                 searchItem = searchItem.Trim().ToLower();
@@ -108,7 +127,7 @@ namespace Project_LMS.Repositories
                     break;
 
             }
-            return await query.Skip((request.PageNumber-1)*request.PageSize)
+            return await query.Skip((request.PageNumber - 1) * request.PageSize)
                 .Take(request.PageSize).ToListAsync();
         }
 
@@ -122,5 +141,15 @@ namespace Project_LMS.Repositories
             return user;
         }
 
+        public async Task<User> FindStudentByUsername(string username)
+        {
+            return await _context.Users.FirstAsync(u => u.Username == username);
+        }
+
+        public async Task DeleteAsync(User user)
+        {
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+        }
     }
 }

@@ -51,7 +51,7 @@ public class UserService : IUserService
         if (user == null) return new ApiResponse<object>(1, "User does not existed.");
         Random random = new Random();
         otp = random.Next(100000, 999999).ToString();
-        await _emailService.SendOtpAsync(user?.Email, otp);
+        //await _emailService.SendOtpAsync(user?.Email, otp);
         return new ApiResponse<object>(0, "Send email success.");
     }
 

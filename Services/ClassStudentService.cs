@@ -74,14 +74,10 @@ namespace Project_LMS.Services
         public async Task<ApiResponse<object>> GetClassStudentByClass(int classId, int studentId)
         {
             var cs = await _classStudentRepository.FindStudentByClassAndStudent(classId, studentId);
-            if (cs == null) return new ApiResponse<object>(0, "Class not found");
+            if (cs == null) return new ApiResponse<object>(1, "Class not found");
             var studentResponse = (object)new
             {
-                academic = new
-                {
-                    cs.Class?.AcademicYear?.StartDate,
-                    cs.Class?.AcademicYear?.EndDate
-                },
+                academic = cs.Class?.AcademicYear?.StartDate?.ToString("yyyy") + " - " + cs.Class?.AcademicYear?.EndDate?.ToString("yyyy"),
                 department = cs.Class?.Department?.Name,
                 ClassCode = cs.Class?.ClassCode,
                 ClassName = cs.Class?.Name,

@@ -18,6 +18,10 @@ namespace Project_LMS.Repositories
 
         public async Task AddAsync(ClassStudentRequest request)
         {
+            var classSt = await _context.ClassStudents.FirstAsync(cs=>cs.UserId == request.UserId);
+            classSt.IsActive = false;
+            _context.ClassStudents.Update(classSt);
+           await _context.SaveChangesAsync();
             var student = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.UserId) ?? throw new ArgumentException("Student not found.");
             var classStudent = await _context.Classes.FirstOrDefaultAsync(c => c.Id == request.ClassId) ?? throw new ArgumentException("Class not found.");
             var classAdd = new ClassStudent()
@@ -25,9 +29,11 @@ namespace Project_LMS.Repositories
                 UserId = request.UserId,
                 ClassId = request.ClassId,
                 User = student,
-                Class = classStudent
+                Class = classStudent,
+                IsDelete = false,
+                IsActive = true
             };
-            await _context.AddAsync(classAdd);
+            await _context.ClassStudents.AddAsync(classAdd);
             await _context.SaveChangesAsync();
         }
 
@@ -54,6 +60,11 @@ namespace Project_LMS.Repositories
             }
 
             return await query.CountAsync();
+        }
+
+        public async Task<ClassStudent> FindClassStudentByUserCodeClassId(string userCode, int classId)
+        {
+            return await _context.ClassStudents.FirstOrDefaultAsync(cs => cs.User.UserCode == userCode && cs.ClassId == classId);
         }
 
         public async Task<ClassStudent> FindStudentByClassAndStudent(int classId, int studentId)

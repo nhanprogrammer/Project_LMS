@@ -50,4 +50,11 @@ public class ClassRepository : IClassRepository
         }
 
     }
+
+    public async Task<Class> FindClassById(int id)
+    {
+        return await _context.Classes
+            .Include(c=>c.TestExams).ThenInclude(te=>te.TestExamType)
+            .FirstOrDefaultAsync(c => c.Id == id);
+    }
 }

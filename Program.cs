@@ -173,6 +173,7 @@ builder.Services.AddScoped<IPermissionService, PermissionService>();
 // builder.Services.AddScoped<IDepartmentsService, Deparmen>();
 builder.Services.AddScoped <IClassRepository, ClassRepository>();
 builder.Services.AddScoped<IClassStudentRepository,ClassStudentRepository>();
+builder.Services.AddScoped<IClassSubjectRepository,ClassSubjectRepository>();
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 
