@@ -1,0 +1,21 @@
+meta {
+  name: FindStudent
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}api/Student/search?academicId=1&departmentId=1&PageNumber=1&PageSize=10&column=UserCode&orderBy=true&search=QT001
+  body: none
+  auth: none
+}
+
+params:query {
+  academicId: 1
+  departmentId: 1
+  PageNumber: 1
+  PageSize: 10
+  column: UserCode
+  orderBy: true
+  search: QT001
+}

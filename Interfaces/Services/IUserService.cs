@@ -14,7 +14,8 @@ public interface IUserService
     public Task<ApiResponse<UserResponse>> Search(int id);
     public Task<ApiResponse<object>> ExportUsersToExcel();
     public Task<ApiResponse<object>> CheckUser(string name);
-    public Task<ApiResponse<object>> ForgotPassword(ForgotPasswordRequest request);
+    public Task<ApiResponse<object>> ChangePassword(ForgotPasswordRequest request);
+    public Task<ApiResponse<object>> CheckOTP(string otp);
 
 
 }

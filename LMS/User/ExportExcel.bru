@@ -1,0 +1,16 @@
+meta {
+  name: ExportExcel
+  type: http
+  seq: 8
+}
+
+get {
+  url: https://localhost:32769/api/Student/exportexcelstudent?studentId=1&classId=1
+  body: none
+  auth: inherit
+}
+
+params:query {
+  studentId: 1
+  classId: 1
+}

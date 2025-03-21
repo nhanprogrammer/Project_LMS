@@ -92,6 +92,9 @@ builder.Services.AddScoped<ISubjectGroupService, SubjectGroupService>();
 builder.Services.AddScoped<IDepartmentsService, DepartmentsService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IStudentStatusService, StudentStatusService>();
+builder.Services.AddScoped<IClassStudentService, ClassStudentService>();
+builder.Services.AddScoped<IClassService,ClassService>();
+builder.Services.AddScoped<IStudentService,StudentService>();
 // Repositories
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<ISchoolRepository, SchoolRepository>();
@@ -120,6 +123,7 @@ builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
 builder.Services.AddScoped<ITestExamTypeRepository, TestExamTypeRepository>();
 builder.Services.AddScoped<ISubjectTypeRepository, SubjectTypeRepository>();
 builder.Services.AddScoped<IJwtReponsitory, JwtReponsitory>();
+builder.Services.AddScoped<IStudentRepository, StudentRepository>();
 
 builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
 builder.Services.AddScoped<ITeachingAssignmentService, TeachingAssignmentService>();
@@ -133,7 +137,9 @@ builder.Services.AddScoped<IReportRepository, ReportRepository>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 // builder.Services.AddScoped<IDepartmentsService, Deparmen>();
-
+builder.Services.AddScoped <IClassRepository, ClassRepository>();
+builder.Services.AddScoped<IClassStudentRepository,ClassStudentRepository>();
+builder.Services.AddScoped<IClassSubjectRepository,ClassSubjectRepository>();
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 
@@ -144,7 +150,9 @@ builder.Services.AddAutoMapper(typeof(StudentStatusMapper));
 builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
 builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddAutoMapper(typeof(StudentMapper));
 //loging
+
 builder.Services.AddLogging(); // Đăng ký logging
 
 
@@ -232,6 +240,16 @@ builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddMemoryCache();
 
+
+
+// Cấu hình logging
+builder.Services.AddLogging(logging =>
+{
+    logging.ClearProviders(); // Xóa các provider mặc định (tùy chọn)
+    logging.AddConsole(); // Ghi log ra console
+    logging.AddDebug(); // Ghi log ra debug window
+    logging.SetMinimumLevel(LogLevel.Information); // Cấu hình mức log tối thiểu
+});
 
 var app = builder.Build();
 app.Use(async (context, next) =>

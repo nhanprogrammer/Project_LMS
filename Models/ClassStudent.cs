@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Project_LMS.Models
 {
@@ -13,7 +14,8 @@ namespace Project_LMS.Models
         public int? UserCreate { get; set; }
         public int? UserUpdate { get; set; }
         public bool? IsDelete { get; set; }
-
+        [Column("is_active")] // Đảm bảo tên cột đúng với PostgreSQL
+        public bool? IsActive { get; set; }
         public virtual Class? Class { get; set; }
         public virtual User? User { get; set; }
     }
