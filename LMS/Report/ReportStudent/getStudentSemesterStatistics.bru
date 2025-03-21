@@ -1,0 +1,15 @@
+meta {
+  name: getStudentSemesterStatistics
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}api/report/student-semester-statistics?studentId=3
+  body: none
+  auth: none
+}
+
+params:query {
+  studentId: 3
+}

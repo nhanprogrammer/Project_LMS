@@ -317,7 +317,7 @@ namespace Project_LMS.Services
         {
             try
             {
-                
+
                 var classEntity = await _context.Classes
                     .AsNoTracking()
                     .Where(c => c.IsDelete == false)
@@ -423,17 +423,15 @@ namespace Project_LMS.Services
             return true;
         }
 
-        public async Task<byte[]> ExportClassListToExcel(int academicYearId, int departmentId)
+        public async Task<string> ExportClassListToExcel(int academicYearId, int departmentId)
         {
             var query = _context.Classes
                 .Where(c => (academicYearId == 0 || c.AcademicYearId == academicYearId) &&
                             (departmentId == 0 || c.DepartmentId == departmentId) &&
                             c.IsDelete == false)
-                .Include(c => c.User); // Đảm bảo load thông tin giáo viên chủ nhiệm
+                .Include(c => c.User);
 
-            var classes = await query
-                .OrderBy(c => c.Id)
-                .ToListAsync();
+            var classes = await query.OrderBy(c => c.Id).ToListAsync();
 
             var classList = classes.Select(c => new ClassListResponse
             {
@@ -447,7 +445,6 @@ namespace Project_LMS.Services
             {
                 ExcelWorksheet worksheet = package.Workbook.Worksheets.Add("Danh sách lớp học");
 
-                // Header
                 worksheet.Cells[1, 1].Value = "ID";
                 worksheet.Cells[1, 2].Value = "Mã lớp";
                 worksheet.Cells[1, 3].Value = "Tên lớp";
@@ -461,7 +458,6 @@ namespace Project_LMS.Services
                     range.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
                 }
 
-                // Dữ liệu
                 int row = 2;
                 foreach (var item in classList)
                 {
@@ -474,10 +470,11 @@ namespace Project_LMS.Services
 
                 worksheet.Cells.AutoFitColumns();
 
-                // Xuất file dưới dạng byte array
-                return package.GetAsByteArray();
+                var byteArray = package.GetAsByteArray();
+                return Convert.ToBase64String(byteArray);
             }
         }
+
 
 
 
@@ -592,7 +589,7 @@ namespace Project_LMS.Services
         }
 
 
-        public async Task<byte[]> GenerateClassTemplate()
+        public async Task<string> GenerateClassTemplate()
         {
             using (var package = new ExcelPackage())
             {
@@ -702,9 +699,13 @@ namespace Project_LMS.Services
                 }
 
                 // Lưu file Excel vào byte array
-                return package.GetAsByteArray();
+                byte[] fileBytes = package.GetAsByteArray();
+
+                // Chuyển đổi byte array sang chuỗi Base64
+                return Convert.ToBase64String(fileBytes);
             }
         }
+
 
 
     }

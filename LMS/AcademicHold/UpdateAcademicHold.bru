@@ -5,7 +5,7 @@ meta {
 }
 
 put {
-  url: {{base_url}}api/AcademicHolds/1
+  url: {{base_url}}api/AcademicHolds
   body: json
   auth: none
 }
@@ -13,12 +13,11 @@ put {
 body:json {
   {
     "id": 1,
-    "userId": 3,
-    "holdDate": "2025-03-16T20:08:58.683Z",
-    "holdDuration": 40,
-    "reason": "Nghĩ học quá nhiều",
-    "fileName": "file.pdf",
-    "updateAt": "2025-03-16T20:08:58.683Z",
-    "userUpdate": 1
+    "userId": 2,
+    "classId": 2,
+    "holdDate": "2025-03-21T03:54:23.250Z",
+    "holdDuration": 2,
+    "reason": "Không rõ lí do",
+    "fileName": ""
   }
 }

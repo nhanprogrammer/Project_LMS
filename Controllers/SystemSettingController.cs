@@ -17,13 +17,13 @@ namespace Project_LMS.Controllers
             _systemSettingService = systemSettingService;
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("user/{id}")]
         public async Task<IActionResult> GetById(int id)
         {
             try
             {
                 var result = await _systemSettingService.GetById(id);
-                return Ok(new ApiResponse<object>(0, "Success", result));
+                return Ok(new ApiResponse<object>(0, "Tìm thấy", result));
             }
             catch (KeyNotFoundException ex)
             {
@@ -35,35 +35,28 @@ namespace Project_LMS.Controllers
         public async Task<IActionResult> GetAll()
         {
             var result = await _systemSettingService.GetAll();
-            return Ok(new ApiResponse<object>(0, "Success", result));
+            return Ok(new ApiResponse<object>(0, "Tìm thấy", result));
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] SystemSettingRequest request)
-        {
-            try
-            {
-                var result = await _systemSettingService.Create(request);
-                return CreatedAtAction(nameof(GetById), new { id = result.Id }, new ApiResponse<object>(0, "Thêm mới thành công", result));
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new ApiResponse<object>(1, ex.Message));
-            }
-        }
+        //[HttpPost]
+        //public async Task<IActionResult> Create([FromBody] SystemSettingRequest request)
+        //{
+        //    try
+        //    {
+        //        var result = await _systemSettingService.Create(request);
+        //        return CreatedAtAction(nameof(GetById), new { id = result.Id }, new ApiResponse<object>(0, "Thêm mới thành công", result));
+        //    }
+        //    catch (ArgumentException ex)
+        //    {
+        //        return BadRequest(new ApiResponse<object>(1, ex.Message));
+        //    }
+        //}
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] SystemSettingRequest request)
+        [HttpPut("user/{userId}")]
+        public async Task<IActionResult> Update(int userId, [FromBody] SystemSettingRequest request)
         {
-            try
-            {
-                var result = await _systemSettingService.Update(id, request);
-                return Ok(new ApiResponse<object>(0, "Cập nhật thành công", result));
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new ApiResponse<object>(1, ex.Message));
-            }
+            var result = await _systemSettingService.UpdateByUserId(userId, request);
+            return Ok(new ApiResponse<SystemSettingResponse>(0, "Cập nhật thành công!", result));
         }
 
 

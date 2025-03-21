@@ -145,11 +145,17 @@ namespace Project_LMS.Controllers
         [HttpGet("export-class-list")]
         public async Task<IActionResult> ExportClassList(int academicYearId, int departmentId)
         {
-            var fileData = await _classService.ExportClassListToExcel(academicYearId, departmentId);
-
-            return File(fileData, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        $"ClassList_{DateTime.Now:yyyyMMddHHmmss}.xlsx");
+            try
+            {
+                var base64String = await _classService.ExportClassListToExcel(academicYearId, departmentId);
+                return Ok(new ApiResponse<string>(0, "Xuất danh sách lớp thành công!", base64String));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<string>(1, "Lỗi khi xuất danh sách lớp: " + ex.Message, null));
+            }
         }
+
 
 
         [HttpPost("upload")]
@@ -175,17 +181,17 @@ namespace Project_LMS.Controllers
         [HttpGet("download-excel")]
         public async Task<IActionResult> DownloadClassTemplate()
         {
-            var fileBytes = await _classService.GenerateClassTemplate();
-
-            if (fileBytes is { Length: > 0 }) // Kiểm tra dữ liệu hợp lệ
+            try
             {
-                return File(fileBytes,
-                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            $"ClassTemplate_{DateTime.Now:yyyyMMddHHmmss}.xlsx");
+                var base64String = await _classService.GenerateClassTemplate();
+                return Ok(new ApiResponse<string>(0, "Tạo file mẫu thành công!", base64String));
             }
-
-            return BadRequest("Không thể tạo file mẫu.");
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<string>(1, "Lỗi khi tạo file mẫu: " + ex.Message, null));
+            }
         }
+
 
 
     }

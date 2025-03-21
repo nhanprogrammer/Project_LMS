@@ -20,18 +20,18 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.HoldDate, opt => opt.MapFrom(src => src.HoldDate))
             .ForMember(dest => dest.HoldDuration, opt => opt.MapFrom(src => src.HoldDuration))
             .ForMember(dest => dest.Reason, opt => opt.MapFrom(src => src.Reason))
-            .ForMember(dest => dest.FileName, opt => opt.MapFrom(src => src.FileName))
-            .ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => src.CreateAt))
-            .ForMember(dest => dest.UserCreate, opt => opt.MapFrom(src => src.UserCreate));
+            .ForMember(dest => dest.FileName, opt => opt.MapFrom(src => src.FileName));
+        //.ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => src.CreateAt))
+        //.ForMember(dest => dest.UserCreate, opt => opt.MapFrom(src => src.UserCreate));
 
         CreateMap<UpdateAcademicHoldRequest, AcademicHold>()
             //.ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.StudentId))
             .ForMember(dest => dest.HoldDate, opt => opt.MapFrom(src => src.HoldDate))
             .ForMember(dest => dest.HoldDuration, opt => opt.MapFrom(src => src.HoldDuration))
             .ForMember(dest => dest.Reason, opt => opt.MapFrom(src => src.Reason))
-            .ForMember(dest => dest.FileName, opt => opt.MapFrom(src => src.FileName))
-            .ForMember(dest => dest.UpdateAt, opt => opt.MapFrom(src => src.UpdateAt))
-            .ForMember(dest => dest.UserCreate, opt => opt.MapFrom(src => src.UserUpdate));
+            .ForMember(dest => dest.FileName, opt => opt.MapFrom(src => src.FileName));
+            //.ForMember(dest => dest.UpdateAt, opt => opt.MapFrom(src => src.UpdateAt))
+            //.ForMember(dest => dest.UserCreate, opt => opt.MapFrom(src => src.UserUpdate));
         CreateMap<AcademicHold, AcademicHoldResponse>();
 
 
@@ -80,7 +80,7 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.DepartmentName, opt => opt.MapFrom(src => src.Department.Name))
             .ForMember(dest => dest.ClassType, opt => opt.MapFrom(src => src.ClassType.Name))
             .ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => src.CreateAt ?? DateTime.MinValue))
-            .ForMember(dest => dest.IsDelete, opt => opt.MapFrom(src => src.IsDelete ?? false))
+            //.ForMember(dest => dest.IsDelete, opt => opt.MapFrom(src => src.IsDelete ?? false))
             .ForMember(dest => dest.CreatedBy, opt => opt.MapFrom(src => src.UserCreate.ToString()))
             .ForMember(dest => dest.UpdatedBy, opt => opt.MapFrom(src => src.UserUpdate.ToString()));
         CreateMap<CreateClassRequest, Class>();
