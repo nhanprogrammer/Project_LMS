@@ -1,12 +1,15 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Org.BouncyCastle.Asn1.Ocsp;
 using Project_LMS.Data;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Helpers;
 using Project_LMS.Interfaces;
 using Project_LMS.Interfaces.Responsitories;
 using Project_LMS.Models;
 using Project_LMS.Repositories;
+using System.Collections;
 
 namespace Project_LMS.Services
 {
@@ -15,57 +18,65 @@ namespace Project_LMS.Services
         private readonly ApplicationDbContext _context;
         private readonly IAcademicHoldRepository _academicHoldRepository;
         private readonly IMapper _mapper;
+        private readonly ICloudinaryService _cloudinaryService;
 
-        public AcademicHoldsService(ApplicationDbContext context,IAcademicHoldRepository academicHoldRepository ,IMapper mapper)
+
+        public AcademicHoldsService(ApplicationDbContext context, IAcademicHoldRepository academicHoldRepository, IMapper mapper, ICloudinaryService cloudinaryService)
         {
             _context = context;
             _academicHoldRepository = academicHoldRepository;
             _mapper = mapper;
-
+            _cloudinaryService = cloudinaryService;
         }
 
         public async Task<PaginatedResponse<AcademicHoldResponse>> GetPagedAcademicHolds(PaginationRequest request)
         {
             var query = from ah in _academicHoldRepository.GetQueryable().Where(ah => !ah.IsDelete)
-                        join c in _context.Classes on ah.UserId equals c.UserId into classGroup
-                        from classInfo in classGroup.DefaultIfEmpty()
                         join u in _context.Users on ah.UserId equals u.Id into userGroup
                         from userInfo in userGroup.DefaultIfEmpty()
-                        select new AcademicHoldResponse
+                        select new
                         {
-                            Id = ah.Id,
-                            UserId = ah.UserId,
-                            UserCode = userInfo != null ? userInfo.UserCode : null,
-                            FullName = userInfo != null ? userInfo.FullName : null,
-                            BirthDate = userInfo != null ? userInfo.BirthDate : null,
-                            Gender = userInfo != null ? userInfo.Gender[0] : null,
-                            ClassName = classInfo != null ? classInfo.Name : null,
-                            HoldDate = ah.HoldDate,
-                            HoldDuration = ah.HoldDuration,
-                            Reason = ah.Reason,
-                            //FileName = ah.FileName,
-                            //CreateAt = ah.CreateAt,
-                            //UserCreate = ah.UserCreate,
-                            //IsDelete = ah.IsDelete,
+                            ah,
+                            UserInfo = userInfo
                         };
 
-            int totalItems = await query.CountAsync();
-            int pageSize = request.PageSize > 0 ? request.PageSize : 10;
+            // Lấy danh sách dữ liệu từ database
+            var rawData = await query.AsNoTracking().ToListAsync();
 
-            var academicHoldsList = await query
-                .Skip((request.PageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
+            // Xử lý trên bộ nhớ
+            var resultList = rawData
+                .Select(data => new AcademicHoldResponse
+                {
+                    Id = data.ah.Id,
+                    UserId = data.ah.UserId,
+                    UserCode = data.UserInfo?.UserCode,
+                    FullName = data.UserInfo?.FullName,
+                    BirthDate = data.UserInfo?.BirthDate,
+                    Gender = data.UserInfo?.Gender is BitArray bitArray && bitArray.Count > 0? (bitArray[0] ? "True" : "False"): null,
+                    ClassName = _context.Classes
+                                       .Where(c => c.UserId == data.ah.UserId)
+                                       .Select(c => c.Name)
+                                       .FirstOrDefault(),
+                    HoldDate = data.ah.HoldDate,
+                    HoldDuration = data.ah.HoldDuration,
+                    Reason = data.ah.Reason
+                })
+                .OrderByDescending(x => x.Id)
+                .Skip((request.PageNumber - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .ToList();
+
+            int totalItems = rawData.Count();
 
             return new PaginatedResponse<AcademicHoldResponse>
             {
-                Items = _mapper.Map<List<AcademicHoldResponse>>(academicHoldsList),
+                Items = resultList,
                 PageNumber = request.PageNumber,
-                PageSize = pageSize,
+                PageSize = request.PageSize,
                 TotalItems = totalItems,
-                TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize),
+                TotalPages = (int)Math.Ceiling(totalItems / (double)request.PageSize),
                 HasPreviousPage = request.PageNumber > 1,
-                HasNextPage = request.PageNumber * pageSize < totalItems
+                HasNextPage = request.PageNumber * request.PageSize < totalItems
             };
         }
 
@@ -121,6 +132,7 @@ namespace Project_LMS.Services
             };
         }
 
+
         public async Task AddAcademicHold(CreateAcademicHoldRequest academicHold)
         {
             // Lấy thông tin Class từ ClassId nếu cần
@@ -133,15 +145,36 @@ namespace Project_LMS.Services
                 throw new Exception("Class không tồn tại!");
             }
 
+            if (academicHold.UserId <= 0)
+                throw new Exception("UserId không hợp lệ!");
+
+            if (academicHold.ClassId <= 0)
+                throw new Exception("ClassId không hợp lệ!");
+
+            if (string.IsNullOrWhiteSpace(academicHold.Reason))
+                throw new Exception("Lý do không được để trống!");
+
+            if (academicHold.HoldDuration <= 0)
+                throw new Exception("Thời gian giữ không hợp lệ");
+
+            if (academicHold.HoldDate.Date < DateTime.UtcNow.Date)
+                throw new Exception("HoldDate không được nhỏ hơn ngày hiện tại!");
+
+
+            string uploadedFileName = null;
+            if (!string.IsNullOrEmpty(academicHold.FileName))
+            {
+                uploadedFileName = await _cloudinaryService.UploadDocxAsync(academicHold.FileName);
+            }
+
             var newAcademicHold = new AcademicHold
             {
                 UserId = academicHold.UserId,
                 HoldDate = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified),
                 HoldDuration = academicHold.HoldDuration,
                 Reason = academicHold.Reason,
-                FileName = academicHold.FileName,
-                CreateAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified),
-                UserCreate = academicHold.UserCreate,
+                CreateAt = TimeHelper.NowUsingTimeZone,
+                UserCreate = 1,
                 IsDelete = false
             };
 
@@ -149,9 +182,9 @@ namespace Project_LMS.Services
             _context.AcademicHolds.Add(newAcademicHold);
             await _context.SaveChangesAsync();
 
+
+
         }
-
-
         public async Task UpdateAcademicHold(UpdateAcademicHoldRequest academicHold)
         {
             var existingHold = await _context.AcademicHolds
@@ -172,31 +205,79 @@ namespace Project_LMS.Services
                 throw new Exception("Class không tồn tại!");
             }
 
+            if (academicHold.UserId <= 0)
+                throw new Exception("UserId không hợp lệ!");
+
+            if (academicHold.ClassId <= 0)
+                throw new Exception("ClassId không hợp lệ!");
+
+            if (string.IsNullOrWhiteSpace(academicHold.Reason))
+                throw new Exception("Lý do không được để trống!");
+
+            if (academicHold.HoldDuration <= 0)
+                throw new Exception("Thời gian giữ không hợp lệ");
+
+            if (academicHold.HoldDate.Date < DateTime.UtcNow.Date)
+                throw new Exception("HoldDate không được nhỏ hơn ngày hiện tại!");
+
+            if (!string.IsNullOrEmpty(academicHold.FileName))
+            {
+                existingHold.FileName = await _cloudinaryService.UploadDocxAsync(academicHold.FileName);
+            }
+
             existingHold.UserId = academicHold.UserId;
             existingHold.HoldDate = academicHold.HoldDate;
             existingHold.HoldDuration = academicHold.HoldDuration;
             existingHold.Reason = academicHold.Reason;
-            existingHold.FileName = academicHold.FileName;
-            existingHold.UpdateAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified);
-            existingHold.UserUpdate = academicHold.UserUpdate;
+            existingHold.UpdateAt = TimeHelper.NowUsingTimeZone;
 
             _context.AcademicHolds.Update(existingHold);
             await _context.SaveChangesAsync();
-
         }
 
+
+        //public async Task<bool> DeleteAcademicHold(int id)
+        //{
+        //    var existingAcademicYear = await _academicHoldRepository.GetByIdAsync(id);
+        //    if (existingAcademicYear == null)
+        //    {
+        //        return false;
+        //    }
+
+        //    existingAcademicYear.IsDelete = true;
+        //    await _academicHoldRepository.UpdateAsync(existingAcademicYear);
+
+        //    return true;
+        //}
         public async Task<bool> DeleteAcademicHold(int id)
         {
-            var existingAcademicYear = await _academicHoldRepository.GetByIdAsync(id);
-            if (existingAcademicYear == null)
-            {
-                return false;
-            }
-
-            existingAcademicYear.IsDelete = true;
-            await _academicHoldRepository.UpdateAsync(existingAcademicYear);
-
+            await _academicHoldRepository.DeleteAsync(id);
             return true;
+        }
+        public async Task<List<Class_UserResponse>> GetAllUser_Class()
+        {
+            var classes = await _context.Classes
+                .Where(c => !(c.IsDelete ?? false))
+                .Select(c => new Class_UserResponse
+                {
+                    Id = c.Id,
+                    ClassName = c.Name
+                })
+                .ToListAsync();
+
+            return classes;
+        }
+
+        public async Task<List<User_AcademicHoldsResponse>> GetAllUserName()
+        {
+            return await _context.Users
+                .Where(u => !(u.IsDelete ?? false))
+                .Select(u => new User_AcademicHoldsResponse
+                {
+                    Id = u.Id,
+                    FullName = u.FullName,
+                })
+                .ToListAsync();
         }
     }
 }
