@@ -19,7 +19,7 @@ namespace Project_LMS.Services
             _logger = logger;
         }
 
-        public async Task<ApiResponse<List<TranscriptReponse>>> GetTranscriptAsync(TranscriptRequest transcriptRequest)
+        public async Task<ApiResponse<List<TranscriptReponse>>> GetTranscriptAsync(TranscriptRequest transcriptRequest, int userId)
         {
             try
             {
@@ -40,6 +40,8 @@ namespace Project_LMS.Services
                     .Select(u => new TranscriptDetailReponse
                     {
                         semesterName = u.Assignments.FirstOrDefault() != null && u.Assignments.FirstOrDefault().TestExam != null && u.Assignments.FirstOrDefault().TestExam.Semesters != null ? u.Assignments.FirstOrDefault().TestExam.Semesters.Name : "N/A",
+                        StudentName = u.ClassStudents != null ? u.ClassStudents.FirstOrDefault().User.FullName : "N/A",
+                        DateOfBirth = u.ClassStudents != null && u.ClassStudents.FirstOrDefault().User.BirthDate.HasValue ? u.ClassStudents.FirstOrDefault().User.BirthDate.Value.ToString() : "N/A",
                         status = (u.Assignments.FirstOrDefault().TotalScore ?? 0) >= 5 ? "Passed" : "Failed",
                         updateAt = u.Assignments.FirstOrDefault().UpdateAt.HasValue ? u.Assignments.FirstOrDefault().UpdateAt.Value.ToString("yyyy-MM-dd HH:mm:ss") : "N/A",
                         scoreReponses = u.Assignments.Select(a => new TranscriptDetailScoreReponse
@@ -79,13 +81,10 @@ namespace Project_LMS.Services
                         StartTime = c.AcademicYear != null && c.AcademicYear.StartDate != null ? c.AcademicYear.StartDate.ToString() : "N/A",
                         ClassName = c.Name ?? "N/A",
                         ClassCode = c.ClassCode ?? "N/A",
-                        StudentName = c.User != null ? c.User.FullName : "N/A",
-                        DateOfBirth = c.User != null && c.User.BirthDate.HasValue ? c.User.BirthDate.Value.ToString() : "N/A",
                         SubjectName = c.ClassSubjects.FirstOrDefault() != null && c.ClassSubjects.FirstOrDefault().Subject != null ? c.ClassSubjects.FirstOrDefault().Subject.SubjectName : "N/A",
                         transcriptDetails = transcriptDetails
                     })
                     .ToListAsync();
-
                 return new ApiResponse<List<TranscriptReponse>>(0, "Lấy thông tin bảng điểm thành công", classStudentInfo);
             }
             catch (Exception ex)

@@ -7,7 +7,15 @@ meta {
 get {
   url: {{base_url}}api/Transcript
   body: json
-  auth: none
+  auth: bearer
+}
+
+headers {
+  Authorization: Bearer {{auth_token}}
+}
+
+auth:bearer {
+  token: {{auth_token}}
 }
 
 body:json {
