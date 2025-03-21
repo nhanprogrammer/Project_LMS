@@ -1,0 +1,15 @@
+meta {
+  name: getTeacherPerformance
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}api/report/teacher-performance?userId=3
+  body: none
+  auth: none
+}
+
+params:query {
+  userId: 3
+}

@@ -1,0 +1,47 @@
+meta {
+  name: UpdatePermission
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{base_url}}api/permission/update
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+      "groupRoleId": 1,
+      "groupRoleName":"Nhóm quyền Admin222",
+      "description":"Mô tả mô tả",
+      "allPermission":false,
+      "permissions": [
+          {
+              "moduleId": 1,
+              "isView": false,
+              "isInsert": false,
+              "isUpdate": true,
+              "isDelete": true,
+              "enterScore": true
+          },
+          {
+              "moduleId": 2,
+              "isView": false,
+              "isInsert": true,
+              "isUpdate": true,
+              "isDelete": true,
+              "enterScore": true
+          },
+          {
+              "moduleId": 3,
+              "isView": false,
+              "isInsert": true,
+              "isUpdate": true,
+              "isDelete": true,
+              "enterScore": true
+          }
+      ]
+  }
+  
+}

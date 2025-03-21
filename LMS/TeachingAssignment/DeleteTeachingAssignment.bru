@@ -1,0 +1,19 @@
+meta {
+  name: DeleteTeachingAssignment
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{base_url}}api/TeachingAssignment/list
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "ids": [
+      19,1
+    ]
+  }
+}

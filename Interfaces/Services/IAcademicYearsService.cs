@@ -12,5 +12,6 @@ namespace Project_LMS.Interfaces
         Task<bool> DeleteAcademicYear(int id);
 
         Task<PaginatedResponse<AcademicYearResponse>> GetPagedAcademicYears(PaginationRequest request);
+        
     }
 }

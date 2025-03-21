@@ -1,0 +1,17 @@
+meta {
+  name: getAllSchools
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}api/school
+  body: text
+  auth: none
+}
+
+params:query {
+  ~pageNumber: 1
+  ~pageSize: 2
+  ~keyword: Final Exam 10
+}

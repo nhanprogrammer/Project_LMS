@@ -1,0 +1,15 @@
+meta {
+  name: getAcademicYearOverview
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}api/report/academic-year?academicId=1
+  body: none
+  auth: bearer
+}
+
+params:query {
+  academicId: 1
+}
