@@ -265,5 +265,24 @@ namespace Project_LMS.Controllers
             [Required(ErrorMessage = "Base64 string là bắt buộc")]
             public string Base64String { get; set; } = null!;
         }
+
+        [HttpDelete("delete")]
+        public async Task<IActionResult> DeleteFile(string url)
+        {
+            try
+            {
+                await _cloudinaryService.DeleteFileByUrlAsync(url);
+                return Ok(new { message = "File đã được xóa thành công." });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex + " Lỗi xóa");
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
     }
 }

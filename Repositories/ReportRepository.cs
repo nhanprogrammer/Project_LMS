@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Project_LMS.Data;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Exceptions;
 using Project_LMS.Models;
 
 namespace Project_LMS.Repositories
@@ -132,12 +133,33 @@ namespace Project_LMS.Repositories
         /// </summary>
         public async Task<SchoolLevelStatisticsResponse> GetSchoolLevelStatisticsAsync(int academicYearId, bool isJuniorHigh)
         {
+            // Lấy thông tin trường học duy nhất trong hệ thống
+            var school = await _context.Schools.FirstOrDefaultAsync(s => s.IsDelete == false);
 
-            var allowedDepartmentIds = isJuniorHigh ? new[] { "K06", "K07", "K08", "K09" } : new[] { "K10", "K11", "K12" };
+            // Kiểm tra xem trường học có tồn tại không
+            if (school == null)
+            {
+                throw new Exception("Không tìm thấy trường học trong hệ thống.");
+            }
 
+            // Kiểm tra cấp học của trường
+            if (isJuniorHigh && school.IsJuniorHigh != true)
+            {
+                throw new BadRequestException("Trường học không phải là trường trung học cơ sở.");
+            }
+            else if (!isJuniorHigh && school.IsHighSchool != true)
+            {
+                throw new BadRequestException("Trường học không phải là trường trung học phổ thông.");
+            }
+
+            // Xác định các mã cấp học được phép theo loại trường
+            var allowedDepartmentIds = isJuniorHigh
+                ? new[] { "K06", "K07", "K08", "K09" }
+                : new[] { "K10", "K11", "K12" };
+
+            // Lấy thống kê học sinh theo cấp học
             var gradeStatistics = await (from cs in _context.ClassStudents
-                                         join c in _context.Classes
-                                         on cs.ClassId equals c.Id
+                                         join c in _context.Classes on cs.ClassId equals c.Id
                                          where cs.IsDelete == false
                                                && c.AcademicYearId == academicYearId
                                                && c.IsDelete == false
@@ -149,20 +171,19 @@ namespace Project_LMS.Repositories
                                              DepartmentCode = g.Key.ToString(),
                                              TotalStudents = g.Count()
                                          })
-                                       .ToListAsync();
+                                        .ToListAsync();
 
+            // Đảm bảo tất cả các cấp học trong allowedDepartmentIds đều được liệt kê, kể cả khi không có dữ liệu
             var allGradeStatistics = allowedDepartmentIds
-                .Select(deptCode =>
+                .Select(deptCode => new GradeStatistics
                 {
-                    return new GradeStatistics
-                    {
-                        DepartmentCode = deptCode,
-                        TotalStudents = gradeStatistics.FirstOrDefault(gs => gs.DepartmentCode == deptCode)?.TotalStudents ?? 0
-                    };
+                    DepartmentCode = deptCode,
+                    TotalStudents = gradeStatistics.FirstOrDefault(gs => gs.DepartmentCode == deptCode)?.TotalStudents ?? 0
                 })
                 .OrderBy(gs => gs.DepartmentCode)
                 .ToList();
 
+            // Trả về kết quả
             return new SchoolLevelStatisticsResponse
             {
                 AcademicYearId = academicYearId,
