@@ -1,0 +1,23 @@
+meta {
+  name: User belongs to class (student)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{base_url}}api/Topic
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "teachingAssignmentId": 2,
+    "userId": 11,
+    "topicId": 43,
+    "title": "C# có cấu trúc gọn gàn hơn Python không ?",
+    "fileName": "",
+    "description": "",
+    "closeAt": "2025-03-20T00:00:00.000Z"
+  }
+}

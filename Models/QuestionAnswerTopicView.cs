@@ -14,5 +14,10 @@ namespace Project_LMS.Models
         public int? UserCreate { get; set; }
         public int? UserUpdate { get; set; }
         public bool? IsDelete { get; set; }
+
+        // -- Navigation Properties:
+        public virtual Topic? Topic { get; set; } // trỏ đến bảng Topics
+        public virtual User? User { get; set; } // trỏ đến bảng Users   
+        public virtual QuestionAnswer? QuestionAnswer { get; set; }
     }
 }

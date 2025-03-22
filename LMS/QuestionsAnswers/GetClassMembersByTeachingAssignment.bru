@@ -1,0 +1,43 @@
+meta {
+  name: GetClassMembersByTeachingAssignment
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}api/QuestionsAnswers/class-members/2?searchTerm=Học sinh: Thầy giải bài này giúp em!
+  body: json
+  auth: none
+}
+
+query {
+  searchTerm: Học sinh: Thầy giải bài này giúp em!
+}
+
+body:json {
+  /*
+  Tham số id là mã phân công giảng dạy để kiểm tra học sinh hoặc giáo viên đó thuộc lớp nào
+  
+  Xem danh sách user dựa vào id của phân công giảng dạy
+  
+   {
+          "userId": 17,
+          "fullName": "Tran Van Phuc",
+          "email": "tranvanphuc@gmail.com",
+          "phone": "0901234512",
+          "role": "student",
+          "classId": 2,
+          "className": "10A2",
+          "views": 2,
+          "questions": [
+            {
+              "id": 57,
+              "createAt": "2025-03-20T10:20:00"
+            }
+          ],
+          "answers": []
+    }
+    
+  thông tin sẽ trả về như này của thể count số câu trời bằng answers trên giao diện
+  */
+}

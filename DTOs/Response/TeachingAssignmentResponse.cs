@@ -50,6 +50,6 @@
         public string? SubjectName { get; set; }
         public string? Title { get; set; }
         public string? Description { get; set; }
-        public DateTime? CloseAt { get; set; }
+        public DateTimeOffset? CloseAt { get; set; }
     }
 }

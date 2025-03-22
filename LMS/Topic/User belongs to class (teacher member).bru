@@ -1,0 +1,23 @@
+meta {
+  name: User belongs to class (teacher member)
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{base_url}}api/Topic
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+      "teachingAssignmentId": 2,
+      "userId": 3,
+      "topicId": null,
+      "title": "Giới thiệu về NodeJS",
+      "fileName": "",
+      "description": "Java là gì?",
+      "closeAt": "2025-03-22T00:00:00.000Z"
+  }
+}
