@@ -1,4 +1,6 @@
-﻿namespace Project_LMS.DTOs.Request;
+﻿using System.Text.Json.Serialization;
+
+namespace Project_LMS.DTOs.Request;
 
 public class CreateAcademicHoldRequest
 {
@@ -9,6 +11,7 @@ public class CreateAcademicHoldRequest
     public int? HoldDuration { get; set; }
     public string? Reason { get; set; }
     public string? FileName { get; set; }
-    public DateTimeOffset CreateAt { get; set; }
+    //public DateTimeOffset CreateAt { get; set; }
+    [JsonIgnore]
     public int? UserCreate { get; set; }
 }

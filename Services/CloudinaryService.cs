@@ -15,6 +15,7 @@ namespace Project_LMS.Services
         Task<string> UploadDocAsync(string base64String);
         Task<string> UploadDocxAsync(string base64String);
         Task<string> UploadPowerPointAsync(string base64String);
+        Task DeleteFileByUrlAsync(string url);
     }
 
     public class CloudinaryService : ICloudinaryService
@@ -102,6 +103,68 @@ namespace Project_LMS.Services
             }
 
             return uploadResult.SecureUrl.AbsoluteUri;
+        }
+
+        public async Task DeleteFileByUrlAsync(string url)
+        {
+            if (string.IsNullOrEmpty(url))
+            {
+                throw new ArgumentException("URL không được để trống hoặc null.");
+            }
+
+            var resourceType = url.Contains("/raw/upload/") ? "raw" : "image";
+            Console.WriteLine($"ResourceType: {resourceType}");
+
+            var publicId = GetPublicIdFromUrl(url, resourceType);
+            Console.WriteLine($"Public ID: {publicId}");
+
+            var deletionParams = new DeletionParams(publicId)
+            {
+                ResourceType = resourceType == "raw" ? ResourceType.Raw : ResourceType.Image
+            };
+
+            var deletionResult = await _cloudinary.DestroyAsync(deletionParams);
+
+            if (deletionResult.Result != "ok")
+            {
+                var errorMessage = deletionResult.Error != null ? deletionResult.Error.Message : "Không có thông tin lỗi chi tiết.";
+                if (errorMessage.Contains("not found"))
+                {
+                    Console.WriteLine("File không tồn tại trên Cloudinary, bỏ qua.");
+                    return;
+                }
+                throw new Exception($"Xóa file thất bại: {errorMessage}");
+            }
+        }
+
+        private string GetPublicIdFromUrl(string url, string resourceType)
+        {
+            var uri = new Uri(url);
+            var segments = uri.AbsolutePath.Split('/');
+
+            // Tìm vị trí của "upload" trong URL
+            var uploadIndex = Array.IndexOf(segments, "upload");
+
+            // Lấy các đoạn sau "upload", bỏ qua version
+            var publicIdSegments = segments.Skip(uploadIndex + 2);
+            var publicIdWithExtension = string.Join("/", publicIdSegments);
+
+            // Xử lý public_id dựa trên ResourceType
+            string publicId;
+            if (resourceType == "raw")
+            {
+                // Với file raw (xlsx, docx, doc, v.v.), giữ nguyên đuôi file
+                publicId = publicIdWithExtension;
+            }
+            else
+            {
+                // Với file image (jpg, png, v.v.), bỏ đuôi file
+                publicId = Path.GetFileNameWithoutExtension(publicIdWithExtension);
+                var folder = string.Join("/", publicIdSegments.Take(publicIdSegments.Count() - 1));
+                publicId = string.IsNullOrEmpty(folder) ? publicId : $"{folder}/{publicId}";
+            }
+
+            return publicId;
         }
     }
 }

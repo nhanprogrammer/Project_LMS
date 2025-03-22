@@ -9,7 +9,5 @@ public class UpdateAcademicHoldRequest
     public int? HoldDuration { get; set; }
     public string? Reason { get; set; }
     public string? FileName { get; set; }
-    public DateTime UpdateAt { get; set; }
-    public int? UserUpdate { get; set; }
 
 }
