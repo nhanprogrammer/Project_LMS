@@ -134,7 +134,7 @@ namespace Project_LMS.Services
             }
         }
 
-        public async Task<ApiResponse<SubjectResponse>> UpdateSubjectAsync(int id, SubjectRequest request)
+        public async Task<ApiResponse<SubjectResponse>> UpdateSubjectAsync(SubjectRequest request)
         {
             try
             {
@@ -152,7 +152,7 @@ namespace Project_LMS.Services
                 // Check if subject exists
                 var existingSubject = await _context.Subjects
                     .Include(s => s.SubjectType)
-                    .FirstOrDefaultAsync(s => s.Id == id && (!s.IsDelete.HasValue || !s.IsDelete.Value));
+                    .FirstOrDefaultAsync(s => s.Id == request.Id && (!s.IsDelete.HasValue || !s.IsDelete.Value));
 
                 if (existingSubject == null)
                     return new ApiResponse<SubjectResponse>(1, "Subject not found", null);
@@ -160,7 +160,7 @@ namespace Project_LMS.Services
                 // Check for duplicate SubjectCode, excluding current subject
                 var duplicateExists = await _context.Subjects
                     .AnyAsync(s => s.SubjectCode == request.SubjectCode 
-                        && s.Id != id 
+                        && s.Id != request.Id
                         && (!s.IsDelete.HasValue || !s.IsDelete.Value));
 
                 if (duplicateExists)

@@ -8,7 +8,7 @@ namespace Project_LMS.Interfaces.Services
         Task<ApiResponse<PaginatedResponse<SubjectTypeResponse>>> GetAllSubjectTypesAsync(string? keyword, int pageNumber, int pageSize);
         Task<ApiResponse<SubjectTypeResponse>> GetSubjectTypeByIdAsync(int id);
         Task<ApiResponse<SubjectTypeResponse>> CreateSubjectTypeAsync(SubjectTypeRequest request);
-        Task<ApiResponse<SubjectTypeResponse>> UpdateSubjectTypeAsync(int id, SubjectTypeRequest request);
-        Task<ApiResponse<bool>> DeleteSubjectTypeAsync(int id);
+        Task<ApiResponse<SubjectTypeResponse>> UpdateSubjectTypeAsync(SubjectTypeRequest request);
+        Task<ApiResponse<bool>> DeleteSubjectTypeAsync(List<int> ids);
     }
 }
