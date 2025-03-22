@@ -28,5 +28,7 @@ namespace Project_LMS.Models
         public virtual User? User { get; set; }
         public virtual ICollection<Favourite> Favourites { get; set; }
         public virtual ICollection<QuestionAnswer> InverseQuestionsAnswer { get; set; }
+        public virtual ICollection<QuestionAnswerTopicView> QuestionAnswerTopicViews { get; set; }
+
     }
 }

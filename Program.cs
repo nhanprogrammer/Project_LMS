@@ -16,12 +16,12 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using Microsoft.AspNetCore.SignalR;
 using Project_LMS.Configurations;
 using Project_LMS.Authorization;
 using Project_LMS.DTOs.Response;
 using Microsoft.Extensions.Caching.Memory;
-
-
+using Project_LMS.Hubs;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -92,6 +92,9 @@ builder.Services.AddScoped<ISubjectGroupService, SubjectGroupService>();
 builder.Services.AddScoped<IDepartmentsService, DepartmentsService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IStudentStatusService, StudentStatusService>();
+builder.Services.AddScoped<IQuestionsAnswersService, QuestionsAnswersService>();
+builder.Services.AddScoped<ITopicService, TopicService>();
+builder.Services.AddScoped<INotificationsService, NotificationsService>();
 // Repositories
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<ISchoolRepository, SchoolRepository>();
@@ -120,7 +123,7 @@ builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
 builder.Services.AddScoped<ITestExamTypeRepository, TestExamTypeRepository>();
 builder.Services.AddScoped<ISubjectTypeRepository, SubjectTypeRepository>();
 builder.Services.AddScoped<IJwtReponsitory, JwtReponsitory>();
-
+builder.Services.AddScoped<INotificationsRepository, NotificationsRepository>();
 builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
 builder.Services.AddScoped<ITeachingAssignmentService, TeachingAssignmentService>();
 
@@ -133,7 +136,12 @@ builder.Services.AddScoped<IReportRepository, ReportRepository>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 // builder.Services.AddScoped<IDepartmentsService, Deparmen>();
+builder.Services.AddScoped<IQuestionsAnswerRepository, QuestionsAnswerRepository>();
+builder.Services.AddScoped<ITopicRepository, TopicRepository>();
 
+// Add Service SignalR
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<IUserIdProvider, NameUserIdProvider>();
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 
@@ -260,7 +268,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowFrontend");
 app.UseHttpsRedirection();
-
+app.MapHub<RealtimeHub>("/realtimeHub");
 app.UseAuthentication();
 app.UseAuthorization();
 

@@ -43,7 +43,7 @@ namespace Project_LMS.Repositories
             var question = await _context.Questions.FindAsync(id);
             if (question != null)
             {
-                _context.Questions.Remove(question);
+                question.IsDelete = true;
                 await _context.SaveChangesAsync();
             }
         }

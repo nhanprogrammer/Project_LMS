@@ -1,0 +1,27 @@
+meta {
+  name: Seletect Questions answer by id
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}api/QuestionsAnswers/60?userId=7
+  body: json
+  auth: none
+}
+
+query {
+  userId: 7
+}
+
+body:json {
+  /*
+  Tham số truyền vào
+  int id: ID của câu hỏi hoặc câu trả lời cần lấy thông tin.
+  int? userId: ID của user đang xem (có thể là null).
+  
+  Để trả về kết quả mông muốn thì phải kiểm tra xem câu hỏi đó của lớp nào nằm trong phân công giảng dạy nào và lớp nằm trong phân công giảng dạy đó có chứa user của lớp đó không
+  
+  có thể bỏ param userId để xem câu hỏi
+  */
+}

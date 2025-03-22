@@ -1,100 +1,100 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using Project_LMS.Interfaces.Services;
 using Project_LMS.DTOs.Request;
-using Project_LMS.DTOs.Response;
+using Project_LMS.Interfaces.Services;
 
-[Route("api/[controller]")]
-[ApiController]
-public class TopicController : ControllerBase
+namespace Project_LMS.Controllers
 {
-    private readonly ITopicService _service;
-
-    public TopicController(ITopicService service)
+    [ApiController]
+    [Route("api/[controller]")]
+    public class TopicController : ControllerBase
     {
-        _service = service;
-    }
+        private readonly ITopicService _topicService;
 
-    [HttpGet]
-    public async Task<ActionResult<ApiResponse<PaginatedResponse<TopicResponse>>>> GetAll([FromQuery] string? keyword, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
-    {
-        try
+        public TopicController(ITopicService topicService)
         {
-            var response = await _service.GetAllTopicsAsync(keyword, pageNumber, pageSize);
-            return Ok(response);
+            _topicService = topicService;
         }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiResponse<string>(1, $"Internal server error: {ex.Message}", null));
-        }
-    }
 
-    [HttpGet("{id}")]
-    public async Task<ActionResult<ApiResponse<TopicResponse>>> GetById(int id)
-    {
-        try
+        [HttpGet]
+        public async Task<IActionResult> GetAllTopics()
         {
-            var result = await _service.GetTopicByIdAsync(id);
-            if (result.Data == null)
-            {
-                return NotFound(new ApiResponse<TopicResponse>(1, "Topic not found", null));
-            }
+            var result = await _topicService.GetAllTopicsAsync();
             return Ok(result);
         }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiResponse<string>(1, $"Internal server error: {ex.Message}", null));
-        }
-    }
 
-    [HttpPost]
-    public async Task<ActionResult<ApiResponse<TopicResponse>>> Create([FromBody] TopicRequest request)
-    {
-        try
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetTopicById(int id, [FromQuery] int? userId)
         {
-            var result = await _service.CreateTopicAsync(request);
-            return CreatedAtAction(nameof(GetById), new { id = result.Data.Id }, result);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiResponse<string>(1, $"Internal server error: {ex.Message}", null));
-        }
-    }
-
-    [HttpPut("{id}")]
-    public async Task<ActionResult<ApiResponse<TopicResponse>>> Update(int id, [FromBody] TopicRequest request)
-    {
-        try
-        {
-            var result = await _service.UpdateTopicAsync(id, request);
-            if (result.Data == null)
+            var result = await _topicService.GetTopicByIdAsync(id, userId);
+            if (result.Status == 1)
             {
-                return NotFound(new ApiResponse<TopicResponse>(1, "Topic not found", null));
+                return BadRequest(result);
             }
+
             return Ok(result);
         }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiResponse<string>(1, $"Internal server error: {ex.Message}", null));
-        }
-    }
 
-    [HttpDelete("{id}")]
-    public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
-    {
-        try
+        [HttpPost]
+        public async Task<IActionResult> CreateTopic([FromBody] CreateTopicRequest request)
         {
-            var result = await _service.DeleteTopicAsync(id);
-            if (!result.Data)
+            if (!ModelState.IsValid)
             {
-                return NotFound(new ApiResponse<bool>(1, "Topic not found", false));
+                return BadRequest(ModelState);
             }
+
+            var result = await _topicService.CreateTopicAsync(request);
+            if (result.Status == 1)
+            {
+                // Nếu topic không tồn tại
+                return NotFound(result);
+            }
+
+            // 201 - Created nếu muốn chuẩn REST
             return Ok(result);
         }
-        catch (Exception ex)
+
+        [HttpPut]
+        public async Task<IActionResult> UpdateTopic([FromBody] UpdateTopicRequest request)
         {
-            return StatusCode(500, new ApiResponse<string>(1, $"Internal server error: {ex.Message}", null));
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var result = await _topicService.UpdateTopicAsync(request);
+            if (result.Status == 1)
+            {
+                // Nếu topic không tồn tại
+                return NotFound(result);
+            }
+
+            return Ok(result);
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteTopic(int id, [FromQuery] int userId)
+        {
+            var result = await _topicService.DeleteTopicAsync(id, userId);
+            if (result.Status == 1)
+            {
+                // Nếu topic không tồn tại
+                return NotFound(result);
+            }
+
+            return Ok(result);
+        }
+
+        [HttpGet("search")]
+        public async Task<IActionResult> SearchTopics([FromQuery] string? keyword)
+        {
+            var result = await _topicService.SearchTopicsAsync(keyword);
+            if (result.Status == 1)
+            {
+                // Nếu không tìm thấy topic
+                return NotFound(result);
+            }
+
+            return Ok(result);
         }
     }
 }

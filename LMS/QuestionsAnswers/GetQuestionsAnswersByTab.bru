@@ -1,0 +1,28 @@
+meta {
+  name: GetQuestionsAnswersByTab
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{base_url}}api/QuestionsAnswers/by-tab?tab=all&teachingAssignmentId=2&userId=7
+  body: json
+  auth: none
+}
+
+query {
+  tab: all
+  teachingAssignmentId: 2
+  userId: 7
+}
+
+body:json {
+  /// <summary>
+  /// Lấy danh sách sinh viên thuộc một phân công giảng dạy
+  /// </summary>
+  /// <param name="teachingAssignmentId">ID của phân công giảng dạy</param>
+  /// <returns>Danh sách sinh viên</returns>
+  /// <response code="200">Trả về danh sách sinh viên thành công</response>
+  /// <response code="404">Không tìm thấy phân công giảng dạy hoặc không có sinh viên</response>
+  /// <response code="400">Yêu cầu không hợp lệ</response>
+}

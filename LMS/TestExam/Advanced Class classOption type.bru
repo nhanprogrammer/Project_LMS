@@ -1,36 +1,35 @@
 meta {
-  name: Tr--ng h-p 1- -T-t c- l-p- - --p d-ng cho t-t c- l-p-_1
+  name: Advanced Class classOption type
   type: http
-  seq: 1
+  seq: 2
 }
 
 post {
-  url: https://localhost:7186/api/TestExam
+  url: {{base_url}}api/TestExam
   body: json
   auth: none
 }
 
 body:json {
   {
-      "subjectId": 1,
-      "topic": "Thi cuối học kỳ Toán",
-      "semestersId": 1,
-      "durationInMinutes": 90,
+      "subjectId": 3,
+      "topic": "Thi cuối năm Hóa",
+      "semestersId": 3,
+      "durationInMinutes": 120,
       "examDate": "2025-03-12",
       "classIds": null,
-      "classOption": "ALL",
-      "selectedClassTypeId": null,
+      "classOption": "TYPE",
+      "selectedClassTypeId": 3,
       "applyExaminerForAllClasses": true,
       "examinerIds": [
-          1,
           2
       ],
       "examinersForClass": null,
-      "description": "Bài thi cuối học kỳ với hình thức trắc nghiệm",
-      "testExamTypeId": 1,
+      "description": "Bài thi cuối năm với hình thức trắc nghiệm",
+      "testExamTypeId": 3,
       "isExam": true,
       "form": "Trắc nghiệm",
-      "departmentId": 1
+      "departmentId": 3
   }
 }
 
