@@ -125,17 +125,14 @@ namespace Project_LMS.Controllers
             }
 
             // Nếu đã chọn user => kiểm tra số lượng phân công giảng dạy
-            if (result.TeachingAssignments == null || result.TeachingAssignments.TotalItems == 0)
+            if (result == null || result.TeachingAssignments == null || result.TeachingAssignments.TotalItems == 0)
             {
-                return Ok(new
-                {
-                    message = "Không tìm thấy dữ liệu phân công giảng dạy",
-                    data = result
-                });
+                return Ok(new ApiResponse<object>(1, "Không tìm thấy dữ liệu phân công giảng dạy!", result));
             }
 
             return Ok(new ApiResponse<object>(0, "Lấy dữ liệu thành công!", result));
         }
+
         [HttpGet("{id}/topics")]
         public async Task<IActionResult> GetTopicsByAssignment(int id)
         {

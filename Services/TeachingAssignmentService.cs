@@ -258,17 +258,9 @@ public class TeachingAssignmentService : ITeachingAssignmentService
 
     public async Task<TeachingAssignmentWrapperResponse> GetTeachingAssignments(int? academicYearId, int? subjectGroupId, int? userId, int pageNumber = 1, int pageSize = 10)
     {
-        IQueryable<User> teachersQuery;
-
-        // Nếu không chọn năm học và bộ môn => lấy toàn bộ giáo viên RoleId = 2
-        
-            teachersQuery = _context.Users
-                .Where(u => u.Role.Id == 2 && (u.IsDelete == false || u.IsDelete == null));
-
-        if (userId.HasValue)
-        {
-            teachersQuery = teachersQuery.Where(u => u.Id == userId.Value);
-        }
+        // Bước 1: Lọc danh sách giáo viên
+        var teachersQuery = _context.Users
+            .Where(u => u.Role.Id == 2 && (u.IsDelete == false || u.IsDelete == null));
 
         if (academicYearId.HasValue || subjectGroupId.HasValue)
         {
@@ -286,71 +278,82 @@ public class TeachingAssignmentService : ITeachingAssignmentService
             );
         }
 
+        // Lấy danh sách giáo viên sau khi lọc
+        var teachers = await teachersQuery
+            .Select(u => new UserResponseTeachingAssignment
+            {
+                Id = u.Id,
+                FullName = u.FullName
+            }).ToListAsync();
 
-        // Danh sách giáo viên
-        var teachers = await teachersQuery.Select(u => new UserResponseTeachingAssignment
+        // Nếu không truyền userId => chỉ trả danh sách giáo viên
+        if (!userId.HasValue)
         {
-            Id = u.Id,
-            FullName = u.FullName
-        }).ToListAsync();
-
-        // Danh sách phân công
-        PaginatedResponse<TeachingAssignmentResponseCreateUpdate> assignments = null;
-
-        if (userId.HasValue)
-        {
-            var assignmentsQuery = _context.TeachingAssignments
-                .Where(t => (t.IsDelete == false || t.IsDelete == null) && t.UserId == userId.Value);
-
-            if (academicYearId.HasValue)
+            return new TeachingAssignmentWrapperResponse
             {
-                assignmentsQuery = assignmentsQuery.Where(t => t.Class.AcademicYearId == academicYearId.Value);
-            }
-
-            if (subjectGroupId.HasValue)
-            {
-                assignmentsQuery = assignmentsQuery.Where(t =>
-                    _context.SubjectGroupSubjects.Any(sgs =>
-                        sgs.SubjectId == t.SubjectId &&
-                        sgs.SubjectGroupId == subjectGroupId.Value &&
-                        (sgs.SubjectGroup.IsDelete == false || sgs.SubjectGroup.IsDelete == null)
-                    )
-                );
-            }
-
-            var totalItems = await assignmentsQuery.CountAsync();
-            var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
-
-            var assignmentList = await assignmentsQuery
-                .OrderByDescending(t => t.CreateAt)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .Select(t => new TeachingAssignmentResponseCreateUpdate
-                {
-                    Id = t.Id,
-                    UserId = userId.Value,
-                    UserName = t.User.FullName,
-                    ClassId = t.ClassId,
-                    ClassName = t.Class.Name,
-                    SubjectId = t.SubjectId,
-                    SubjectName = t.Subject.SubjectName,
-                    StartDate = t.StartDate,
-                    EndDate = t.EndDate,
-                    //Description = t.Description
-                })
-                .ToListAsync();
-
-            assignments = new PaginatedResponse<TeachingAssignmentResponseCreateUpdate>
-            {
-                Items = assignmentList,
-                PageNumber = pageNumber,
-                PageSize = pageSize,
-                TotalItems = totalItems,
-                TotalPages = totalPages,
-                HasPreviousPage = pageNumber > 1,
-                HasNextPage = pageNumber < totalPages
+                Teachers = teachers,
+                TeachingAssignments = null
             };
         }
+
+        // Bước 2: Kiểm tra userId có nằm trong danh sách giáo viên không
+        var isUserExist = teachers.Any(t => t.Id == userId.Value);
+        if (!isUserExist)
+        {
+            return null ;
+        }
+
+        // Bước 3: Nếu có userId và đúng giáo viên => lấy danh sách phân công
+        var assignmentsQuery = _context.TeachingAssignments
+            .Where(t => (t.IsDelete == false || t.IsDelete == null) && t.UserId == userId.Value);
+
+        if (academicYearId.HasValue)
+        {
+            assignmentsQuery = assignmentsQuery.Where(t => t.Class.AcademicYearId == academicYearId.Value);
+        }
+
+        if (subjectGroupId.HasValue)
+        {
+            assignmentsQuery = assignmentsQuery.Where(t =>
+                _context.SubjectGroupSubjects.Any(sgs =>
+                    sgs.SubjectId == t.SubjectId &&
+                    sgs.SubjectGroupId == subjectGroupId.Value &&
+                    (sgs.SubjectGroup.IsDelete == false || sgs.SubjectGroup.IsDelete == null)
+                )
+            );
+        }
+
+        var totalItems = await assignmentsQuery.CountAsync();
+        var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+        var assignmentList = await assignmentsQuery
+            .OrderByDescending(t => t.CreateAt)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(t => new TeachingAssignmentResponseCreateUpdate
+            {
+                Id = t.Id,
+                UserId = t.UserId,
+                UserName = t.User.FullName,
+                ClassId = t.ClassId,
+                ClassName = t.Class.Name,
+                SubjectId = t.SubjectId,
+                SubjectName = t.Subject.SubjectName,
+                StartDate = t.StartDate,
+                EndDate = t.EndDate,
+            })
+            .ToListAsync();
+
+        var assignments = new PaginatedResponse<TeachingAssignmentResponseCreateUpdate>
+        {
+            Items = assignmentList,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalItems = totalItems,
+            TotalPages = totalPages,
+            HasPreviousPage = pageNumber > 1,
+            HasNextPage = pageNumber < totalPages
+        };
 
         return new TeachingAssignmentWrapperResponse
         {
@@ -358,6 +361,8 @@ public class TeachingAssignmentService : ITeachingAssignmentService
             TeachingAssignments = assignments
         };
     }
+
+
     public async Task<List<TopicResponseByAssignmentId>> GetTopicsByAssignmentIdAsync(int assignmentId)
     {
         var topics = await (from ta in _context.TeachingAssignments
@@ -371,8 +376,7 @@ public class TeachingAssignmentService : ITeachingAssignmentService
                                 Id = t.Id,
                                 TeachingAssignmentId = ta.Id,
                                 UserId = u.Id,
-                                UserName = u.FullName,
-                                TopicId = t.Id,
+                                FullName = u.FullName,
                                 ClassName = c.Name,
                                 SubjectName = s.SubjectName,
                                 Title = t.Title,
