@@ -1,0 +1,23 @@
+meta {
+  name: view topic for click
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}api/Topic/30?userId=3
+  body: json
+  auth: none
+}
+
+query {
+  userId: 3
+}
+
+body:json {
+  /*
+  Tham số 
+  -id: dùng để tìm topic 
+  -userId: dung để thực hiện chức năng xem va user đó có năm trong phân công giảng dạy không
+  */
+}

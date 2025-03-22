@@ -1,0 +1,23 @@
+meta {
+  name: Update User does not belong to the class
+  type: http
+  seq: 10
+}
+
+put {
+  url: {{base_url}}api/QuestionsAnswers
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "id": 44,
+    "teachingAssignmentId": 2,
+    "userId": 5,
+    "parentCommentId": 0,
+    "content": "Câu hỏi về ReactJS (đã chỉnh sửa)",
+    "fileName": "",
+    "userUpdate": 5
+  }
+}

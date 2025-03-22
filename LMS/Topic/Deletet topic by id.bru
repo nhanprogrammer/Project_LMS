@@ -1,0 +1,15 @@
+meta {
+  name: Deletet topic by id
+  type: http
+  seq: 11
+}
+
+delete {
+  url: {{base_url}}api/Topic/4?userId=3
+  body: none
+  auth: none
+}
+
+query {
+  userId: 3
+}

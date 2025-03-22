@@ -1,0 +1,24 @@
+meta {
+  name: update User does not belong to the class
+  type: http
+  seq: 10
+}
+
+put {
+  url: {{base_url}}api/Topic
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "id": 26,
+    "teachingAssignmentId": 2,
+    "userId": 5,
+    "topicId": 24,
+    "title": "Câu hỏi về ReactJS (đã chỉnh sửa)",
+    "fileName": "",
+    "description": "ReactJS có hỗ trợ SSR không? (đã chỉnh sửa)",
+    "closeAt": "2025-03-20T00:00:00.000Z"
+  }
+}

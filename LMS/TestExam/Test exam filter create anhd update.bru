@@ -1,0 +1,16 @@
+meta {
+  name: Test exam filter create anhd update
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{base_url}}api/TestExam/filter?academicYearId=1&departmentId=1
+  body: none
+  auth: none
+}
+
+params:query {
+  academicYearId: 1
+  departmentId: 1
+}

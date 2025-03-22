@@ -1,0 +1,20 @@
+meta {
+  name: select list id read by notification
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{base_url}}api/Notifications/mark-read-multiple/user/2
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "ids": [
+      8,
+      9
+    ]
+  }
+}

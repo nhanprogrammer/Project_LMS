@@ -4,6 +4,7 @@ using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces.Services;
 using Project_LMS.Models;
+using TeachingAssignmentRequestCreate = Project_LMS.DTOs.Request.TeachingAssignmentRequestCreate;
 
 namespace Project_LMS.Services;
 
@@ -16,13 +17,14 @@ public class TeachingAssignmentService : ITeachingAssignmentService
         _context = context;
     }
 
-    public async Task<PaginatedResponse<TeachingAssignmentResponseCreateUpdate>> GetAll(int pageNumber, int pageSize, int? academicYearId, int? subjectGroupId)
+    public async Task<PaginatedResponse<TeachingAssignmentResponseCreateUpdate>> GetAll(int pageNumber, int pageSize,
+        int? academicYearId, int? subjectGroupId)
     {
         var queryBase = _context.TeachingAssignments
             .Where(t => t.IsDelete == false || t.IsDelete == null)
             .Include(t => t.User)
             .Include(t => t.Class)
-                .ThenInclude(c => c.AcademicYear)
+            .ThenInclude(c => c.AcademicYear)
             .Include(t => t.Subject)
             .Include(x => x.Topics);
 
@@ -65,17 +67,17 @@ public class TeachingAssignmentService : ITeachingAssignmentService
                 StartDate = t.StartDate,
                 EndDate = t.EndDate,
                 //CreateAt = t.CreateAt,
-            //    Topics = t.Topics
-            //.Where(topic => topic.IsDelete == false || topic.IsDelete == null)
-            //.Select(topic => new TopicResponse
-            //{
-            //    Id = topic.Id,
-            //    Title = topic.Title,
-            //    FileName = topic.FileName,
-            //    Description = topic.Description,
-            //    CreateAt = topic.CreateAt
-            //})
-            //.ToList()
+                //    Topics = t.Topics
+                //.Where(topic => topic.IsDelete == false || topic.IsDelete == null)
+                //.Select(topic => new TopicResponse
+                //{
+                //    Id = topic.Id,
+                //    Title = topic.Title,
+                //    FileName = topic.FileName,
+                //    Description = topic.Description,
+                //    CreateAt = topic.CreateAt
+                //})
+                //.ToList()
             })
             .ToListAsync();
 
@@ -90,7 +92,6 @@ public class TeachingAssignmentService : ITeachingAssignmentService
             HasNextPage = pageNumber < totalPages
         };
     }
-
 
 
     public async Task<TeachingAssignmentResponseCreateUpdate?> GetById(int id)
@@ -171,7 +172,7 @@ public class TeachingAssignmentService : ITeachingAssignmentService
             };
 
             _context.TeachingAssignments.Add(assignment);
-            await _context.SaveChangesAsync(); 
+            await _context.SaveChangesAsync();
 
             Console.WriteLine($"TeachingAssignment đã tạo với ID = {assignment.Id}");
 
@@ -185,7 +186,8 @@ public class TeachingAssignmentService : ITeachingAssignmentService
     }
 
 
-    public async Task<TeachingAssignmentResponseCreateUpdate> UpdateByUserId(int userId, TeachingAssignmentRequest request)
+    public async Task<TeachingAssignmentResponseCreateUpdate> UpdateByUserId(int userId,
+        TeachingAssignmentRequest request)
     {
         try
         {
@@ -256,14 +258,15 @@ public class TeachingAssignmentService : ITeachingAssignmentService
     }
 
 
-    public async Task<TeachingAssignmentWrapperResponse> GetTeachingAssignments(int? academicYearId, int? subjectGroupId, int? userId, int pageNumber = 1, int pageSize = 10)
+    public async Task<TeachingAssignmentWrapperResponse> GetTeachingAssignments(int? academicYearId,
+        int? subjectGroupId, int? userId, int pageNumber = 1, int pageSize = 10)
     {
         IQueryable<User> teachersQuery;
 
         // Nếu không chọn năm học và bộ môn => lấy toàn bộ giáo viên RoleId = 2
-        
-            teachersQuery = _context.Users
-                .Where(u => u.Role.Id == 2 && (u.IsDelete == false || u.IsDelete == null));
+
+        teachersQuery = _context.Users
+            .Where(u => u.Role.Id == 2 && (u.IsDelete == false || u.IsDelete == null));
 
         if (userId.HasValue)
         {
@@ -358,29 +361,29 @@ public class TeachingAssignmentService : ITeachingAssignmentService
             TeachingAssignments = assignments
         };
     }
+
     public async Task<List<TopicResponseByAssignmentId>> GetTopicsByAssignmentIdAsync(int assignmentId)
     {
         var topics = await (from ta in _context.TeachingAssignments
-                            join t in _context.Topics on ta.Id equals t.TeachingAssignmentId
-                            join u in _context.Users on ta.UserId equals u.Id
-                            join c in _context.Classes on ta.ClassId equals c.Id
-                            join s in _context.Subjects on ta.SubjectId equals s.Id
-                            where ta.Id == assignmentId
-                            select new TopicResponseByAssignmentId
-                            {
-                                Id = t.Id,
-                                TeachingAssignmentId = ta.Id,
-                                UserId = u.Id,
-                                UserName = u.FullName,
-                                TopicId = t.Id,
-                                ClassName = c.Name,
-                                SubjectName = s.SubjectName,
-                                Title = t.Title,
-                                Description = t.Description,
-                                CloseAt = t.CloseAt
-                            }).ToListAsync();
+            join t in _context.Topics on ta.Id equals t.TeachingAssignmentId
+            join u in _context.Users on ta.UserId equals u.Id
+            join c in _context.Classes on ta.ClassId equals c.Id
+            join s in _context.Subjects on ta.SubjectId equals s.Id
+            where ta.Id == assignmentId
+            select new TopicResponseByAssignmentId
+            {
+                Id = t.Id,
+                TeachingAssignmentId = ta.Id,
+                UserId = u.Id,
+                UserName = u.FullName,
+                TopicId = t.Id,
+                ClassName = c.Name,
+                SubjectName = s.SubjectName,
+                Title = t.Title,
+                Description = t.Description,
+                CloseAt = t.CloseAt
+            }).ToListAsync();
 
         return topics;
     }
-
 }

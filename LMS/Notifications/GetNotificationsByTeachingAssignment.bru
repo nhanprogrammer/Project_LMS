@@ -1,0 +1,16 @@
+meta {
+  name: GetNotificationsByTeachingAssignment
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}api/Notifications/by-teaching-assignment?userId=13&teachingAssignmentId=1
+  body: none
+  auth: none
+}
+
+query {
+  userId: 13
+  teachingAssignmentId: 1
+}
