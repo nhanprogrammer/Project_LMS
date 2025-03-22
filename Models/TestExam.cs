@@ -31,6 +31,7 @@ namespace Project_LMS.Models
                 public DateTime? UpdateAt { get; set; }
                 public bool? IsDelete { get; set; }
                 public int? SubjectId { get; set; }
+                public bool IsAttachmentRequired { get; set; }
 
                 [ForeignKey("ScheduleStatusId")]
                 public ExamScheduleStatus ExamScheduleStatus { get; set; }
