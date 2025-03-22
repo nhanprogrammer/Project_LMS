@@ -7,7 +7,7 @@
         public int? SubjectId { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
-        //public string? Describe { get; set; }
+        public string? Description { get; set; }
     }
     public class TeachingAssignmentRequestCreate
     {
@@ -16,6 +16,13 @@
         public int? SubjectId { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
-        //public string? Describe { get; set; }
+        public string? Description { get; set; }
+    }
+    public class TeachingAssignmentRequestUpdate
+    {
+        public int? ClassId { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? Description { get; set; }
     }
 }

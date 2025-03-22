@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces.Services;
+using Project_LMS.Models;
 using Project_LMS.Services;
 
 namespace Project_LMS.Controllers
@@ -92,16 +93,14 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [HttpPut("user/{userId}")]
-        public async Task<IActionResult> UpdateByUserId(int userId, [FromBody] TeachingAssignmentRequest request)
+        [HttpPut("{assignmentId}")]
+        public async Task<IActionResult> UpdateById(int assignmentId, [FromBody] TeachingAssignmentRequestUpdate request)
         {
-            var result = await _service.UpdateByUserId(userId, request);
+            var result = await _service.UpdateById(assignmentId, request);
             return result != null
                 ? Ok(new ApiResponse<object>(0, "Cập nhật thành công!", result))
-                : NotFound(new ApiResponse<object>(1, "Không tìm thấy phân công cho người dùng!"));
+                : NotFound(new ApiResponse<object>(1, "Không tìm thấy phân công!"));
         }
-
-
 
         [HttpDelete("list")]
         public async Task<IActionResult> Delete([FromBody] DeleteRequest request)
@@ -128,17 +127,14 @@ namespace Project_LMS.Controllers
             }
 
             // Nếu đã chọn user => kiểm tra số lượng phân công giảng dạy
-            if (result.TeachingAssignments == null || result.TeachingAssignments.TotalItems == 0)
+            if (result == null || result.TeachingAssignments == null || result.TeachingAssignments.TotalItems == 0)
             {
-                return Ok(new
-                {
-                    message = "Không tìm thấy dữ liệu phân công giảng dạy",
-                    data = result
-                });
+                return Ok(new ApiResponse<object>(1, "Không tìm thấy dữ liệu phân công giảng dạy!", result));
             }
 
             return Ok(new ApiResponse<object>(0, "Lấy dữ liệu thành công!", result));
         }
+
         [HttpGet("{id}/topics")]
         public async Task<IActionResult> GetTopicsByAssignment(int id)
         {
@@ -151,6 +147,25 @@ namespace Project_LMS.Controllers
 
             return Ok(new ApiResponse<object>(0, "Lấy dữ liệu thành công!", topics));
         }
+
+        [HttpGet("class/search")]
+        public async Task<IActionResult> SearchClass([FromQuery] string? keyword)
+        {
+            var result = await _service.SearchClass(keyword);
+            if (!result.Any() || result == null)
+                return Ok(new ApiResponse<object>(1, "Không tìm thấy lớp học"));
+            return Ok(new ApiResponse<object>(0, "Tìm thành công lớp học", result));
+        }
+
+        [HttpGet("subject/search")]
+        public async Task<IActionResult> SearchSubject([FromQuery] string? keyword)
+        {
+            var result = await _service.SearchSubject(keyword);
+            if (!result.Any() || result == null)
+                return Ok(new ApiResponse<object>(1, "Không tìm thấy môn học"));
+            return Ok(new ApiResponse<object>(0, "Tìm thành công môn học", result));
+        }
+
     }
 }
     

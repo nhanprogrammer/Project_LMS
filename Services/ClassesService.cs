@@ -116,7 +116,7 @@ namespace Project_LMS.Services
                         Name = classSaveRequest.ClassName,
                         StudentCount = classSaveRequest.StudentCount,
                         Description = classSaveRequest.Description,
-                        ClassLink = "NaN",
+                        //ClassLink = "NaN",
                         PasswordClass = "123456",
                         IsDelete = false
                     };
