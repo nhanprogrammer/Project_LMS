@@ -75,12 +75,15 @@ namespace Project_LMS.Controllers
                 {
                     return Ok(new ApiResponse<object>(0, "Phân công giảng dạy đã được tạo!", response));
                 }
+
                 return BadRequest(new ApiResponse<object>(1, "Tạo phân công thất bại!"));
             }
             catch (DbUpdateException dbEx)
             {
                 Console.WriteLine($"Lỗi khi lưu vào database: {dbEx.InnerException?.Message ?? dbEx.Message}");
-                return StatusCode(500, new ApiResponse<object>(1, "Lỗi khi lưu dữ liệu vào database.", dbEx.InnerException?.Message ?? dbEx.Message));
+                return StatusCode(500,
+                    new ApiResponse<object>(1, "Lỗi khi lưu dữ liệu vào database.",
+                        dbEx.InnerException?.Message ?? dbEx.Message));
             }
             catch (Exception ex)
             {

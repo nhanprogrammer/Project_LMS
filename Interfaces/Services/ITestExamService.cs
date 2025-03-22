@@ -15,4 +15,5 @@ public interface ITestExamService
     Task<ApiResponse<IEnumerable<object>>> GetAllAcademicYear();
     Task<ApiResponse<IEnumerable<object>>> GetAllClasses();
     Task<ApiResponse<IEnumerable<object>>> GetAllAssignmentOfMarking();
+    Task<ApiResponse<IEnumerable<object>>> GetAlSemestersforAcademicYears(int academicYearId);
 }

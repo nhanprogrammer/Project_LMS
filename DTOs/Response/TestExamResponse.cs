@@ -4,7 +4,7 @@
     {
         public int Id { get; set; }
         public string? Semester { get; set; }
-        public DateTime? StartDate { get; set; }
+        public DateTimeOffset? StartDate { get; set; }
         public string? DepartmentName { get; set; }
         public string? SubjectName { get; set; }
         public string? Name { get; set; }

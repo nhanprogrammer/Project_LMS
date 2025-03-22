@@ -1,4 +1,6 @@
-﻿namespace Project_LMS.DTOs.Response;
+﻿using System.Collections;
+
+namespace Project_LMS.DTOs.Response;
 
 public class AcademicHoldResponse
 {
@@ -7,7 +9,7 @@ public class AcademicHoldResponse
     public string? UserCode { get; set; }
     public string? FullName { get; set; }
     public DateTimeOffset? BirthDate { get; set; }
-    public bool? Gender { get; set; }
+    public string? Gender { get; set; }
     public string? ClassName { get; set; }
 
     public DateTimeOffset? HoldDate { get; set; }
