@@ -10,7 +10,7 @@ public interface IQuestionsAnswerRepository
     Task<QuestionAnswer?> GetByIdAsync(int id);
     Task<QuestionAnswer?> AddAsync(QuestionAnswer questionsAnswer, int teachingAssignmentId);
     Task<QuestionAnswer?> UpdateAsync(QuestionAnswer questionsAnswer, int? newTeachingAssignmentId = null);
-    Task<bool> DeleteAsync(int id);
+    Task<bool> DeleteAsync(int id, int userId);
     Task<IEnumerable<QuestionAnswer>> GetAllQuestionAnswerByTopicIdAsync(int topicId);
     Task<bool> IsUserInClassAsync(int userId, int classId);
 

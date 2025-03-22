@@ -391,6 +391,12 @@ namespace Project_LMS.Services
         {
             try
             {
+                // Kiểm tra userId
+                if (userId <= 0)
+                {
+                    return new ApiResponse<bool>(1, "UserId là bắt buộc và phải lớn hơn 0!", false);
+                }
+
                 // Tìm bản ghi cần xóa
                 var questionAnswer = await _context.QuestionAnswers
                     .FirstOrDefaultAsync(qa => qa.Id == id && qa.IsDelete == false);
@@ -421,7 +427,7 @@ namespace Project_LMS.Services
                 }
 
                 // Xóa bản ghi
-                var result = await _questionsAnswerRepository.DeleteAsync(id);
+                var result = await _questionsAnswerRepository.DeleteAsync(id, userId);
                 if (!result)
                 {
                     return new ApiResponse<bool>(1, "Xóa thông tin thất bại!", false);
@@ -430,6 +436,7 @@ namespace Project_LMS.Services
                 // Gửi thông báo
                 var classInfo = await _context.Classes
                     .FirstOrDefaultAsync(c => c.Id == teachingAssignment.ClassId);
+
                 if (questionAnswer.QuestionsAnswerId == null) // Nếu là câu hỏi gốc
                 {
                     // Gửi thông báo cho giáo viên (nếu người xóa không phải là giáo viên)
@@ -463,13 +470,16 @@ namespace Project_LMS.Services
                     }
                 }
 
-                // Gửi thông báo realtime
+                // Gửi thông báo realtime qua SignalR
                 if (teachingAssignment.UserId.HasValue)
                 {
                     await _hubContext.Clients.User(teachingAssignment.UserId.Value.ToString())
                         .SendAsync("ReceiveNotification",
                             "Có câu hỏi hoặc câu trả lời bị xóa trong phân công giảng dạy của bạn!");
                 }
+
+                // Gửi sự kiện SignalR cụ thể để frontend cập nhật
+                await _hubContext.Clients.All.SendAsync("OnQuestionAnswerDeleted", id);
 
                 return new ApiResponse<bool>(0, "Xóa thông tin thành công!", true);
             }
@@ -636,9 +646,8 @@ namespace Project_LMS.Services
                                              reply.IsDelete == false)) // Chưa có câu trả lời
                             .OrderBy(qa => qa.CreateAt) // Sắp xếp theo thời gian tạo (tăng dần)
                             .ToListAsync();
-                        questions = questions.Where(q =>
-                                q.CreateAt.HasValue && q.CreateAt.Value.AddHours(24) >= DateTime.UtcNow)
-                            .ToList(); // Tổng số lượng
+
+                        // Tổng số lượng
                         response.TotalCount = questions.Count;
 
                         // Map sang DTO
@@ -695,6 +704,7 @@ namespace Project_LMS.Services
                 return new ApiResponse<QuestionsAnswerTabResponse>(1, $"Có lỗi xảy ra: {ex.Message}", null);
             }
         }
+
 
         public async Task<ApiResponse<bool>> SendUserMessageAsync(int senderId, int receiverId, string message)
         {

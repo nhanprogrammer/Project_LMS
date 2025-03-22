@@ -156,15 +156,18 @@ namespace Project_LMS.Repositories
             }
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public async Task<bool> DeleteAsync(int id, int userId)
         {
-            var questionsAnswer = await _context.Topics.FindAsync(id);
-            if (questionsAnswer == null)
+            var questionAnswer = await _context.QuestionAnswers
+                .FirstOrDefaultAsync(qa => qa.Id == id && qa.IsDelete == false);
+            if (questionAnswer == null)
             {
                 return false;
             }
 
-            questionsAnswer.IsDelete = true;
+            questionAnswer.IsDelete = true;
+            questionAnswer.UpdateAt = DateTime.UtcNow;
+            questionAnswer.UserUpdate = userId;
             await _context.SaveChangesAsync();
             return true;
         }
