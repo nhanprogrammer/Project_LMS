@@ -1,0 +1,20 @@
+meta {
+  name: Create new natification
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}api/Notifications/send-manual
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "senderId": 2,
+    "userId": 17,
+    "subject": "Đã có kết quả thi học kỳ 1",
+    "content": "Chúc mừng em đã quay vào ô thi lại"
+  }
+}

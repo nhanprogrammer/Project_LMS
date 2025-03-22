@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Project_LMS.Models
 {
@@ -34,7 +35,11 @@ namespace Project_LMS.Models
         }
 
         public int Id { get; set; }
-        public int? GroupRolePermission { get; set; }
+        public int? GroupModulePermissonId { get; set; }
+        public bool? Disable { get; set; }
+        public string? ResetCode { get; set; }
+        public DateTime? ResetCodeExpiry { get; set; }
+        public bool? PermissionChanged  { get; set; }
         public int? RoleId { get; set; }
         public int? StudentStatusId { get; set; }
         public int? TeacherStatusId { get; set; }
@@ -84,7 +89,7 @@ namespace Project_LMS.Models
         public DateTime? UpdateAt { get; set; }
         public int? UserCreate { get; set; }
         public int? UserUpdate { get; set; }
-        public virtual ModulePermission GroupRolePermissionNavigation { get; set; } = null!;
+        public virtual GroupModulePermisson? GroupModulePermisson { get; set; }
         public virtual Role? Role { get; set; }
         public virtual StudentStatus? StudentStatus { get; set; }
         public virtual TeacherStatus? TeacherStatus { get; set; }
@@ -111,7 +116,9 @@ namespace Project_LMS.Models
         public virtual ICollection<Topic> Topics { get; set; }
         public virtual ICollection<UserTrainingRank> UserTrainingRanks { get; set; }
         public virtual ICollection<Department> Departments { get; set; }
+        public virtual ICollection<QuestionAnswerTopicView> QuestionAnswerTopicViews { get; set; }
     }
+
     public class Jwt
     {
         public string Key { get; set; }
@@ -125,9 +132,11 @@ namespace Project_LMS.Models
         public string Username { get; set; }
         public string Password { get; set; }
     }
+
     public class RegisterModel
     {
         public string Username { get; set; }
+
         public string Password { get; set; }
         //public string Email { get; set; }
     }

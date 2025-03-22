@@ -1,0 +1,23 @@
+meta {
+  name: AddData
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}api/subjectgroup
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "userId": 1,
+    "name": "string",
+    "createAt": "2025-03-07T04:21:32.485Z",
+    "userCreate": 0,
+    "subjectIds": [
+    2,3
+    ]
+  }
+}

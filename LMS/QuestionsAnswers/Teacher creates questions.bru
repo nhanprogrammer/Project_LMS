@@ -1,0 +1,21 @@
+meta {
+  name: Teacher creates questions
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{base_url}}api/QuestionsAnswers
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "teachingAssignmentId": 1,
+    "userId": 13,
+    "parentCommentId": 0,
+    "message": "Array là gì ?",
+    "fileName": ""
+  }
+}

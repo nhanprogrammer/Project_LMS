@@ -1,10 +1,10 @@
-using System.Net.Mail;
-using System.Net.WebSockets;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Project_LMS.Data;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Exceptions;
+using Project_LMS.Interfaces.Responsitories;
 using Project_LMS.Interfaces.Services;
 using Project_LMS.Models;
 
@@ -15,98 +15,23 @@ public class TestExamService : ITestExamService
 {
     private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
+    private readonly ITestExamRepository _testExamRepository;
 
-    public TestExamService(ApplicationDbContext context, IMapper mapper)
+    public TestExamService(ApplicationDbContext context, IMapper mapper, ITestExamRepository testExamRepository)
     {
         _context = context;
         _mapper = mapper;
+        _testExamRepository = testExamRepository;
     }
 
-    public async Task<ApiResponse<PaginatedResponse<TestExamResponse>>> GetAllTestExamsAsync(string? keyword,
-        int pageNumber, int pageSize)
-    {
-        // var query = _context.TestExams
-        //     .Where(te => !te.IsDelete.HasValue || !te.IsDelete.Value);
-        //
-        // if (!string.IsNullOrWhiteSpace(keyword))
-        // {
-        //     keyword = keyword.Trim().ToLower();
-        //     query = query.Where(te =>
-        //         (te.Topic != null && te.Topic.ToLower().Contains(keyword)) ||
-        //         (te.Description != null && te.Description.ToLower().Contains(keyword))
-        //     );
-        // }
-        //
-        // query = query.Include(te => te.Department).Include(te => te.TestExamType);
-        //
-        // var totalItems = await query.CountAsync();
-        // var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
-        //
-        // var testExams = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
-        //
-        // var testExamResponses = testExams.Select(te => new TestExamResponse
-        // {
-        //     Id = te.Id,
-        //     DepartmentId = te.DepartmentId,
-        //     TestExamTypeId = te.TestExamTypeId,
-        //     Topic = te.Topic,
-        //     Form = te.Form,
-        //     Duration = te.Duration,
-        //     StartDate = te.StartDate,
-        //     EndDate = te.EndDate,
-        //     Description = te.Description,
-        //     Attachment = te.Attachment
-        // }).ToList();
-        //
-        // var paginatedResponse = new PaginatedResponse<TestExamResponse>
-        // {
-        //     Items = testExamResponses,
-        //     PageNumber = pageNumber,
-        //     PageSize = pageSize,
-        //     TotalItems = totalItems,
-        //     TotalPages = totalPages,
-        //     HasPreviousPage = pageNumber > 1,
-        //     HasNextPage = pageNumber < totalPages
-        // };
-        //
-        // return new ApiResponse<PaginatedResponse<TestExamResponse>>(0, "Success", paginatedResponse);
-        throw new Exception();
-    }
 
-    public async Task<ApiResponse<TestExamResponse>> GetTestExamByIdAsync(int id)
-    {
-        // var testExam = await _context.TestExams
-        //     .Include(te => te.Department)
-        //     .Include(te => te.TestExamType)
-        //     .FirstOrDefaultAsync(te => te.Id == id && (!te.IsDelete.HasValue || !te.IsDelete.Value));
-        //
-        // if (testExam == null)
-        //     return new ApiResponse<TestExamResponse>(1, "TestExam not found", null);
-        //
-        // var response = new TestExamResponse
-        // {
-        //     Id = testExam.Id,
-        //     DepartmentId = testExam.DepartmentId,
-        //     TestExamTypeId = testExam.TestExamTypeId,
-        //     Topic = testExam.Topic,
-        //     Form = testExam.Form,
-        //     Duration = testExam.Duration,
-        //     StartDate = testExam.StartDate,
-        //     EndDate = testExam.EndDate,
-        //     Description = testExam.Description,
-        //     Attachment = testExam.Attachment
-        // };
-        // return new ApiResponse<TestExamResponse>(0, "Success", response);
-        throw new Exception();
-    }
-
-    public async Task<ApiResponse<object>> CreateTestExamAsync(CreateTestExamRequest request)
+    public async Task<ApiResponse<object?>> CreateTestExamAsync(CreateTestExamRequest request)
     {
         // 1) Kiểm tra Học kỳ (SemestersId) có tồn tại không
-        if (request.SemestersId.HasValue)
+        if (request.semestersId.HasValue)
         {
             bool existsSemester = await _context.Semesters
-                .AnyAsync(s => s.Id == request.SemestersId.Value);
+                .AnyAsync(s => s.Id == request.semestersId.Value);
             if (!existsSemester)
             {
                 return new ApiResponse<object>(1, "Học kỳ không tồn tại trong DB", null);
@@ -114,31 +39,31 @@ public class TestExamService : ITestExamService
         }
 
         // 2) Kiểm tra Môn học (SubjectId) có tồn tại không
-        if (request.SubjectId.HasValue)
+        if (request.subjectId.HasValue)
         {
             bool existsSubject = await _context.Subjects
-                .AnyAsync(sub => sub.Id == request.SubjectId.Value);
+                .AnyAsync(sub => sub.Id == request.subjectId.Value);
             if (!existsSubject)
             {
-                return new ApiResponse<object>(1, "Môn học không tồn tại trong DB", null);
+                return new ApiResponse<object?>(1, "Môn học không tồn tại trong DB", null);
             }
         }
 
         // 3) Kiểm tra Loại kiểm tra (TestExamTypeId) có tồn tại không
-        if (request.TestExamTypeId.HasValue)
+        if (request.testExamTypeId.HasValue)
         {
             bool existsType = await _context.TestExamTypes
-                .AnyAsync(t => t.Id == request.TestExamTypeId.Value);
+                .AnyAsync(t => t.Id == request.testExamTypeId.Value);
             if (!existsType)
             {
-                return new ApiResponse<object>(1, "Loại kiểm tra không tồn tại trong DB", null);
+                return new ApiResponse<object?>(1, "Loại kiểm tra không tồn tại trong DB", null);
             }
         }
 
         // 4) Map Request -> TestExam
         var testExam = _mapper.Map<TestExam>(request);
         testExam.ScheduleStatusId = 1;
-        testExam.DepartmentId = request.DepartmentId;
+        testExam.DepartmentId = request.departmentId;
         // 5) Add TestExam vào DbSet
         await _context.TestExams.AddAsync(testExam);
 
@@ -148,18 +73,18 @@ public class TestExamService : ITestExamService
         // 7) Xử lý ClassOption & ClassIds => thêm ClassTestExams
         var finalClassIds = new List<int>();
 
-        if (request.ClassOption == "ALL")
+        if (request.classOption == "ALL")
         {
             finalClassIds = await _context.Classes
                 .Where(c => c.IsDelete == false)
                 .Select(c => c.Id)
                 .ToListAsync();
         }
-        else if (request.ClassOption == "TYPE")
+        else if (request.classOption == "TYPE")
         {
-            if (request.SelectedClassTypeId.HasValue)
+            if (request.selectedClassTypeId.HasValue)
             {
-                var typeId = request.SelectedClassTypeId.Value;
+                var typeId = request.selectedClassTypeId.Value;
                 finalClassIds = await _context.Classes
                     .Where(c => c.ClassTypeId == typeId && c.IsDelete == false)
                     .Select(c => c.Id)
@@ -168,9 +93,9 @@ public class TestExamService : ITestExamService
         }
         else
         {
-            if (request.ClassIds != null && request.ClassIds.Any())
+            if (request.classIds != null && request.classIds.Any())
             {
-                finalClassIds = request.ClassIds;
+                finalClassIds = request.classIds;
             }
         }
 
@@ -190,11 +115,11 @@ public class TestExamService : ITestExamService
 
         // 9) Xử lý phân công chấm thi (Examiner)
         //    Nếu ApplyExaminerForAllClasses = true => examiner chung áp dụng cho tất cả các lớp
-        if (request.ApplyExaminerForAllClasses == true)
+        if (request.applyExaminerForAllClasses == true)
         {
-            if (request.ExaminerIds != null && request.ExaminerIds.Any())
+            if (request.examinerIds != null && request.examinerIds.Any())
             {
-                foreach (var examinerId in request.ExaminerIds)
+                foreach (var examinerId in request.examinerIds)
                 {
                     var examiner = new Examiner
                     {
@@ -212,12 +137,12 @@ public class TestExamService : ITestExamService
         else
         {
             // Tùy chọn cho từng lớp cho user chấm theo lớp cụ thể
-            if (request.ExaminersForClass != null && request.ExaminersForClass.Any())
+            if (request.examinersForClass != null && request.examinersForClass.Any())
             {
-                foreach (var item in request.ExaminersForClass)
+                foreach (var item in request.examinersForClass)
                 {
-                    var classId = item.ClassId;
-                    foreach (var exId in item.ExaminerIds)
+                    var classId = item.classId;
+                    foreach (var exId in item.examinerIds)
                     {
                         var examiner = new Examiner
                         {
@@ -240,7 +165,7 @@ public class TestExamService : ITestExamService
         // 11) Trả về kết quả
         var classIds = _context.ClassTestExams
             .Where(x => x.TestExamId == testExam.Id && x.IsDelete == false)
-            .Select(x => x.Id)
+            .Select(x => x.ClassId)
             .ToList();
 
         var examiners = _context.Examiners
@@ -259,43 +184,43 @@ public class TestExamService : ITestExamService
         };
 
 
-        return new ApiResponse<object>(0, "Tạo lịch thi thành công", responseData);
+        return new ApiResponse<object?>(0, "Tạo lịch thi thành công", responseData);
     }
 
-    public async Task<ApiResponse<object>> UpdateTestExamAsync(int id, UpdateTestExamRequest request)
+    public async Task<ApiResponse<object?>> UpdateTestExamAsync(UpdateTestExamRequest request)
     {
         // 1) Lấy đối tượng TestExam cần cập nhật
-        var testExam = await _context.TestExams.FirstOrDefaultAsync(te => te.Id == id && te.IsDelete == false);
+        var testExam = await _context.TestExams.FirstOrDefaultAsync(te => te.Id == request.id && te.IsDelete == false);
         if (testExam == null)
         {
-            return new ApiResponse<object>(1, "Lịch thi không tồn tại", null);
+            return new ApiResponse<object?>(1, "Lịch thi không tồn tại", null);
         }
 
         // 2) Xác thực các giá trị: Học kỳ, Môn học, Loại kiểm tra nếu có giá trị mới truyền vào
-        if (request.SemestersId.HasValue)
+        if (request.semestersId.HasValue)
         {
-            bool existsSemester = await _context.Semesters.AnyAsync(s => s.Id == request.SemestersId.Value);
+            bool existsSemester = await _context.Semesters.AnyAsync(s => s.Id == request.semestersId.Value);
             if (!existsSemester)
             {
-                return new ApiResponse<object>(1, "Học kỳ không tồn tại trong DB", null);
+                return new ApiResponse<object?>(1, "Học kỳ không tồn tại trong DB", null);
             }
         }
 
-        if (request.SubjectId.HasValue)
+        if (request.subjectId.HasValue)
         {
-            bool existsSubject = await _context.Subjects.AnyAsync(s => s.Id == request.SubjectId.Value);
+            bool existsSubject = await _context.Subjects.AnyAsync(s => s.Id == request.subjectId.Value);
             if (!existsSubject)
             {
-                return new ApiResponse<object>(1, "Môn học không tồn tại trong DB", null);
+                return new ApiResponse<object?>(1, "Môn học không tồn tại trong DB", null);
             }
         }
 
-        if (request.TestExamTypeId.HasValue)
+        if (request.testExamTypeId.HasValue)
         {
-            bool existsType = await _context.TestExamTypes.AnyAsync(t => t.Id == request.TestExamTypeId.Value);
+            bool existsType = await _context.TestExamTypes.AnyAsync(t => t.Id == request.testExamTypeId.Value);
             if (!existsType)
             {
-                return new ApiResponse<object>(1, "Loại kiểm tra không tồn tại trong DB", null);
+                return new ApiResponse<object?>(1, "Loại kiểm tra không tồn tại trong DB", null);
             }
         }
 
@@ -308,33 +233,33 @@ public class TestExamService : ITestExamService
         // 4) Cập nhật lại danh sách ClassTestExam:
         // Xoá các bản ghi ClassTestExam hiện có của bài thi
         var existingClassTestExams =
-            _context.ClassTestExams.Where(cte => cte.TestExamId == id && cte.IsDelete == false);
+            _context.ClassTestExams.Where(cte => cte.TestExamId == request.id && cte.IsDelete == false);
         _context.ClassTestExams.RemoveRange(existingClassTestExams);
 
         // Tính toán lại danh sách lớp dựa trên ClassOption & ClassIds
         var finalClassIds = new List<int>();
-        if (request.ClassOption == "ALL")
+        if (request.classOption == "ALL")
         {
             finalClassIds = await _context.Classes
                 .Where(c => c.IsDelete == false)
                 .Select(c => c.Id)
                 .ToListAsync();
         }
-        else if (request.ClassOption == "TYPE")
+        else if (request.classOption == "TYPE")
         {
-            if (request.SelectedClassTypeId.HasValue)
+            if (request.selectedClassTypeId.HasValue)
             {
                 finalClassIds = await _context.Classes
-                    .Where(c => c.ClassTypeId == request.SelectedClassTypeId.Value && c.IsDelete == false)
+                    .Where(c => c.ClassTypeId == request.selectedClassTypeId.Value && c.IsDelete == false)
                     .Select(c => c.Id)
                     .ToListAsync();
             }
         }
         else // Giả sử trường hợp CUSTOM
         {
-            if (request.ClassIds != null && request.ClassIds.Any())
+            if (request.classIds != null && request.classIds.Any())
             {
-                finalClassIds = request.ClassIds;
+                finalClassIds = request.classIds;
             }
         }
 
@@ -354,15 +279,15 @@ public class TestExamService : ITestExamService
 
         // 5) Cập nhật lại phân công chấm thi (Examiner)
         // Xoá các bản ghi Examiner hiện có của bài thi
-        var existingExaminers = _context.Examiners.Where(e => e.TestExamId == id && e.IsDelete == false);
+        var existingExaminers = _context.Examiners.Where(e => e.TestExamId == request.id && e.IsDelete == false);
         _context.Examiners.RemoveRange(existingExaminers);
 
         // Nếu ApplyExaminerForAllClasses = true, thêm examiner cho tất cả các lớp
-        if (request.ApplyExaminerForAllClasses == true)
+        if (request.applyExaminerForAllClasses == true)
         {
-            if (request.ExaminerIds != null && request.ExaminerIds.Any())
+            if (request.examinerIds != null && request.examinerIds.Any())
             {
-                foreach (var examinerId in request.ExaminerIds)
+                foreach (var examinerId in request.examinerIds)
                 {
                     var examiner = new Examiner
                     {
@@ -380,17 +305,17 @@ public class TestExamService : ITestExamService
         else
         {
             // Xử lý phân công theo từng lớp nếu ApplyExaminerForAllClasses = false
-            if (request.ExaminersForClass != null && request.ExaminersForClass.Any())
+            if (request.examinersForClass != null && request.examinersForClass.Any())
             {
-                foreach (var item in request.ExaminersForClass)
+                foreach (var item in request.examinersForClass)
                 {
-                    foreach (var exId in item.ExaminerIds)
+                    foreach (var exId in item.examinerIds)
                     {
                         var examiner = new Examiner
                         {
                             TestExamId = testExam.Id,
                             UserId = exId,
-                            ClassId = item.ClassId,
+                            ClassId = item.classId,
                             CreateAt = DateTime.Now,
                             UpdateAt = DateTime.Now,
                             IsDelete = false
@@ -407,7 +332,7 @@ public class TestExamService : ITestExamService
         // 7) Chuẩn bị dữ liệu phản hồi
         var classIds = await _context.ClassTestExams
             .Where(x => x.TestExamId == testExam.Id && x.IsDelete == false)
-            .Select(x => x.Id)
+            .Select(x => x.ClassId)
             .ToListAsync();
         var examiners = await _context.Examiners
             .Where(e => e.TestExamId == testExam.Id && e.IsDelete == false)
@@ -424,7 +349,7 @@ public class TestExamService : ITestExamService
             ExaminerIds = examiners.Select(e => e.UserId).ToList()
         };
 
-        return new ApiResponse<object>(0, "Cập nhật lịch thi thành công", responseData);
+        return new ApiResponse<object?>(0, "Cập nhật lịch thi thành công", responseData);
     }
 
 
@@ -433,11 +358,9 @@ public class TestExamService : ITestExamService
         try
         {
             var testExam = await _context.TestExams.FindAsync(id);
-            if (testExam == null)
+            if (testExam == null || testExam.IsDelete == true)
                 return new ApiResponse<bool>(1, "TestExam not found", false);
-            if(testExam.IsDelete == true){
-                return new ApiResponse<bool>(1, "TestExam is already deleted", false);
-            }
+
             testExam.IsDelete = true;
             testExam.UpdateAt = DateTime.UtcNow.ToLocalTime();
 
@@ -488,6 +411,7 @@ public class TestExamService : ITestExamService
             {
                 c.Id,
                 c.Name,
+                c.AcademicYearId,
                 c.ClassCode,
                 c.StudentCount
             })
@@ -585,6 +509,152 @@ public class TestExamService : ITestExamService
         catch (Exception e)
         {
             return new ApiResponse<IEnumerable<object>>(1, $"Đã xảy ra lỗi {e.Message}", null);
+        }
+    }
+
+    public async Task<ApiResponse<IEnumerable<object>>> GetAlSemestersforAcademicYears(int academicYearId)
+    {
+        var semesters = await _context.Semesters
+            .Where(s => s.AcademicYearId == academicYearId)
+            .Select(s => new
+            {
+                semestersId = s.Id,
+                semesterName = s.Name
+            })
+            .ToListAsync();
+        if (!semesters.Any())
+        {
+            return new ApiResponse<IEnumerable<object>>(1, "Không tìm thấy học kỳ nào", null);
+        }
+
+        return new ApiResponse<IEnumerable<object>>(0, "Lấy danh sách học kỳ thành công", semesters);
+    }
+
+    public async Task<ApiResponse<PaginatedResponse<TestExamResponse>>> GetAllTestExamsAsync(string? keyword,
+        int? pageNumber, int? pageSize, string? sortDirection)
+    {
+        if (pageNumber.HasValue && pageNumber <= 0)
+        {
+            return new ApiResponse<PaginatedResponse<TestExamResponse>>(
+                1,
+                "Giá trị pageNumber phải lớn hơn 0",
+                null
+            );
+        }
+
+        if (pageSize.HasValue && pageSize <= 0)
+        {
+            return new ApiResponse<PaginatedResponse<TestExamResponse>>(
+                1,
+                "Giá trị pageSize phải lớn hơn 0",
+                null
+            );
+        }
+
+        if (!string.IsNullOrEmpty(sortDirection) &&
+            !sortDirection.Equals("asc", StringComparison.OrdinalIgnoreCase) &&
+            !sortDirection.Equals("desc", StringComparison.OrdinalIgnoreCase))
+        {
+            return new ApiResponse<PaginatedResponse<TestExamResponse>>(
+                1,
+                "Giá trị sortDirection phải là 'asc' hoặc 'desc'",
+                null
+            );
+        }
+
+        try
+        {
+            // 1. Xác định pageNumber, pageSize mặc định
+            var currentPage = pageNumber ?? 1;
+            var currentPageSize = pageSize ?? 10;
+
+            // 2. Lấy danh sách test exams
+            var testExams = await _testExamRepository.GetAllAsync();
+            var testExamQuery = testExams.AsQueryable();
+
+            // 3. Nếu không nhập sortDirection, mặc định là "asc"
+            sortDirection ??= "asc";
+
+            testExamQuery = sortDirection.Equals("desc", StringComparison.OrdinalIgnoreCase)
+                ? testExamQuery.OrderByDescending(te => te.Id).ThenByDescending(te => te.Id)
+                : testExamQuery.OrderBy(te => te.Id).ThenByDescending(te => te.Id);
+
+            // 5. Tính toán tổng số dòng, số trang
+            var totalItems = testExamQuery.Count();
+            var totalPages = (int)Math.Ceiling((double)totalItems / currentPageSize);
+
+            // 6. Phân trang
+            var pagedTestExams = testExamQuery
+                .Skip((currentPage - 1) * currentPageSize)
+                .Take(currentPageSize)
+                .ToList();
+
+            // 7. Map sang DTO
+            var mappedData = _mapper.Map<List<TestExamResponse>>(pagedTestExams);
+
+            // 8. Tạo đối tượng phân trang
+            var paginatedResponse = new PaginatedResponse<TestExamResponse>
+            {
+                Items = mappedData,
+                PageNumber = currentPage,
+                PageSize = currentPageSize,
+                TotalItems = totalItems,
+                TotalPages = totalPages,
+                HasPreviousPage = currentPage > 1,
+                HasNextPage = currentPage < totalPages
+            };
+
+            // 9. Trả về
+            return new ApiResponse<PaginatedResponse<TestExamResponse>>(
+                0,
+                "Lấy dữ liệu thành công",
+                paginatedResponse
+            );
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse<PaginatedResponse<TestExamResponse>>(
+                1,
+                $"Lỗi: {ex.Message}",
+                null
+            );
+        }
+    }
+
+
+    public async Task<ApiResponse<TestExamResponse>> GetTestExamByIdAsync(int id)
+    {
+        try
+        {
+            var testExams = await _testExamRepository.GetByIdAsync(id);
+
+            if (testExams == null)
+            {
+                return new ApiResponse<TestExamResponse>(1, "Nhóm môn học không tồn tại", null);
+            }
+
+            var testExamResponse = new TestExamResponse()
+            {
+                Id = testExams.Id,
+                SubjectName = testExams.Subject.SubjectName,
+                StatusExam = testExams.TestExamType.PointTypeName,
+                Duration = testExams.Duration,
+                Semester = testExams.Semesters.Name,
+                StartDate = testExams.StartDate,
+                DepartmentName = testExams.Department.Name,
+                ClassList = string.Join(", ", testExams.ClassTestExams.Select(e => e.Class.Name)),
+                Examiner = string.Join("  ", testExams.Examiners.Select(e => e.User.FullName))
+            };
+
+            return new ApiResponse<TestExamResponse>(0, "Lấy dữ liệu thành công", testExamResponse);
+        }
+        catch (NotFoundException ex)
+        {
+            return new ApiResponse<TestExamResponse>(1, $"{ex.Message}", null);
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse<TestExamResponse>(1, $"Lỗi: {ex.Message}", null);
         }
     }
 }

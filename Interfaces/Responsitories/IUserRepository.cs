@@ -11,5 +11,7 @@ namespace Project_LMS.Interfaces.Responsitories
         public Task DeleteAsync(User user);
         public Task<User> FindAsync(int id);
         public Task<List<User>> GetAllByIdsAsync(List<int> ids, int pageNumber, int pageSize);
+
+        public Task<int> CountAsync();
     }
 }

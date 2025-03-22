@@ -1,0 +1,15 @@
+meta {
+  name: Search topic
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{base_url}}api/Topic/search?keyword=reactjs
+  body: none
+  auth: none
+}
+
+query {
+  keyword: reactjs
+}

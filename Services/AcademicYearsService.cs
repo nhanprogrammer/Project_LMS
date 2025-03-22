@@ -6,7 +6,6 @@ using Project_LMS.Interfaces;
 using Project_LMS.Interfaces.Repositories;
 using Project_LMS.Interfaces.Responsitories;
 using Project_LMS.Models;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Project_LMS.Services
 {
@@ -88,7 +87,9 @@ namespace Project_LMS.Services
                 return false;
             }
 
-            await _academicYearRepository.DeleteAsync(id);
+            existingAcademicYear.IsDelete = true;
+            await _academicYearRepository.UpdateAsync(existingAcademicYear);
+
             return true;
         }
     }
