@@ -76,8 +76,8 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [HttpPut("{id}")]
-        public async Task<ActionResult<ApiResponse<SubjectResponse>>> Update(int id, [FromBody] SubjectRequest request)
+        [HttpPut]
+        public async Task<ActionResult<ApiResponse<SubjectResponse>>> Update([FromBody] SubjectRequest request)
         {
             try
             {
@@ -96,7 +96,7 @@ namespace Project_LMS.Controllers
                     return BadRequest(new ApiResponse<SubjectResponse>(1, "Subject code is required", null));
                 }
 
-                var result = await _subjectService.UpdateSubjectAsync(id, request);
+                var result = await _subjectService.UpdateSubjectAsync(request);
                 
                 if (result.Status != 0)
                 {
@@ -121,7 +121,7 @@ namespace Project_LMS.Controllers
         }
 
         [HttpDelete]
-        public async Task<ActionResult<ApiResponse<bool>>> DeleteMultiple([FromBody] DeleteSubjectRequest request)
+        public async Task<ActionResult<ApiResponse<bool>>> DeleteMultiple([FromBody] DeleteMultipleRequest request)
         {
             try
             {

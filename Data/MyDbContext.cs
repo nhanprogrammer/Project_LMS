@@ -383,10 +383,6 @@ namespace Project_LMS.Data
                     .HasMaxLength(255)
                     .HasColumnName("class_code");
 
-                entity.Property(e => e.ClassLink)
-                    .HasColumnType("character varying")
-                    .HasColumnName("class_link");
-
                 entity.Property(e => e.ClassTypeId).HasColumnName("class_type_id");
 
                 entity.Property(e => e.CreateAt)
@@ -1039,7 +1035,7 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.Id).HasColumnName("id");
 
-                entity.Property(e => e.ClassId).HasColumnName("class_id");
+                entity.Property(e => e.TeachingAssignmentId).HasColumnName("teaching_assignment_id");
 
                 entity.Property(e => e.ClassLessonCode)
                     .HasMaxLength(255)
@@ -1055,6 +1051,10 @@ namespace Project_LMS.Data
                 entity.Property(e => e.Duration)
                     .HasMaxLength(50)
                     .HasColumnName("duration");
+
+                entity.Property(e => e.LessonLink)
+                    .HasColumnType("character varying")
+                    .HasColumnName("lesson_link");
 
                 entity.Property(e => e.EndDate)
                     .HasColumnType("timestamp without time zone")
@@ -1097,10 +1097,10 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.UserUpdate).HasColumnName("user_update");
 
-                entity.HasOne(d => d.Class)
+                entity.HasOne(d => d.TeachingAssignment)
                     .WithMany(p => p.Lessons)
-                    .HasForeignKey(d => d.ClassId)
-                    .HasConstraintName("fk_lessons_class");
+                    .HasForeignKey(d => d.TeachingAssignmentId)
+                    .HasConstraintName("fk_lessons_teachingassignment");
 
                 entity.HasOne(d => d.User)
                     .WithMany(p => p.Lessons)

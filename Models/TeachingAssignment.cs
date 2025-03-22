@@ -29,5 +29,6 @@ namespace Project_LMS.Models
         public virtual User? User { get; set; }
         public virtual ICollection<QuestionAnswer> QuestionAnswers { get; set; }
         public virtual ICollection<Topic> Topics { get; set; }
+        public virtual ICollection<Lesson> Lessons { get; set; } = new HashSet<Lesson>();
     }
 }

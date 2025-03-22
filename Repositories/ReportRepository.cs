@@ -349,15 +349,15 @@ namespace Project_LMS.Repositories
                 .Where(ta => ta.UserId == teacherId && ta.IsDelete == false)
                 .ToListAsync();
         }
-        public async Task<Lesson?> GetFirstLessonByClassAndSubjectAsync(int classId, int subjectId, int teacherId)
-        {
-            return await _context.Lessons
-                .Where(l => l.ClassId == classId &&
-                            l.UserId == teacherId &&
-                            l.IsDelete == false)
-                .OrderBy(l => l.StartDate) // Sắp xếp theo thời gian bắt đầu
-                .FirstOrDefaultAsync();
-        }
+        // public async Task<Lesson?> GetFirstLessonByClassAndSubjectAsync(int classId, int subjectId, int teacherId)
+        // {
+        //     return await _context.Lessons
+        //         .Where(l => l.ClassId == classId &&
+        //                     l.UserId == teacherId &&
+        //                     l.IsDelete == false)
+        //         .OrderBy(l => l.StartDate) // Sắp xếp theo thời gian bắt đầu
+        //         .FirstOrDefaultAsync();
+        // }
         public async Task<List<ClassStudent>> GetClassStudentsByStudentIdAsync(int studentId)
         {
             return await _context.ClassStudents
@@ -398,12 +398,12 @@ namespace Project_LMS.Repositories
                 .ToListAsync();
         }
 
-        public async Task<Lesson?> GetFirstLessonByClassAndSubjectAsync(int classId, int subjectId)
-        {
-            return await _context.Lessons
-                .Where(l => l.ClassId == classId && l.IsDelete == false)
-                .OrderBy(l => l.StartDate)
-                .FirstOrDefaultAsync();
-        }
+        // public async Task<Lesson?> GetFirstLessonByClassAndSubjectAsync(int classId, int subjectId)
+        // {
+        //     return await _context.Lessons
+        //         .Where(l => l.ClassId == classId && l.IsDelete == false)
+        //         .OrderBy(l => l.StartDate)
+        //         .FirstOrDefaultAsync();
+        // }
     }
 }

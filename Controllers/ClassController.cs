@@ -192,7 +192,45 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [HttpGet("future")]
+        public async Task<ActionResult<ApiResponse<PaginatedResponse<ClassFutureResponse>>>> GetClassFuture(
+            [FromQuery] string? keyword,
+            [FromQuery] int? subjectId,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10)
+        {
+            try
+            {
+                var result = await _classService.GetClassFuture(keyword, subjectId, pageNumber, pageSize);
+                if (result.Status != 0)
+                {
+                    return BadRequest(result);
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, $"Lỗi server: {ex.Message}", null));
+            }
+        }
 
+        [HttpGet("future/{teachingAssignmentId}")]
+        public async Task<ActionResult<ApiResponse<TeachingAssignmentDetailResponse>>> GetClassFutureDetail(int teachingAssignmentId)
+        {
+            try
+            {
+                var result = await _classService.GetClassFutureDetail(teachingAssignmentId);
+                if (result.Status != 0)
+                {
+                    return BadRequest(result);
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, $"Lỗi server: {ex.Message}", null));
+            }
+        }
 
     }
 }

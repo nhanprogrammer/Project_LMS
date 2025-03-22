@@ -8,7 +8,7 @@ namespace Project_LMS.Interfaces
         Task<ApiResponse<PaginatedResponse<ClassTypeResponse>>> GetAllClassTypesAsync(string? keyword, int pageNumber, int pageSize);
         Task<ApiResponse<ClassTypeResponse>> GetClassTypeByIdAsync(int id);
         Task<ApiResponse<ClassTypeResponse>> CreateClassTypeAsync(ClassTypeRequest request);
-        Task<ApiResponse<ClassTypeResponse>> UpdateClassTypeAsync(int id, ClassTypeRequest request);
-        Task<ApiResponse<bool>> DeleteClassTypeAsync(int id);
+        Task<ApiResponse<ClassTypeResponse>> UpdateClassTypeAsync(ClassTypeRequest request);
+        Task<ApiResponse<bool>> DeleteClassTypeAsync(List<int> id);
     }
 }

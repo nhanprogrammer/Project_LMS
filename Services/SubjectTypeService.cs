@@ -73,7 +73,7 @@ namespace Project_LMS.Services
         {
             var subjectType = await _context.SubjectTypes
                 .FirstOrDefaultAsync(st => st.Id == id && !(st.IsDelete ?? false));
-            
+
             if (subjectType == null)
                 return new ApiResponse<SubjectTypeResponse>(1, "SubjectType not found", null);
 
@@ -94,10 +94,10 @@ namespace Project_LMS.Services
             return new ApiResponse<SubjectTypeResponse>(0, "SubjectType created successfully", response);
         }
 
-        public async Task<ApiResponse<SubjectTypeResponse>> UpdateSubjectTypeAsync(int id, SubjectTypeRequest request)
+        public async Task<ApiResponse<SubjectTypeResponse>> UpdateSubjectTypeAsync(SubjectTypeRequest request)
         {
             var existingSubjectType = await _context.SubjectTypes
-                .FirstOrDefaultAsync(st => st.Id == id && !(st.IsDelete ?? false));
+                .FirstOrDefaultAsync(st => st.Id == request.Id && !(st.IsDelete ?? false));
 
             if (existingSubjectType == null)
                 return new ApiResponse<SubjectTypeResponse>(1, "SubjectType not found", null);
@@ -111,17 +111,32 @@ namespace Project_LMS.Services
             return new ApiResponse<SubjectTypeResponse>(0, "SubjectType updated successfully", response);
         }
 
-        public async Task<ApiResponse<bool>> DeleteSubjectTypeAsync(int id)
+        public async Task<ApiResponse<bool>> DeleteSubjectTypeAsync(List<int> ids)
         {
-            var subjectType = await _context.SubjectTypes.FindAsync(id);
-            if (subjectType == null || (subjectType.IsDelete ?? false))
-                return new ApiResponse<bool>(1, "SubjectType not found", false);
+            try
+            {
+                var subjectTypes = await _context.SubjectTypes
+                    .Where(st => ids.Contains(st.Id) && (!st.IsDelete.HasValue || !st.IsDelete.Value))
+                    .ToListAsync();
 
-            subjectType.IsDelete = true;
-            subjectType.UpdateAt = DateTime.UtcNow.ToLocalTime();
-        
-            await _context.SaveChangesAsync();
-            return new ApiResponse<bool>(0, "SubjectType deleted successfully", true);
+                if (!subjectTypes.Any())
+                {
+                    return new ApiResponse<bool>(1, "No subject types found to delete", false);
+                }
+
+                foreach (var subjectType in subjectTypes)
+                {
+                    subjectType.IsDelete = true;
+                    subjectType.UpdateAt = DateTime.UtcNow.ToLocalTime();
+                }
+
+                await _context.SaveChangesAsync();
+                return new ApiResponse<bool>(0, $"Successfully deleted {subjectTypes.Count} subject types", true);
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<bool>(1, $"Error deleting subject types: {ex.Message}", false);
+            }
         }
     }
 }
