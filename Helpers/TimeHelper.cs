@@ -22,5 +22,8 @@ namespace Project_LMS.Helpers;
             TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")
         );
         
+        private static readonly TimeZoneInfo VietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"); 
+        public static DateTimeOffset NowUsingTimeZones => TimeZoneInfo.ConvertTime(DateTimeOffset.Now, VietnamTimeZone);
+        
     }
 

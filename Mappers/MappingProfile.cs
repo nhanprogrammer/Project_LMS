@@ -340,44 +340,90 @@ public class MappingProfile : Profile
 
         // Create Topic Mapping
         CreateMap<CreateTopicRequest, Topic>()
-            .ForMember(dest => dest.TeachingAssignmentId, otp => otp.MapFrom(src => src.TeachingAssignmentId))
-            .ForMember(dest => dest.UserId, otp => otp.MapFrom(src => src.UserId))
-            .ForMember(dest => dest.TopicId, otp => otp.MapFrom(src => src.TopicId))
-            .ForMember(dest => dest.Title, otp => otp.MapFrom(src => src.Title))
-            .ForMember(dest => dest.FileName, otp => otp.MapFrom(src => src.FileName))
-            .ForMember(dest => dest.Description, otp => otp.MapFrom(src => src.Description))
-            .ForMember(dest => dest.CloseAt, opt =>
-                opt.MapFrom(src => TimeHelper.NowUsingTimeZone));
+            .ForMember(dest => dest.TeachingAssignmentId, opt => opt.MapFrom(src => src.TeachingAssignmentId))
+            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
+            .ForMember(dest => dest.TopicId, opt => opt.MapFrom(src => src.TopicId))
+            .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
+            .ForMember(dest => dest.FileName, opt => opt.MapFrom(src => src.FileName))
+            .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
+            .ForMember(dest => dest.CloseAt, opt => opt.MapFrom(src =>
+                src.CloseAt.HasValue
+                    ? TimeZoneInfo.ConvertTimeFromUtc(
+                        src.CloseAt.Value.UtcDateTime,
+                        TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"))
+                    : (DateTime?)null)) // Ánh xạ trực tiếp từ DTO
+            .ForMember(dest => dest.CreateAt, opt => opt.Ignore()) // Bỏ qua, repository sẽ gán
+            .ForMember(dest => dest.UpdateAt, opt => opt.Ignore()) // Bỏ qua, repository sẽ gán
+            .ForMember(dest => dest.UserCreate, opt => opt.Ignore()) // Bỏ qua, repository sẽ gán
+            .ForMember(dest => dest.UserUpdate, opt => opt.Ignore()) // Bỏ qua, repository sẽ gán
+            .ForMember(dest => dest.IsDelete, opt => opt.Ignore()); // Bỏ qua, repository sẽ gán
         // Update Topic Mapping
         CreateMap<UpdateTopicRequest, Topic>()
-            .ForMember(dest => dest.TeachingAssignmentId, otp => otp.MapFrom(src => src.TeachingAssignmentId))
-            .ForMember(dest => dest.UserId, otp => otp.MapFrom(src => src.UserId))
-            .ForMember(dest => dest.TopicId, otp => otp.MapFrom(src => src.TopicId))
-            .ForMember(dest => dest.Title, otp => otp.MapFrom(src => src.Title))
-            .ForMember(dest => dest.FileName, otp => otp.MapFrom(src => src.FileName))
-            .ForMember(dest => dest.Description, otp => otp.MapFrom(src => src.Description))
-            .ForMember(dest => dest.CloseAt, otp =>
-                otp.MapFrom(src => TimeHelper.NowUsingTimeZone));
+            .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
+            .ForMember(dest => dest.TeachingAssignmentId, opt => opt.MapFrom(src => src.TeachingAssignmentId))
+            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
+            .ForMember(dest => dest.TopicId, opt => opt.MapFrom(src => src.TopicId))
+            .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
+            .ForMember(dest => dest.FileName, opt => opt.MapFrom(src => src.FileName))
+            .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
+            .ForMember(dest => dest.CloseAt, opt => opt.MapFrom(src =>
+                src.CloseAt.HasValue
+                    ? TimeZoneInfo.ConvertTimeFromUtc(
+                        src.CloseAt.Value.UtcDateTime,
+                        TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"))
+                    : (DateTime?)null)).ForMember(dest => dest.CreateAt, opt => opt.Ignore()) // Bỏ qua, không thay đổi
+            .ForMember(dest => dest.UpdateAt, opt => opt.Ignore()) // Bỏ qua, repository sẽ gán
+            .ForMember(dest => dest.UserCreate, opt => opt.Ignore()) // Bỏ qua, không thay đổi
+            .ForMember(dest => dest.UserUpdate, opt => opt.Ignore()) // Bỏ qua, repository sẽ gán
+            .ForMember(dest => dest.IsDelete, opt => opt.Ignore()); // Bỏ qua, không thay đổi
 
         // Topic -> TopicResponse
-        CreateMap<Topic, TopicResponse>();
+        CreateMap<Topic, TopicResponse>()
+            .ForMember(dest => dest.CloseAt, opt => opt.MapFrom(src =>
+                src.CloseAt.HasValue
+                    ? TimeZoneInfo.ConvertTimeFromUtc(
+                        src.CloseAt.Value.UtcDateTime,
+                        TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"))
+                    : (DateTime?)null));
 
         // PaginatedResponse<Topic> -> PaginatedResponse<TopicResponse>
         CreateMap<PaginatedResponse<Topic>, PaginatedResponse<TopicResponse>>()
             .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.Items));
 
-        // Mapping từ CreateQuestionsAnswerRequest sang QuestionAnswer
         CreateMap<CreateQuestionsAnswerRequest, QuestionAnswer>()
-            .ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => TimeHelper.NowUsingTimeZone))
-            .ForMember(dest => dest.IsDelete, opt => opt.MapFrom(src => false));
+            .ForMember(dest => dest.QuestionsAnswerId, opt => opt.MapFrom(src => src.ParentCommentId))
+            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
+            .ForMember(dest => dest.Message, opt => opt.MapFrom(src => src.Message))
+            .ForMember(dest => dest.FileName, opt => opt.MapFrom(src => src.FileName))
+            .ForMember(dest => dest.TeachingAssignmentId, opt => opt.MapFrom(src => src.TeachingAssignmentId));
 
-        // Mapping từ UpdateQuestionsAnswerRequest sa   ng QuestionAnswer
+        // Mapping từ UpdateQuestionsAnswerRequest sang QuestionAnswer
         CreateMap<UpdateQuestionsAnswerRequest, QuestionAnswer>()
-            .ForMember(dest => dest.UpdateAt, opt => opt.MapFrom(src => TimeHelper.NowUsingTimeZone));
+            .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
+            .ForMember(dest => dest.UserUpdate, opt => opt.MapFrom(src => src.UserUpdate))
+            .ForMember(dest => dest.Message, opt => opt.MapFrom(src => src.Message))
+            .ForMember(dest => dest.FileName, opt => opt.MapFrom(src => src.FileName))
+            .ForMember(dest => dest.TeachingAssignmentId, opt => opt.MapFrom(src => src.TeachingAssignmentId))
+            .ForMember(dest => dest.UpdateAt, opt => opt.MapFrom(src => TimeHelper.NowUsingTimeZone))
+            .ForMember(dest => dest.UserId, opt => opt.Ignore()) // Không ánh xạ UserId
+            .ForMember(dest => dest.CreateAt, opt => opt.Ignore()) // Không ánh xạ CreateAt
+            .ForMember(dest => dest.IsDelete, opt => opt.Ignore()); // Không ánh xạ IsDelete
 
         // Mapping từ QuestionAnswer sang QuestionsAnswerResponse
-        CreateMap<QuestionAnswer, QuestionsAnswerResponse>();
+        CreateMap<QuestionAnswer, QuestionsAnswerResponse>()
+            .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
+            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
+            .ForMember(dest => dest.Message, opt => opt.MapFrom(src => src.Message))
+            .ForMember(dest => dest.FileName, opt => opt.MapFrom(src => src.FileName))
+            .ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => src.CreateAt))
+            .ForMember(dest => dest.UpdateAt, opt => opt.MapFrom(src => src.UpdateAt));
+
         CreateMap(typeof(PaginatedResponse<>), typeof(PaginatedResponse<>));
+
+        // Mapping từ Notification sang NotificationResponse
+        CreateMap<Notification, NotificationResponse>()
+            .ForMember(dest => dest.Type, opt => opt.MapFrom(src => src.Type.Value ? "System" : "User"))
+            .ForMember(dest => dest.SenderName, opt => opt.Ignore());
     }
 
     private List<SubjectGroupSubject> MapSubjectGroupSubjects(List<int> subjectIds)

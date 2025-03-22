@@ -1,0 +1,23 @@
+meta {
+  name: Update User belongs to class (teacher)
+  type: http
+  seq: 8
+}
+
+put {
+  url: {{base_url}}api/QuestionsAnswers
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "id": 52,
+    "teachingAssignmentId": 4,
+    "userId": 15,
+    "parentCommentId": 0,
+    "message": "Câu hỏi về ReactJS (đã chỉnh sửa)",
+    "fileName": "",
+    "userUpdate": 15
+  }
+}

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Project_LMS.Data;
+
 using Project_LMS.Interfaces.Services;
 using Project_LMS.Interfaces.Repositories;
 using Project_LMS.Services;
@@ -16,10 +17,10 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Caching.Memory;
-using Project_LMS.Authorization;
 using Project_LMS.Configurations;
+using Project_LMS.Authorization;
 using Project_LMS.DTOs.Response;
+using Microsoft.Extensions.Caching.Memory;
 using Project_LMS.Hubs;
 
 
@@ -30,12 +31,15 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy.WithOrigins("http://localhost:3000")
-            .AllowAnyMethod()
-            .AllowAnyHeader()
-            .AllowCredentials();
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
     });
 });
-builder.Services.AddControllers(options => { options.Filters.Add<ValidationFilter>(); });
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<ValidationFilter>();
+});
 
 // Tắt tự động kiểm tra ModelState trong API behavior để sử dụng ValidationFilter
 builder.Services.Configure<ApiBehaviorOptions>(options =>
@@ -47,29 +51,6 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Project_LMS", Version = "v1" });
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Description = "JWT Authorization header using the Bearer scheme. " +
-                      "Example: \"Authorization: Bearer {token}\"",
-        Name = "Authorization",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
-    });
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            Array.Empty<string>()
-        }
-    });
 });
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -111,10 +92,9 @@ builder.Services.AddScoped<ISubjectGroupService, SubjectGroupService>();
 builder.Services.AddScoped<IDepartmentsService, DepartmentsService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IStudentStatusService, StudentStatusService>();
+builder.Services.AddScoped<IQuestionsAnswersService, QuestionsAnswersService>();
 builder.Services.AddScoped<ITopicService, TopicService>();
-builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
-builder.Services.AddScoped<IQuestionsAnswerRepository, QuestionsAnswerRepository>();
-
+builder.Services.AddScoped<INotificationsService, NotificationsService>();
 // Repositories
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<ISchoolRepository, SchoolRepository>();
@@ -143,8 +123,7 @@ builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
 builder.Services.AddScoped<ITestExamTypeRepository, TestExamTypeRepository>();
 builder.Services.AddScoped<ISubjectTypeRepository, SubjectTypeRepository>();
 builder.Services.AddScoped<IJwtReponsitory, JwtReponsitory>();
-builder.Services.AddScoped<ITopicRepository, TopicRepository>();
-
+builder.Services.AddScoped<INotificationsRepository, NotificationsRepository>();
 builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
 builder.Services.AddScoped<ITeachingAssignmentService, TeachingAssignmentService>();
 
@@ -153,8 +132,12 @@ builder.Services.AddScoped<ISubjectGroupRepository, SubjectGroupRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IStudentStatusRepository, StudenStatusRepository>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
+
 builder.Services.AddScoped<IPermissionService, PermissionService>();
-builder.Services.AddScoped<IQuestionsAnswersService, QuestionsAnswersService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+// builder.Services.AddScoped<IDepartmentsService, Deparmen>();
+builder.Services.AddScoped<IQuestionsAnswerRepository, QuestionsAnswerRepository>();
+builder.Services.AddScoped<ITopicRepository, TopicRepository>();
 
 // Add Service SignalR
 builder.Services.AddSignalR();
@@ -197,38 +180,38 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.Events = new JwtBearerEvents
         {
             OnMessageReceived = async context =>
+        {
+            var memoryCache = context.HttpContext.RequestServices.GetRequiredService<IMemoryCache>();
+            var token = context.Request.Cookies["AuthToken"];
+            Console.WriteLine($"Cookie AuthToken: {token}");
+
+            if (string.IsNullOrEmpty(token) && context.Request.Headers.ContainsKey("Authorization"))
             {
-                var memoryCache = context.HttpContext.RequestServices.GetRequiredService<IMemoryCache>();
-                var token = context.Request.Cookies["AuthToken"];
-                Console.WriteLine($"Cookie AuthToken: {token}");
-
-                if (string.IsNullOrEmpty(token) && context.Request.Headers.ContainsKey("Authorization"))
+                var authHeader = context.Request.Headers["Authorization"].ToString();
+                Console.WriteLine($"Authorization Header: {authHeader}");
+                if (authHeader.StartsWith("Bearer "))
                 {
-                    var authHeader = context.Request.Headers["Authorization"].ToString();
-                    Console.WriteLine($"Authorization Header: {authHeader}");
-                    if (authHeader.StartsWith("Bearer "))
-                    {
-                        token = authHeader.Substring("Bearer ".Length).Trim();
-                    }
+                    token = authHeader.Substring("Bearer ".Length).Trim();
                 }
+            }
 
-                Console.WriteLine($"Extracted Token: {token}");
-                if (!string.IsNullOrEmpty(token) && memoryCache.TryGetValue($"blacklist:{token}", out _))
-                {
-                    Console.WriteLine($"Token {token} is blacklisted");
-                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                    context.Response.ContentType = "application/json";
-                    var response = new ApiResponse<string>(1, "Token đã bị vô hiệu hóa. Vui lòng đăng nhập lại.", null);
-                    await context.Response.WriteAsync(JsonSerializer.Serialize(response));
-                    return;
-                }
+            Console.WriteLine($"Extracted Token: {token}");
+            if (!string.IsNullOrEmpty(token) && memoryCache.TryGetValue($"blacklist:{token}", out _))
+            {
+                Console.WriteLine($"Token {token} is blacklisted");
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                context.Response.ContentType = "application/json";
+                var response = new ApiResponse<string>(1, "Token đã bị vô hiệu hóa. Vui lòng đăng nhập lại.", null);
+                await context.Response.WriteAsync(JsonSerializer.Serialize(response));
+                return;
+            }
 
-                if (!string.IsNullOrEmpty(token))
-                {
-                    context.HttpContext.Items["Token"] = token;
-                    context.Token = token;
-                }
-            },
+            if (!string.IsNullOrEmpty(token))
+            {
+                context.HttpContext.Items["Token"] = token;
+                context.Token = token;
+            }
+        },
             OnChallenge = context =>
             {
                 Console.WriteLine("OnChallenge");
@@ -278,17 +261,14 @@ app.UseExceptionHandler(errorApp =>
     {
         context.Response.StatusCode = 500;
         context.Response.ContentType = "application/json";
-        var error = new
-            { Status = 1, Message = "Lỗi hệ thống không mong muốn.", Details = "Xem log để biết thêm chi tiết." };
+        var error = new { Status = 1, Message = "Lỗi hệ thống không mong muốn.", Details = "Xem log để biết thêm chi tiết." };
         await context.Response.WriteAsync(JsonSerializer.Serialize(error));
     });
 });
-// Mapping Hub
-app.MapHub<RealtimeHub>("/realtimeHub");
 
 app.UseCors("AllowFrontend");
 app.UseHttpsRedirection();
-
+app.MapHub<RealtimeHub>("/realtimeHub");
 app.UseAuthentication();
 app.UseAuthorization();
 

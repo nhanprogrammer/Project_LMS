@@ -1,0 +1,20 @@
+meta {
+  name: Delete list notification by user id
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{base_url}}api/Notifications/delete-multiple/user/3
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "ids": [
+      11,
+      4
+    ]
+  }
+}

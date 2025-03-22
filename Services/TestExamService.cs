@@ -411,6 +411,7 @@ public class TestExamService : ITestExamService
             {
                 c.Id,
                 c.Name,
+                c.AcademicYearId,
                 c.ClassCode,
                 c.StudentCount
             })
@@ -511,6 +512,24 @@ public class TestExamService : ITestExamService
         }
     }
 
+    public async Task<ApiResponse<IEnumerable<object>>> GetAlSemestersforAcademicYears(int academicYearId)
+    {
+        var semesters = await _context.Semesters
+            .Where(s => s.AcademicYearId == academicYearId)
+            .Select(s => new
+            {
+                semestersId = s.Id,
+                semesterName = s.Name
+            })
+            .ToListAsync();
+        if (!semesters.Any())
+        {
+            return new ApiResponse<IEnumerable<object>>(1, "Không tìm thấy học kỳ nào", null);
+        }
+
+        return new ApiResponse<IEnumerable<object>>(0, "Lấy danh sách học kỳ thành công", semesters);
+    }
+
     public async Task<ApiResponse<PaginatedResponse<TestExamResponse>>> GetAllTestExamsAsync(string? keyword,
         int? pageNumber, int? pageSize, string? sortDirection)
     {
@@ -607,27 +626,27 @@ public class TestExamService : ITestExamService
     {
         try
         {
-              var testExams = await _testExamRepository.GetByIdAsync(id);
+            var testExams = await _testExamRepository.GetByIdAsync(id);
 
-        if (testExams == null)
-        {
-            return new ApiResponse<TestExamResponse>(1, "Nhóm môn học không tồn tại", null);
-        }
+            if (testExams == null)
+            {
+                return new ApiResponse<TestExamResponse>(1, "Nhóm môn học không tồn tại", null);
+            }
 
-        var testExamResponse = new TestExamResponse()
-        {
-            Id = testExams.Id,
-            SubjectName = testExams.Subject.SubjectName,
-            StatusExam = testExams.TestExamType.PointTypeName,
-            Duration = testExams.Duration,
-            Semester = testExams.Semesters.Name,
-            StartDate = testExams.StartDate,
-            DepartmentName = testExams.Department.Name,
-            ClassList = string.Join(", ", testExams.ClassTestExams.Select(e => e.Class.Name)),
-            Examiner = string.Join("  ", testExams.Examiners.Select(e => e.User.FullName))
-        };
+            var testExamResponse = new TestExamResponse()
+            {
+                Id = testExams.Id,
+                SubjectName = testExams.Subject.SubjectName,
+                StatusExam = testExams.TestExamType.PointTypeName,
+                Duration = testExams.Duration,
+                Semester = testExams.Semesters.Name,
+                StartDate = testExams.StartDate,
+                DepartmentName = testExams.Department.Name,
+                ClassList = string.Join(", ", testExams.ClassTestExams.Select(e => e.Class.Name)),
+                Examiner = string.Join("  ", testExams.Examiners.Select(e => e.User.FullName))
+            };
 
-        return new ApiResponse<TestExamResponse>(0, "Lấy dữ liệu thành công", testExamResponse);
+            return new ApiResponse<TestExamResponse>(0, "Lấy dữ liệu thành công", testExamResponse);
         }
         catch (NotFoundException ex)
         {
@@ -637,6 +656,5 @@ public class TestExamService : ITestExamService
         {
             return new ApiResponse<TestExamResponse>(1, $"Lỗi: {ex.Message}", null);
         }
-      
     }
 }
