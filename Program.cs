@@ -30,10 +30,10 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowAll",
         policy =>
         {
-            policy.WithOrigins("http://localhost:3000") // ⚠️ Đổi thành frontend của bạn
+            policy.WithOrigins("http://localhost:3000") 
                   .AllowAnyHeader()
                   .AllowAnyMethod()
-                  .AllowCredentials(); // ✅ Quan trọng: Cho phép gửi cookie
+                  .AllowCredentials();
         });
 });
 
@@ -132,6 +132,8 @@ builder.Services.AddScoped<IStudentStatusRepository, StudenStatusRepository>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
 
 
+builder.Services.AddScoped<IPermissionService, PermissionService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 // builder.Services.AddScoped<IDepartmentsService, Deparmen>();
 
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
@@ -150,6 +152,7 @@ builder.Services.AddLogging(); // Đăng ký logging
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IMeetService, MeetService>(); // Đăng ký IMeetService với MeetService
+
 // Đọc cấu hình JWT từ appsettings.json
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]);
