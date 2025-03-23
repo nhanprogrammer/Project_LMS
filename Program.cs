@@ -25,17 +25,18 @@ using Microsoft.Extensions.Caching.Memory;
 
 
 var builder = WebApplication.CreateBuilder(args);
-// Add CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend", policy =>
-    {
-        policy.WithOrigins("http://localhost:3000")
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
-    });
+    options.AddPolicy("AllowAll",
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:3000") // ⚠️ Đổi thành frontend của bạn
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials(); // ✅ Quan trọng: Cho phép gửi cookie
+        });
 });
+
 builder.Services.AddControllers(options =>
 {
     options.Filters.Add<ValidationFilter>();
@@ -72,7 +73,7 @@ builder.Services.AddScoped<IFavouritesService, FavouritesService>();
 builder.Services.AddScoped<IDisciplinesService, DisciplinesService>();
 builder.Services.AddScoped<IModulesService, ModulesService>();
 builder.Services.AddScoped<IClassTypeService, ClassTypeService>();
-builder.Services.AddScoped<IClassOnlineService, ClassOnlineService>();
+// builder.Services.AddScoped<IClassOnlineService, ClassOnlineService>();
 builder.Services.AddScoped<IQuestionsAnswerTopicViewService, QuestionsAnswerTopicViewService>();
 builder.Services.AddScoped<IAcademicHoldsService, AcademicHoldsService>();
 builder.Services.AddScoped<IAcademicYearsService, AcademicYearsService>();
@@ -130,8 +131,7 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IStudentStatusRepository, StudenStatusRepository>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
 
-builder.Services.AddScoped<IPermissionService, PermissionService>();
-builder.Services.AddScoped<IAuthService, AuthService>();
+
 // builder.Services.AddScoped<IDepartmentsService, Deparmen>();
 
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
@@ -147,7 +147,9 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 //loging
 builder.Services.AddLogging(); // Đăng ký logging
 
-
+builder.Services.AddScoped<IPermissionService, PermissionService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IMeetService, MeetService>(); // Đăng ký IMeetService với MeetService
 // Đọc cấu hình JWT từ appsettings.json
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]);
@@ -223,6 +225,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+builder.Services.AddSignalR();
 
 // Thêm Authorization
 builder.Services.AddAuthorization();
@@ -234,6 +237,7 @@ builder.Services.AddMemoryCache();
 
 
 var app = builder.Build();
+app.MapHub<MeetHubService>("/meetHub");
 app.Use(async (context, next) =>
 {
     Console.WriteLine($"Request: {context.Request.Method} {context.Request.Path}");
@@ -258,8 +262,10 @@ app.UseExceptionHandler(errorApp =>
     });
 });
 
-app.UseCors("AllowFrontend");
+//app.UseCors("AllowFrontend");
+app.UseCors("AllowAll");
 app.UseHttpsRedirection();
+
 
 app.UseAuthentication();
 app.UseAuthorization();

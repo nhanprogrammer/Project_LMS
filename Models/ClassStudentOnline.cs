@@ -6,7 +6,7 @@ namespace Project_LMS.Models
     public partial class ClassStudentOnline
     {
         public int Id { get; set; }
-        public int? ClassId { get; set; }
+        public int? ClassOnlineId { get; set; }
         public int? UserId { get; set; }
         public bool? IsMuted { get; set; }
         public bool? IsCamera { get; set; }
@@ -21,7 +21,7 @@ namespace Project_LMS.Models
         public int? UserUpdate { get; set; }
         public bool? IsDelete { get; set; }
 
-        public virtual Class? Class { get; set; }
+        public virtual ClassOnline? ClassOnline { get; set; }
         public virtual User? User { get; set; }
     }
 }

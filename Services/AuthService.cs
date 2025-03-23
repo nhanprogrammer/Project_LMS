@@ -33,20 +33,20 @@ namespace Project_LMS.Services
             _cache = cache;
         }
 
-        public async Task<AuthUserLoginResponse> LoginAsync(string email, string password)
+        public async Task<AuthUserLoginResponse> LoginAsync(string userName, string password)
         {
             var user = await _context.Users
                     .Include(u => u.Role) // Đảm bảo có Role khi trả về
-                    .FirstOrDefaultAsync(u => u.Email == email && u.IsDelete == false);
+                    .FirstOrDefaultAsync(u => u.Username == userName && u.IsDelete == false);
             if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.Password))
-                throw new Exception("Email hoặc mật khẩu không đúng!");
+                throw new Exception("Username hoặc mật khẩu không đúng!");
 
             // user.PermissionChanged = false;
             // await _context.SaveChangesAsync();
             var permissions = await _permissionService.ListPermission(user.Id);
 
             var token = await GenerateJwtToken(user);
-            return new AuthUserLoginResponse(user.Email, user.FullName, token, user.Role.Name, permissions);
+            return new AuthUserLoginResponse(user.Username, user.FullName, token, user.Role.Name, permissions);
         }
 
         public async Task LogoutAsync(HttpContext context)
@@ -75,12 +75,12 @@ namespace Project_LMS.Services
 
             var verificationCode = new Random().Next(100000, 999999).ToString();
             user.ResetCode = verificationCode;
-            user.ResetCodeExpiry = DateTime.Now.AddMinutes(10);
+            user.ResetCodeExpiry = DateTime.UtcNow.AddMinutes(10);
 
-            try
-            {
-                await _context.SaveChangesAsync();
-                var emailBody = $@"
+            await _context.SaveChangesAsync();
+
+            string subject = "Mã xác thực đặt lại mật khẩu";
+            string body = $@"
                     <p>Xin chào,</p>
                     <p>Mã xác thực của bạn là: <strong>{verificationCode}</strong></p>
                     <p>Mã này có hiệu lực trong <strong>10 phút</strong>. Vui lòng không chia sẻ mã này với bất kỳ ai.</p>
@@ -88,20 +88,25 @@ namespace Project_LMS.Services
                     <p>Trân trọng,</p>
                     <p><strong>Đội ngũ hỗ trợ</strong></p>";
 
-                await SendEmailAsync(email, "Mã xác thực", emailBody);
-            }
-            catch (Exception ex)
+            _ = Task.Run(async () =>
             {
-                throw new InvalidOperationException($"Không thể gửi mã xác thực: {ex.Message}");
-            }
+                try
+                {
+                    await SendEmailAsync(user.Email, subject, body);
+                    Console.WriteLine($"Email xác thực đã gửi đến {user.Email}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Gửi email thất bại: {ex.Message}");
+                }
+            });
         }
 
-
-        public async Task ResetPasswordWithCodeAsync(string email, string verificationCode, string newPassword, string confirmPassword)
+        public async Task ResetPasswordWithCodeAsync(string userName, string verificationCode, string newPassword, string confirmPassword)
         {
             if (newPassword != confirmPassword) throw new Exception("Mật khẩu xác nhận không khớp!");
 
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email && u.IsDelete == false);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == userName && u.IsDelete == false);
             if (user == null || user.ResetCode != verificationCode || user.ResetCodeExpiry < DateTime.UtcNow)
                 throw new Exception("Mã xác thực không hợp lệ hoặc đã hết hạn!");
 
@@ -134,7 +139,6 @@ namespace Project_LMS.Services
             return await Task.FromResult(new JwtSecurityTokenHandler().WriteToken(token));
         }
 
-
         private async Task SendEmailAsync(string toEmail, string subject, string body)
         {
             var emailSender = _config["EmailSettings:SenderEmail"];
@@ -163,23 +167,31 @@ namespace Project_LMS.Services
                 var bodyBuilder = new BodyBuilder { HtmlBody = body };
                 message.Body = bodyBuilder.ToMessageBody();
 
-                using (var client = new SmtpClient())
-                {
-                    await client.ConnectAsync(smtpServer, smtpPort, MailKit.Security.SecureSocketOptions.StartTls);
-                    await client.AuthenticateAsync(emailSender, emailPassword);
-                    await client.SendAsync(message);
-                    await client.DisconnectAsync(true);
-                }
+                using var client = new SmtpClient();
+                await client.ConnectAsync(smtpServer, smtpPort, MailKit.Security.SecureSocketOptions.StartTls);
+                await client.AuthenticateAsync(emailSender, emailPassword);
+                await client.SendAsync(message);
+                await client.DisconnectAsync(true);
+
+                Console.WriteLine($"[✅] Email gửi thành công tới {toEmail}");
             }
             catch (SmtpCommandException smtpEx)
             {
+                Console.WriteLine($"SMTP Command Error: {smtpEx.Message} - Status: {smtpEx.StatusCode}");
                 throw new InvalidOperationException($"Lỗi SMTP: {smtpEx.Message}");
+            }
+            catch (SmtpProtocolException protocolEx)
+            {
+                Console.WriteLine($"SMTP Protocol Error: {protocolEx.Message}");
+                throw new InvalidOperationException($"Lỗi giao thức SMTP: {protocolEx.Message}");
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"Lỗi gửi email: {ex.Message}");
                 throw new InvalidOperationException($"Lỗi gửi email: {ex.Message}");
             }
         }
+
 
         public async Task<string> HashPassword(string password)
         {
@@ -211,5 +223,6 @@ namespace Project_LMS.Services
                 return null;
             }
         }
+
     }
 }

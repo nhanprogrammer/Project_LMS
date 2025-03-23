@@ -7,12 +7,11 @@ namespace Project_LMS.Models
     {
         public Class()
         {
-            ChatMessages = new HashSet<ChatMessage>();
-            ClassStudentOnlines = new HashSet<ClassStudentOnline>();
+           
             ClassStudents = new HashSet<ClassStudent>();
             ClassSubjects = new HashSet<ClassSubject>();
             ClassTestExams = new HashSet<ClassTestExam>();
-            Lessons = new HashSet<Lesson>();
+            // Lessons = new HashSet<Lesson>();
             TeachingAssignments = new HashSet<TeachingAssignment>();
             TestExams = new HashSet<TestExam>();
         }
@@ -41,12 +40,11 @@ namespace Project_LMS.Models
         public virtual ClassType? ClassType { get; set; }
         public virtual Department? Department { get; set; }
         public virtual User? User { get; set; }
-        public virtual ICollection<ChatMessage> ChatMessages { get; set; }
-        public virtual ICollection<ClassStudentOnline> ClassStudentOnlines { get; set; }
+    
         public virtual ICollection<ClassStudent> ClassStudents { get; set; }
         public virtual ICollection<ClassSubject> ClassSubjects { get; set; }
         public virtual ICollection<ClassTestExam> ClassTestExams { get; set; }
-        public virtual ICollection<Lesson> Lessons { get; set; }
+        // public virtual ICollection<Lesson> Lessons { get; set; }
         public virtual ICollection<TeachingAssignment> TeachingAssignments { get; set; }
         public virtual ICollection<TestExam> TestExams { get; set; }
         public virtual ICollection<Examiner> Examiners { get; set; }
