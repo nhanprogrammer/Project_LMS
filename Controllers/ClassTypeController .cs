@@ -66,12 +66,12 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [HttpPut("{id}")]
-        public async Task<ActionResult<ApiResponse<ClassTypeResponse>>> Update(int id, [FromBody] ClassTypeRequest request)
+        [HttpPut]
+        public async Task<ActionResult<ApiResponse<ClassTypeResponse>>> Update([FromBody] ClassTypeRequest request)
         {
             try
             {
-                var result = await _classTypeService.UpdateClassTypeAsync(id, request);
+                var result = await _classTypeService.UpdateClassTypeAsync(request);
                 if (result.Data == null)
                 {
                     return NotFound(new ApiResponse<ClassTypeResponse>(1, "ClassType not found", null));
@@ -84,21 +84,26 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [HttpDelete("{id}")]
-        public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
+        [HttpDelete]
+        public async Task<ActionResult<ApiResponse<bool>>> Delete([FromBody] DeleteMultipleRequest request)
         {
             try
             {
-                var result = await _classTypeService.DeleteClassTypeAsync(id);
-                if (!result.Data)
+                if (request?.Ids == null || !request.Ids.Any())
                 {
-                    return NotFound(new ApiResponse<bool>(1, "ClassType not found", false));
+                    return BadRequest(new ApiResponse<bool>(1, "No IDs provided", false));
                 }
-                return Ok(result);
+
+                var result = await _classTypeService.DeleteClassTypeAsync(request.Ids);
+                if (result.Status == 0)
+                {
+                    return Ok(result);
+                }
+                return BadRequest(result);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<string>(1, $"Internal server error: {ex.Message}", null));
+                return StatusCode(500, new ApiResponse<bool>(1, $"Error deleting classtype: {ex.Message}", false));
             }
         }
     }

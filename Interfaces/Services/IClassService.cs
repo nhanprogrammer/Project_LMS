@@ -22,5 +22,8 @@ namespace Project_LMS.Interfaces
         Task<string> ExportClassListToExcel(int academicYearId, int departmentId);
         Task CreateClassByBase64(string base64File);
         Task<string> GenerateClassTemplate();
+
+        Task<ApiResponse<PaginatedResponse<ClassFutureResponse>>> GetClassFuture(string? keyword, int? subjectId, int pageNumber = 1, int pageSize = 10);
+        Task<ApiResponse<TeachingAssignmentDetailResponse>> GetClassFutureDetail(int teachingAssignmentId);
     }
 }

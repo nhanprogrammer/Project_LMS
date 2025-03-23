@@ -20,14 +20,14 @@ namespace Project_LMS.Repositories
         Task<List<ClassPerformanceReport>> GetClassPerformanceByTeacherAsync(int userId);
         Task<List<Semester>> GetSemestersByAcademicYearIdsAsync(List<int> academicYearIds);
         Task<List<TeachingAssignment>> GetTeachingAssignmentsByTeacherAsync(int teacherId);
-        Task<Lesson?> GetFirstLessonByClassAndSubjectAsync(int classId, int subjectId, int teacherId);
+        // Task<Lesson?> GetFirstLessonByClassAndSubjectAsync(int classId, int subjectId, int teacherId);
 
         //Thống kê student
         Task<List<ClassStudent>> GetClassStudentsByStudentIdAsync(int studentId);
         Task<List<Assignment>> GetAssignmentsByStudentAndClassAsync(int studentId, int classId);
         Task<List<Subject>> GetSubjectsByClassIdAsync(int classId);
         Task<List<ClassSubject>> GetClassSubjectsWithSubjectsByClassIdAsync(int classId);
-        Task<Lesson?> GetFirstLessonByClassAndSubjectAsync(int classId, int subjectId);
+        // Task<Lesson?> GetFirstLessonByClassAndSubjectAsync(int classId, int subjectId);
 
 
     }
