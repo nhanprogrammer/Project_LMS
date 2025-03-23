@@ -8,9 +8,10 @@ namespace Project_LMS.Services
 {
     public interface IMeetService
     {
-        Task<ClassOnlineResponse?> JoinOrCreateClassOnlineForTeacher(CreateRoomRequest request);
-        Task<ClassOnlineResponse?> JoinClassOnlineForStudent(CreateRoomRequest request);
-        Task<bool> CloseRoom(CreateRoomRequest request);
-        Task<bool> KickUserFromRoom(int lessonId, int userId);
+        Task<ClassOnlineResponse?> GetOrCreateTeacherOnlineClass(CreateRoomRequest request);
+        Task<ClassOnlineResponse?> JoinOnlineClass (CreateRoomRequest request);
+        Task<bool> CloseRoom(MeetCloseRequest request);
+        Task<bool> KickUserFromRoom(string RoomId, int userId);
+        Task<bool> AddQuestionAnswer(QuestionAnswerRequest request);
     }
 }

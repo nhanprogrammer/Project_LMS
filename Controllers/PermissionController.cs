@@ -242,6 +242,8 @@ namespace Project_LMS.Controllers
             }
         }
 
+
+        //Demo
         [HttpGet("u")]
         public async Task<IActionResult> GetUserPer([FromQuery] PermissionIdRequest userId)
         {

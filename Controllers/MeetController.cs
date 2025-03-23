@@ -20,7 +20,7 @@ namespace Project_LMS.Controllers
 
         // Tạo hoặc tham gia phòng cho giáo viên
         [HttpPost("join-room-teacher")]
-        public async Task<ActionResult<ApiResponse<ClassOnlineResponse>>> CreateRoomForTeacher([FromBody] CreateRoomRequest request)
+        public async Task<ActionResult<ApiResponse<ClassOnlineResponse>>> JoinOrCreateRoomTeacher([FromBody] CreateRoomRequest request)
         {
             if (request?.LessonId == null)
             {
@@ -29,7 +29,7 @@ namespace Project_LMS.Controllers
 
             try
             {
-                var room = await _meetService.JoinOrCreateClassOnlineForTeacher(request);
+                var room = await _meetService.GetOrCreateTeacherOnlineClass(request);
                 if (room == null)
                 {
                     return StatusCode(500, new ApiResponse<ClassOnlineResponse>(1, "Không thể tạo hoặc tham gia phòng.", null));
@@ -44,7 +44,7 @@ namespace Project_LMS.Controllers
 
         // Tham gia phòng cho học sinh
         [HttpPost("join-room-student")]
-        public async Task<ActionResult<ApiResponse<ClassOnlineResponse>>> JoinRoomForStudent([FromBody] CreateRoomRequest request)
+        public async Task<ActionResult<ApiResponse<ClassOnlineResponse>>> JoinRoomStudent([FromBody] CreateRoomRequest request)
         {
             if (request?.LessonId == null)
             {
@@ -53,7 +53,7 @@ namespace Project_LMS.Controllers
 
             try
             {
-                var room = await _meetService.JoinClassOnlineForStudent(request);
+                var room = await _meetService.JoinOnlineClass (request);
                 if (room == null)
                 {
                     return StatusCode(500, new ApiResponse<ClassOnlineResponse>(1, "Không thể tham gia phòng.", null));
@@ -68,13 +68,8 @@ namespace Project_LMS.Controllers
 
         // Đóng phòng
         [HttpPost("close-room")]
-        public async Task<ActionResult<ApiResponse<string>>> CloseRoom([FromBody] CreateRoomRequest request)
+        public async Task<ActionResult<ApiResponse<string>>> CloseRoom([FromBody] MeetCloseRequest request)
         {
-            if (request?.LessonId == null)
-            {
-                return BadRequest(new ApiResponse<string>(1, "LessonId không hợp lệ.", null));
-            }
-
             try
             {
                 var result = await _meetService.CloseRoom(request);
@@ -97,7 +92,7 @@ namespace Project_LMS.Controllers
 
             try
             {
-                var result = await _meetService.KickUserFromRoom(request.LessonId, request.UserId);
+                var result = await _meetService.KickUserFromRoom(request.RoomId, request.UserId);
                 if (!result)
                 {
                     return StatusCode(500, new ApiResponse<string>(1, "Không thể kick user.", null));
@@ -107,6 +102,25 @@ namespace Project_LMS.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new ApiResponse<string>(1, $"Lỗi khi kick user: {ex.Message}", null));
+            }
+        }
+
+
+        [HttpPost("add-question-answer")]
+        public async Task<ActionResult<ApiResponse<string>>> AddQuestionAnswer([FromBody] QuestionAnswerRequest request)
+        {
+            try
+            {
+                var result = await _meetService.AddQuestionAnswer(request);
+                if (!result)
+                {
+                    return StatusCode(500, new ApiResponse<string>(1, "Không thể thêm câu hỏi trả lời.", null));
+                }
+                return Ok(new ApiResponse<string>(0, "Thêm câu hỏi trả lời thành công!", null));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, $"Lỗi khi thêm câu hỏi trả lời: {ex.Message}", null));
             }
         }
 
