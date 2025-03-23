@@ -383,6 +383,7 @@ namespace Project_LMS.Data
                     .HasMaxLength(255)
                     .HasColumnName("class_code");
 
+
                 entity.Property(e => e.ClassTypeId).HasColumnName("class_type_id");
 
                 entity.Property(e => e.CreateAt)

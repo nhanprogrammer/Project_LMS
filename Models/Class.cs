@@ -22,6 +22,7 @@ namespace Project_LMS.Models
         public int? AcademicYearId { get; set; }
         public int? UserId { get; set; }
         public string? Description { get; set; }
+
         public string? Name { get; set; }
         public int? StudentCount { get; set; }
         public string? ClassCode { get; set; }
