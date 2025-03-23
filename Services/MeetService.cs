@@ -31,7 +31,7 @@ namespace Project_LMS.Services
             TwilioClient.Init(_twilioAccountSid, _twilioAuthToken);
         }
 
-        public async Task<ClassOnlineResponse?> JoinOrCreateClassOnlineForTeacher(CreateRoomRequest request)
+        public async Task<ClassOnlineResponse?> GetOrCreateTeacherOnlineClass(CreateRoomRequest request)
         {
             var user = await _authService.GetUserAsync();
             if (user == null)
@@ -56,6 +56,7 @@ namespace Project_LMS.Services
 
                 // 🔹 Cập nhật mã phòng mới từ Twilio
                 classOnline.ClassOnlineCode = room.Sid;
+                classOnline.UserUpdate = user.Id;
                 _context.ClassOnlines.Update(classOnline);
                 await _context.SaveChangesAsync();
 
@@ -112,7 +113,7 @@ namespace Project_LMS.Services
 
 
 
-        public async Task<ClassOnlineResponse?> JoinClassOnlineForStudent(CreateRoomRequest request)
+        public async Task<ClassOnlineResponse?> JoinOnlineClass(CreateRoomRequest request)
         {
             var user = await _authService.GetUserAsync();
             if (user == null)
@@ -138,19 +139,19 @@ namespace Project_LMS.Services
 
 
         //  Đóng phòng học
-        public async Task<bool> CloseRoom(CreateRoomRequest request)
+        public async Task<bool> CloseRoom(MeetCloseRequest request)
         {
             var user = await _authService.GetUserAsync();
             if (user == null)
                 throw new Exception("Không thể xác thực user.");
 
             var classOnline = await _context.ClassOnlines
-                .Where(c => c.LessonId == request.LessonId)
+                .Where(c => c.ClassOnlineCode == request.RoomId)
                 .Select(c => new { c.UserId, c.ClassOnlineCode })
                 .FirstOrDefaultAsync();
 
             if (classOnline == null)
-                throw new Exception($"Không tìm thấy lớp học với Id: {request.LessonId}");
+                throw new Exception($"Không tìm thấy lớp học với mã: {classOnline.ClassOnlineCode}");
 
             if (classOnline.UserId != user.Id)
                 throw new Exception("Chỉ giáo viên mới có quyền đóng phòng.");
@@ -174,7 +175,7 @@ namespace Project_LMS.Services
         }
 
         // Kick user khỏi phòng (Vô hiệu hóa token)
-        public async Task<bool> KickUserFromRoom(int lessonId, int userId)
+        public async Task<bool> KickUserFromRoom(string RoomId, int userId)
         {
             var user = await _authService.GetUserAsync();
             if (user == null)
@@ -182,16 +183,13 @@ namespace Project_LMS.Services
 
             // 🔹 Kiểm tra lớp học có tồn tại không và lấy ClassOnlineCode
             var classOnline = await _context.ClassOnlines
-                .FirstOrDefaultAsync(c => c.LessonId == lessonId);
+                .FirstOrDefaultAsync(c => c.ClassOnlineCode == RoomId);
 
             if (classOnline == null)
-                throw new Exception($"Không tìm thấy lớp học với LessonId: {lessonId}");
+                throw new Exception($"Không tìm thấy lớp học với mã: {RoomId}");
 
             if (classOnline.UserId != user.Id)
                 throw new Exception("Chỉ giáo viên mới có quyền kick user khỏi phòng.");
-
-            if (string.IsNullOrEmpty(classOnline.ClassOnlineCode))
-                throw new Exception("Thiếu thông tin phòng.");
 
             // 🔹 Lấy email của user cần kick
             var userIdentity = await _context.Users
@@ -229,14 +227,34 @@ namespace Project_LMS.Services
             return token.ToJwt();
         }
 
+        public async Task<bool> AddQuestionAnswer(QuestionAnswerRequest request)
+        {
+            var user = await _authService.GetUserAsync();
+            if (user == null)
+                throw new Exception("Không thể xác thực user.");
 
+            var classOnline = await _context.ClassOnlines
+                .FirstOrDefaultAsync(c => c.ClassOnlineCode == request.RoomId);
 
+            if (classOnline == null)
+                throw new Exception($"Không tìm thấy lớp học với mã: {request.RoomId}");
+            var lesson = await _context.Lessons
+                .FirstOrDefaultAsync(c => c.Id == classOnline.LessonId);
 
+            var questionAnswer = new QuestionAnswer
+            {
+                UserId = user.Id,
+                TeachingAssignmentId = lesson.TeachingAssignmentId,
+                Message = request.Content,
+                UserCreate = user.Id,
+                UserUpdate = user.Id
+            };
 
+            _context.QuestionAnswers.Add(questionAnswer);
+            await _context.SaveChangesAsync();
 
-
-
-
+            return true;
+        }
 
     }
 }
