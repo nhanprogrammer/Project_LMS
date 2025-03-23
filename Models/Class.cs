@@ -12,7 +12,6 @@ namespace Project_LMS.Models
             ClassStudents = new HashSet<ClassStudent>();
             ClassSubjects = new HashSet<ClassSubject>();
             ClassTestExams = new HashSet<ClassTestExam>();
-            Lessons = new HashSet<Lesson>();
             TeachingAssignments = new HashSet<TeachingAssignment>();
             TestExams = new HashSet<TestExam>();
         }
@@ -23,7 +22,7 @@ namespace Project_LMS.Models
         public int? AcademicYearId { get; set; }
         public int? UserId { get; set; }
         public string? Description { get; set; }
-        //public string? ClassLink { get; set; }
+
         public string? Name { get; set; }
         public int? StudentCount { get; set; }
         public string? ClassCode { get; set; }
@@ -46,7 +45,6 @@ namespace Project_LMS.Models
         public virtual ICollection<ClassStudent> ClassStudents { get; set; }
         public virtual ICollection<ClassSubject> ClassSubjects { get; set; }
         public virtual ICollection<ClassTestExam> ClassTestExams { get; set; }
-        public virtual ICollection<Lesson> Lessons { get; set; }
         public virtual ICollection<TeachingAssignment> TeachingAssignments { get; set; }
         public virtual ICollection<TestExam> TestExams { get; set; }
         public virtual ICollection<Examiner> Examiners { get; set; }
