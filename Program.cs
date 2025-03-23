@@ -22,6 +22,9 @@ using Project_LMS.Authorization;
 using Project_LMS.DTOs.Response;
 using Microsoft.Extensions.Caching.Memory;
 using Project_LMS.Hubs;
+using Project_LMS.Middleware;
+using Hangfire;
+using Hangfire.PostgreSql;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -39,6 +42,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllers(options =>
 {
     options.Filters.Add<ValidationFilter>();
+    
 });
 
 // Tắt tự động kiểm tra ModelState trong API behavior để sử dụng ValidationFilter
@@ -52,11 +56,18 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Project_LMS", Version = "v1" });
 });
+builder.Services.AddHangfire(config => config
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UsePostgreSqlStorage(c =>
+        c.UseNpgsqlConnection(builder.Configuration.GetConnectionString("DefaultConnection"))));
 
+builder.Services.AddHangfireServer();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<ValidationFilter>();
-
+builder.Services.AddScoped<AcademicHoldStatusCheckerJob>();
 // Services
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<ISchoolService, SchoolService>();
@@ -152,7 +163,6 @@ builder.Services.AddAutoMapper(typeof(StudentStatusMapper));
 builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
 builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
-//loging
 builder.Services.AddLogging(); // Đăng ký logging
 
 
@@ -239,7 +249,7 @@ builder.Services.AddPermissionAuthorization();
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddMemoryCache();
-
+builder.Services.AddLogging();
 
 var app = builder.Build();
 app.Use(async (context, next) =>
@@ -273,5 +283,15 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.UseHangfireDashboard();
 
+// Đăng ký job chạy vào 12 giờ đêm mỗi ngày
+RecurringJob.AddOrUpdate<AcademicHoldStatusCheckerJob>(
+    "check-academic-hold-status",
+    job => job.ExecuteAsync(CancellationToken.None),
+    "0 0 * * *",
+    new RecurringJobOptions
+    {
+        TimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")
+    });
 app.Run();
