@@ -1,0 +1,21 @@
+meta {
+  name: User does not belong to the class
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{base_url}}api/QuestionsAnswers
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "teachingAssignmentId": 2,
+    "userId": 5,
+    "parentCommentId": 0,
+    "message": "Câu hỏi về ReactJS và NodeJS",
+    "fileName": ""
+  }
+}

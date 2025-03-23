@@ -8,5 +8,6 @@
         public string? FileName { get; set; }
         public DateTime? CreateAt { get; set; }
         public DateTime? UpdateAt { get; set; }
+        public string? RoleName { get; set; }
     }
 }

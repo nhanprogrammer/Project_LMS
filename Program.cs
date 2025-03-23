@@ -20,7 +20,7 @@ using Project_LMS.Configurations;
 using Project_LMS.Authorization;
 using Project_LMS.DTOs.Response;
 using Microsoft.Extensions.Caching.Memory;
-
+using Project_LMS.Hubs;
 
 
 
@@ -68,7 +68,7 @@ builder.Services.AddScoped<IDistrictsService, DistrictsService>();
 builder.Services.AddScoped<IProvincesService, ProvincesService>();
 builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddScoped<IClassService, ClassService>();
-builder.Services.AddScoped<ILessonsService, LessonsService>();
+builder.Services.AddScoped<ILessonService, LessonService>();
 builder.Services.AddScoped<IFavouritesService, FavouritesService>();
 builder.Services.AddScoped<IDisciplinesService, DisciplinesService>();
 builder.Services.AddScoped<IModulesService, ModulesService>();
@@ -93,6 +93,14 @@ builder.Services.AddScoped<ISubjectGroupService, SubjectGroupService>();
 builder.Services.AddScoped<IDepartmentsService, DepartmentsService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IStudentStatusService, StudentStatusService>();
+builder.Services.AddScoped<IQuestionsAnswersService, QuestionsAnswersService>();
+builder.Services.AddScoped<ITopicService, TopicService>();
+builder.Services.AddScoped<INotificationsService, NotificationsService>();
+builder.Services.AddScoped<ITeacherTestExamService, TeacherTestExamService> ();
+builder.Services.AddSingleton<ISupportService, SupportService>();
+builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+
+
 // Repositories
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<ISchoolRepository, SchoolRepository>();
@@ -122,6 +130,7 @@ builder.Services.AddScoped<ITestExamTypeRepository, TestExamTypeRepository>();
 builder.Services.AddScoped<ISubjectTypeRepository, SubjectTypeRepository>();
 builder.Services.AddScoped<IJwtReponsitory, JwtReponsitory>();
 
+builder.Services.AddScoped<INotificationsRepository, NotificationsRepository>();
 builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
 builder.Services.AddScoped<ITeachingAssignmentService, TeachingAssignmentService>();
 
@@ -131,6 +140,12 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IStudentStatusRepository, StudenStatusRepository>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
 
+
+builder.Services.AddScoped<IPermissionService, PermissionService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+// builder.Services.AddScoped<IDepartmentsService, Deparmen>();
+builder.Services.AddScoped<IQuestionsAnswerRepository, QuestionsAnswerRepository>();
+builder.Services.AddScoped<ITopicRepository, TopicRepository>();
 
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -268,8 +283,7 @@ app.UseExceptionHandler(errorApp =>
 //app.UseCors("AllowFrontend");
 app.UseCors("AllowAll");
 app.UseHttpsRedirection();
-
-
+app.MapHub<RealtimeHub>("/realtimeHub");
 app.UseAuthentication();
 app.UseAuthorization();
 

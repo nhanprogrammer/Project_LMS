@@ -74,7 +74,7 @@ namespace Project_LMS.Services
         {
             var classType = await _context.ClassTypes
                 .FirstOrDefaultAsync(ct => ct.Id == id && !(ct.IsDelete ?? false));
-            
+
             if (classType == null)
                 return new ApiResponse<ClassTypeResponse>(1, "ClassType not found", null);
 
@@ -95,10 +95,10 @@ namespace Project_LMS.Services
             return new ApiResponse<ClassTypeResponse>(0, "ClassType created successfully", response);
         }
 
-        public async Task<ApiResponse<ClassTypeResponse>> UpdateClassTypeAsync(int id, ClassTypeRequest request)
+        public async Task<ApiResponse<ClassTypeResponse>> UpdateClassTypeAsync(ClassTypeRequest request)
         {
             var existingClassType = await _context.ClassTypes
-                .FirstOrDefaultAsync(ct => ct.Id == id && !(ct.IsDelete ?? false));
+                .FirstOrDefaultAsync(ct => ct.Id == request.id && !(ct.IsDelete ?? false));
 
             if (existingClassType == null)
                 return new ApiResponse<ClassTypeResponse>(1, "ClassType not found", null);
@@ -112,17 +112,32 @@ namespace Project_LMS.Services
             return new ApiResponse<ClassTypeResponse>(0, "ClassType updated successfully", response);
         }
 
-        public async Task<ApiResponse<bool>> DeleteClassTypeAsync(int id)
+        public async Task<ApiResponse<bool>> DeleteClassTypeAsync(List<int> ids)
         {
-            var classType = await _context.ClassTypes.FindAsync(id);
-            if (classType == null || (classType.IsDelete ?? false))
-                return new ApiResponse<bool>(1, "ClassType not found", false);
+            try
+            {
+                var classTypes = await _context.ClassTypes
+                    .Where(c => ids.Contains(c.Id) && (!c.IsDelete.HasValue || !c.IsDelete.Value))
+                    .ToListAsync();
 
-            classType.IsDelete = true;
-            classType.UpdateAt = DateTime.UtcNow.ToLocalTime();
-        
-            await _context.SaveChangesAsync();
-            return new ApiResponse<bool>(0, "ClassType deleted successfully", true);
+                if (!classTypes.Any())
+                {
+                    return new ApiResponse<bool>(1, "No class types found to delete", false);
+                }
+
+                foreach (var classType in classTypes)
+                {
+                    classType.IsDelete = true;
+                    classType.UpdateAt = DateTime.UtcNow.ToLocalTime();
+                }
+
+                await _context.SaveChangesAsync();
+                return new ApiResponse<bool>(0, $"Successfully deleted {classTypes.Count} class types", true);
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<bool>(1, $"Error deleting class types: {ex.Message}", false);
+            }
         }
     }
 }

@@ -3,11 +3,13 @@ using Project_LMS.DTOs.Response;
 
 namespace Project_LMS.Interfaces
 {
-    public interface ILessonsService
+    public interface ILessonService
     {
-        Task<PaginatedResponse<LessonResponse>> GetLessonAsync(PaginationRequest request);
-        Task<ApiResponse<LessonResponse>> CreateLessonAsync(CreateLessonRequest createLessonRequest);
-        Task<ApiResponse<LessonResponse>> UpdateLessonAsync(string id, UpdateLessonRequest updateLessonRequest);
-        Task<ApiResponse<LessonResponse>> DeleteLessonAsync(string id);
+        Task<ApiResponse<PaginatedResponse<LessonResponse>>> GetLessonAsync(string? keyword, int pageNumber = 1, int pageSize = 10);
+        Task<ApiResponse<LessonResponse>> GetLessonByIdAsync(int id);
+        Task<ApiResponse<LessonResponse>> CreateLessonAsync(CreateLessonRequest request);
+        Task<ApiResponse<LessonResponse>> UpdateLessonAsync(CreateLessonRequest request);
+        Task<ApiResponse<bool>> DeleteLessonAsync(int id);
+        Task<ApiResponse<bool>> DeleteMultipleLessonsAsync(List<int> ids);
     }
 }

@@ -383,9 +383,6 @@ namespace Project_LMS.Data
                     .HasMaxLength(255)
                     .HasColumnName("class_code");
 
-                entity.Property(e => e.ClassLink)
-                    .HasColumnType("character varying")
-                    .HasColumnName("class_link");
 
                 entity.Property(e => e.ClassTypeId).HasColumnName("class_type_id");
 
@@ -1055,7 +1052,7 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.Id).HasColumnName("id");
 
-              //  entity.Property(e => e.ClassId).HasColumnName("class_id");
+                entity.Property(e => e.TeachingAssignmentId).HasColumnName("teaching_assignment_id");
 
                 entity.Property(e => e.ClassLessonCode)
                     .HasMaxLength(255)
@@ -1071,6 +1068,10 @@ namespace Project_LMS.Data
                 entity.Property(e => e.Duration)
                     .HasMaxLength(50)
                     .HasColumnName("duration");
+
+                entity.Property(e => e.LessonLink)
+                    .HasColumnType("character varying")
+                    .HasColumnName("lesson_link");
 
                 entity.Property(e => e.EndDate)
                     .HasColumnType("timestamp without time zone")
@@ -1113,10 +1114,10 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.UserUpdate).HasColumnName("user_update");
 
-                // entity.HasOne(d => d.Class)
-                //     .WithMany(p => p.Lessons)
-                //     .HasForeignKey(d => d.ClassId)
-                //     .HasConstraintName("fk_lessons_class");
+                entity.HasOne(d => d.TeachingAssignment)
+                    .WithMany(p => p.Lessons)
+                    .HasForeignKey(d => d.TeachingAssignmentId)
+                    .HasConstraintName("fk_lessons_teachingassignment");
 
                 entity.HasOne(d => d.User)
                     .WithMany(p => p.Lessons)
@@ -2140,96 +2141,97 @@ namespace Project_LMS.Data
             });
 
             modelBuilder.Entity<TestExam>(entity =>
- {
-     entity.ToTable("test_exams");
+            {
+                entity.ToTable("test_exams");
 
-     entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.Id).HasColumnName("id");
 
-     entity.Property(e => e.Attachment).HasColumnName("attachment");
+                entity.Property(e => e.Attachment).HasColumnName("attachment");
 
-     entity.Property(e => e.ClassId).HasColumnName("class_id");
+                entity.Property(e => e.ClassId).HasColumnName("class_id");
 
-     entity.Property(e => e.CreateAt)
-         .HasColumnType("timestamp with time zone")
-         .HasColumnName("create_at")
-         .HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'");
+                entity.Property(e => e.CreateAt)
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("create_at")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'");
 
-     entity.Property(e => e.Description).HasColumnName("description");
+                entity.Property(e => e.Description).HasColumnName("description");
 
-     entity.Property(e => e.Duration).HasColumnName("duration");
+                entity.Property(e => e.Duration).HasColumnName("duration");
 
-     entity.Property(e => e.EndDate)
-         .HasColumnType("timestamp with time zone")
-         .HasColumnName("end_date");
+                entity.Property(e => e.EndDate)
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("end_date");
 
-     entity.Property(e => e.Form)
-         .HasMaxLength(30)
-         .HasColumnName("form");
+                entity.Property(e => e.Form)
+                    .HasMaxLength(30)
+                    .HasColumnName("form");
 
-     entity.Property(e => e.IsExam)
-         .HasColumnName("is_exam")
-         .HasDefaultValueSql("false");
+                entity.Property(e => e.IsExam)
+                    .HasColumnName("is_exam")
+                    .HasDefaultValueSql("false");
 
-     entity.Property(e => e.IsDelete)
-         .HasColumnName("is_delete")
-         .HasDefaultValueSql("false");
+                entity.Property(e => e.IsDelete)
+                    .HasColumnName("is_delete")
+                    .HasDefaultValueSql("false");
 
-     entity.Property(e => e.SemestersId).HasColumnName("semesters_id");
+                entity.Property(e => e.SemestersId).HasColumnName("semesters_id");
 
-     entity.Property(e => e.StartDate)
-         .HasColumnType("timestamp with time zone")
-         .HasColumnName("start_date");
+                entity.Property(e => e.StartDate)
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("start_date");
 
-     entity.Property(e => e.TestExamTypeId).HasColumnName("test_exam_type_id");
-     entity.Property(e => e.SubjectId).HasColumnName("subject_id");
-     entity.Property(e => e.DepartmentId).HasColumnName("department_id");
-     entity.Property(e => e.ScheduleStatusId).HasColumnName("schedule_status_id");
-     entity.Property(e => e.Topic)
-         .HasMaxLength(50)
-         .HasColumnName("topic");
+                entity.Property(e => e.TestExamTypeId).HasColumnName("test_exam_type_id");
+                entity.Property(e => e.SubjectId).HasColumnName("subject_id");
+                entity.Property(e => e.DepartmentId).HasColumnName("department_id");
+                entity.Property(e => e.ScheduleStatusId).HasColumnName("schedule_status_id");
+                entity.Property(e => e.Topic)
+                    .HasMaxLength(50)
+                    .HasColumnName("topic");
 
-     entity.Property(e => e.UpdateAt)
-         .HasColumnType("timestamp with time zone")
-         .HasColumnName("update_at")
-         .HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'");
+                entity.Property(e => e.UpdateAt)
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("update_at")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'");
 
-     entity.Property(e => e.UserId).HasColumnName("user_id");
+                entity.Property(e => e.UserId).HasColumnName("user_id");
+                entity.Property(e => e.IsAttachmentRequired).HasColumnName("is_attachment_required");
 
-     entity.HasOne(d => d.Class)
-         .WithMany(p => p.TestExams)
-         .HasForeignKey(d => d.ClassId)
-         .HasConstraintName("fk_test_exams_class");
+                entity.HasOne(d => d.Class)
+                    .WithMany(p => p.TestExams)
+                    .HasForeignKey(d => d.ClassId)
+                    .HasConstraintName("fk_test_exams_class");
 
-     entity.HasOne(d => d.Semesters)
-         .WithMany(p => p.TestExams)
-         .HasForeignKey(d => d.SemestersId)
-         .HasConstraintName("fk_test_exams_semester");
+                entity.HasOne(d => d.Semesters)
+                    .WithMany(p => p.TestExams)
+                    .HasForeignKey(d => d.SemestersId)
+                    .HasConstraintName("fk_test_exams_semester");
 
-     entity.HasOne(d => d.TestExamType)
-         .WithMany(p => p.TestExams)
-         .HasForeignKey(d => d.TestExamTypeId)
-         .HasConstraintName("fk_test_exams_test_exam_type");
+                entity.HasOne(d => d.TestExamType)
+                    .WithMany(p => p.TestExams)
+                    .HasForeignKey(d => d.TestExamTypeId)
+                    .HasConstraintName("fk_test_exams_test_exam_type");
 
-     entity.HasOne(d => d.User)
-         .WithMany(p => p.TestExams)
-         .HasForeignKey(d => d.UserId)
-         .HasConstraintName("fk_test_exams_user");
+                entity.HasOne(d => d.User)
+                    .WithMany(p => p.TestExams)
+                    .HasForeignKey(d => d.UserId)
+                    .HasConstraintName("fk_test_exams_user");
 
-     entity.HasOne(d => d.Subject)
-         .WithMany(p => p.TestExams)
-         .HasForeignKey(d => d.SubjectId)
-         .HasConstraintName("fk_test_exams_subjects");
+                entity.HasOne(d => d.Subject)
+                    .WithMany(p => p.TestExams)
+                    .HasForeignKey(d => d.SubjectId)
+                    .HasConstraintName("fk_test_exams_subjects");
 
-     entity.HasOne(e => e.ExamScheduleStatus)
-         .WithMany(e => e.TestExams)
-         .HasForeignKey(e => e.ScheduleStatusId)
-         .HasConstraintName("fk_test_exams_exam_schedule_status");
+                entity.HasOne(e => e.ExamScheduleStatus)
+                    .WithMany(e => e.TestExams)
+                    .HasForeignKey(e => e.ScheduleStatusId)
+                    .HasConstraintName("fk_test_exams_exam_schedule_status");
 
-     entity.HasOne(d => d.Department)
-         .WithMany(p => p.TestExams)
-         .HasForeignKey(d => d.DepartmentId)
-         .HasConstraintName("fk_test_exam_department");
- });
+                entity.HasOne(d => d.Department)
+                    .WithMany(p => p.TestExams)
+                    .HasForeignKey(d => d.DepartmentId)
+                    .HasConstraintName("fk_test_exam_department");
+            });
 
             modelBuilder.Entity<TestExamType>(entity =>
             {

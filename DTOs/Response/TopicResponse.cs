@@ -15,5 +15,8 @@
         public string? FileName { get; set; }
         public string? Description { get; set; }
         public DateTimeOffset? CloseAt { get; set; }
+        public int Views { get; set; } // Số lượt xem
+        public int Replies { get; set; } // Số lượt trả lời
+        public List<TopicResponse> Comments { get; set; }
     }
 }
