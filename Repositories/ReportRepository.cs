@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Project_LMS.Data;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Exceptions;
 using Project_LMS.Models;
 
 namespace Project_LMS.Repositories
@@ -132,12 +133,33 @@ namespace Project_LMS.Repositories
         /// </summary>
         public async Task<SchoolLevelStatisticsResponse> GetSchoolLevelStatisticsAsync(int academicYearId, bool isJuniorHigh)
         {
+            // Lấy thông tin trường học duy nhất trong hệ thống
+            var school = await _context.Schools.FirstOrDefaultAsync(s => s.IsDelete == false);
 
-            var allowedDepartmentIds = isJuniorHigh ? new[] { "K06", "K07", "K08", "K09" } : new[] { "K10", "K11", "K12" };
+            // Kiểm tra xem trường học có tồn tại không
+            if (school == null)
+            {
+                throw new Exception("Không tìm thấy trường học trong hệ thống.");
+            }
 
+            // Kiểm tra cấp học của trường
+            if (isJuniorHigh && school.IsJuniorHigh != true)
+            {
+                throw new BadRequestException("Trường học không phải là trường trung học cơ sở.");
+            }
+            else if (!isJuniorHigh && school.IsHighSchool != true)
+            {
+                throw new BadRequestException("Trường học không phải là trường trung học phổ thông.");
+            }
+
+            // Xác định các mã cấp học được phép theo loại trường
+            var allowedDepartmentIds = isJuniorHigh
+                ? new[] { "K06", "K07", "K08", "K09" }
+                : new[] { "K10", "K11", "K12" };
+
+            // Lấy thống kê học sinh theo cấp học
             var gradeStatistics = await (from cs in _context.ClassStudents
-                                         join c in _context.Classes
-                                         on cs.ClassId equals c.Id
+                                         join c in _context.Classes on cs.ClassId equals c.Id
                                          where cs.IsDelete == false
                                                && c.AcademicYearId == academicYearId
                                                && c.IsDelete == false
@@ -149,20 +171,19 @@ namespace Project_LMS.Repositories
                                              DepartmentCode = g.Key.ToString(),
                                              TotalStudents = g.Count()
                                          })
-                                       .ToListAsync();
+                                        .ToListAsync();
 
+            // Đảm bảo tất cả các cấp học trong allowedDepartmentIds đều được liệt kê, kể cả khi không có dữ liệu
             var allGradeStatistics = allowedDepartmentIds
-                .Select(deptCode =>
+                .Select(deptCode => new GradeStatistics
                 {
-                    return new GradeStatistics
-                    {
-                        DepartmentCode = deptCode,
-                        TotalStudents = gradeStatistics.FirstOrDefault(gs => gs.DepartmentCode == deptCode)?.TotalStudents ?? 0
-                    };
+                    DepartmentCode = deptCode,
+                    TotalStudents = gradeStatistics.FirstOrDefault(gs => gs.DepartmentCode == deptCode)?.TotalStudents ?? 0
                 })
                 .OrderBy(gs => gs.DepartmentCode)
                 .ToList();
 
+            // Trả về kết quả
             return new SchoolLevelStatisticsResponse
             {
                 AcademicYearId = academicYearId,
@@ -247,18 +268,18 @@ namespace Project_LMS.Repositories
         /// </summary>
         public async Task<List<ClassPerformanceReport>> GetClassPerformanceByTeacherAsync(int userId)
         {
-            var classes = await _context.TeachingAssignments
-                .Where(ta => ta.UserId == userId && ta.IsDelete == false)
-                .Select(ta => ta.Class)
-                .Where(c => c != null && c.IsDelete == false)
-                .ToListAsync();
+            // Bước 1: Lấy lớp chủ nhiệm dựa trên userId từ bảng Class
+            var homeroomClass = await _context.Classes
+                .Where(c => c.UserId == userId && c.IsDelete == false) // Lọc lớp chủ nhiệm
+                .FirstOrDefaultAsync();
 
             var report = new List<ClassPerformanceReport>();
 
-            foreach (var classEntity in classes)
+            // Bước 2: Nếu có lớp chủ nhiệm, tính toán thống kê
+            if (homeroomClass != null)
             {
                 var students = await _context.ClassStudents
-                    .Where(cs => cs.ClassId == classEntity.Id && cs.IsDelete == false)
+                    .Where(cs => cs.ClassId == homeroomClass.Id && cs.IsDelete == false)
                     .Include(cs => cs.User)
                     .ToListAsync();
 
@@ -294,8 +315,8 @@ namespace Project_LMS.Repositories
 
                 report.Add(new ClassPerformanceReport
                 {
-                    ClassId = classEntity.Id,
-                    ClassName = classEntity.Name ?? "Unknown",
+                    ClassId = homeroomClass.Id,
+                    ClassName = homeroomClass.Name ?? "Unknown",
                     ExcellentCount = excellentCount,
                     GoodCount = goodCount,
                     AverageCount = averageCount,
@@ -304,6 +325,15 @@ namespace Project_LMS.Repositories
             }
 
             return report;
+        }
+
+        public async Task<List<Semester>> GetSemestersByAcademicYearIdsAsync(List<int> academicYearIds)
+        {
+            return await _context.AcademicYears
+                .Where(ay => academicYearIds.Contains(ay.Id))
+                .Include(ay => ay.Semesters)
+                .SelectMany(ay => ay.Semesters)
+                .ToListAsync();
         }
 
         /// <summary>
@@ -319,6 +349,61 @@ namespace Project_LMS.Repositories
                 .Where(ta => ta.UserId == teacherId && ta.IsDelete == false)
                 .ToListAsync();
         }
+        // public async Task<Lesson?> GetFirstLessonByClassAndSubjectAsync(int classId, int subjectId, int teacherId)
+        // {
+        //     return await _context.Lessons
+        //         .Where(l => l.ClassId == classId &&
+        //                     l.UserId == teacherId &&
+        //                     l.IsDelete == false)
+        //         .OrderBy(l => l.StartDate) // Sắp xếp theo thời gian bắt đầu
+        //         .FirstOrDefaultAsync();
+        // }
+        public async Task<List<ClassStudent>> GetClassStudentsByStudentIdAsync(int studentId)
+        {
+            return await _context.ClassStudents
+                .Include(cs => cs.Class)
+                    .ThenInclude(c => c.AcademicYear)
+                .Where(cs => cs.UserId == studentId && cs.IsDelete == false)
+                .Distinct()
+                .ToListAsync();
+        }
 
+        public async Task<List<Assignment>> GetAssignmentsByStudentAndClassAsync(int studentId, int classId)
+        {
+            return await _context.Assignments
+                .Where(a => a.UserId == studentId && a.IsDelete == false)
+                .Include(a => a.TestExam)
+                    .ThenInclude(te => te.ClassTestExams)
+                        .ThenInclude(cte => cte.Class)
+                .Where(a => a.TestExam != null && a.TestExam.ClassTestExams.Any(cte => cte.ClassId == classId))
+                .ToListAsync();
+        }
+
+        public async Task<List<Subject>> GetSubjectsByClassIdAsync(int classId)
+        {
+            return await _context.ClassSubjects
+                .Where(cs => cs.ClassId == classId && cs.IsDelete == false)
+                .Include(cs => cs.Subject)
+                .Select(cs => cs.Subject)
+                .Where(subject => subject != null) // Filter out null values
+                .Distinct()
+                .ToListAsync() as List<Subject>;
+        }
+
+        public async Task<List<ClassSubject>> GetClassSubjectsWithSubjectsByClassIdAsync(int classId)
+        {
+            return await _context.ClassSubjects
+                .Where(cs => cs.ClassId == classId && cs.IsDelete == false)
+                .Include(cs => cs.Subject)
+                .ToListAsync();
+        }
+
+        // public async Task<Lesson?> GetFirstLessonByClassAndSubjectAsync(int classId, int subjectId)
+        // {
+        //     return await _context.Lessons
+        //         .Where(l => l.ClassId == classId && l.IsDelete == false)
+        //         .OrderBy(l => l.StartDate)
+        //         .FirstOrDefaultAsync();
+        // }
     }
 }

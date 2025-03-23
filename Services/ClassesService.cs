@@ -116,7 +116,7 @@ namespace Project_LMS.Services
                         Name = classSaveRequest.ClassName,
                         StudentCount = classSaveRequest.StudentCount,
                         Description = classSaveRequest.Description,
-                        ClassLink = "NaN",
+
                         PasswordClass = "123456",
                         IsDelete = false
                     };
@@ -706,7 +706,138 @@ namespace Project_LMS.Services
             }
         }
 
+        public async Task<ApiResponse<PaginatedResponse<ClassFutureResponse>>> GetClassFuture(string? keyword, int? subjectId, int pageNumber = 1, int pageSize = 10)
+        {
+            try
+            {
+                if (pageNumber < 1) pageNumber = 1;
+                if (pageSize < 1) pageSize = 10;
 
+                // Create base query
+                var query = _context.TeachingAssignments
+                    .Include(ta => ta.Class)
+                    .Include(ta => ta.Subject)
+                    .Include(ta => ta.User)
+                    .Where(ta => (!ta.IsDelete.HasValue || !ta.IsDelete.Value) &&
+                                ta.Class != null &&
+                                (!ta.Class.IsDelete.HasValue || !ta.Class.IsDelete.Value));
+
+                // Filter by subject if provided
+                if (subjectId.HasValue && subjectId > 0)
+                {
+                    query = query.Where(ta => ta.SubjectId == subjectId);
+                }
+
+                // Apply keyword search if provided
+                if (!string.IsNullOrWhiteSpace(keyword))
+                {
+                    keyword = keyword.ToLower().Trim();
+                    query = query.Where(ta =>
+                        (ta.Class.ClassCode != null && ta.Class.ClassCode.ToLower().Contains(keyword)) ||
+                        (ta.Class.Name != null && ta.Class.Name.ToLower().Contains(keyword)) ||
+                        (ta.Subject.SubjectName != null && ta.Subject.SubjectName.ToLower().Contains(keyword)) ||
+                        (ta.User.FullName != null && ta.User.FullName.ToLower().Contains(keyword))
+                    );
+                }
+
+                // Get total count for pagination
+                var totalItems = await query.CountAsync();
+                var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+                // Get paginated results
+                var assignments = await query
+                    .OrderBy(ta => ta.Class.Name)
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(ta => new ClassFutureResponse
+                    {
+                        Id = ta.Class.Id,
+                        ClassCode = ta.Class.ClassCode,
+                        SubjectName = ta.Subject.SubjectName,
+                        StartDate = ta.Class.StartDate,
+                        TeacherName = ta.User.FullName,
+                        StatusClass = ta.Class.StatusClass
+                    })
+                    .ToListAsync();
+
+                var paginatedResponse = new PaginatedResponse<ClassFutureResponse>
+                {
+                    Items = assignments,
+                    PageNumber = pageNumber,
+                    PageSize = pageSize,
+                    TotalItems = totalItems,
+                    TotalPages = totalPages,
+                    HasPreviousPage = pageNumber > 1,
+                    HasNextPage = pageNumber < totalPages
+                };
+
+                return new ApiResponse<PaginatedResponse<ClassFutureResponse>>(0,
+                    assignments.Any() ? "Lấy danh sách phân công giảng dạy thành công" : "Không có dữ liệu",
+                    paginatedResponse);
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<PaginatedResponse<ClassFutureResponse>>(1, $"Lỗi khi lấy danh sách phân công giảng dạy: {ex.Message}", null);
+            }
+        }
+
+        public async Task<ApiResponse<TeachingAssignmentDetailResponse>> GetClassFutureDetail(int teachingAssignmentId)
+        {
+            try
+            {
+                var teachingAssignment = await _context.TeachingAssignments
+                    .Include(ta => ta.Class)
+                    .Include(ta => ta.Subject)
+                    .Include(ta => ta.User)
+                    .Include(ta => ta.Lessons.Where(l => !l.IsDelete.HasValue || !l.IsDelete.Value))
+                        .ThenInclude(l => l.User)
+                    .Where(ta => ta.Id == teachingAssignmentId &&
+                                (!ta.IsDelete.HasValue || !ta.IsDelete.Value))
+                    .Select(ta => new TeachingAssignmentDetailResponse
+                    {
+                        Id = ta.Id,
+                        ClassName = ta.Class.Name,
+                        Description = ta.Class.Description,
+                        Name = ta.Class.Name,
+                        SubjectName = ta.Subject.SubjectName,
+                        TeacherName = ta.User.FullName,
+                        StartDate = ta.StartDate,
+                        EndDate = ta.EndDate,
+                        TotalLessons = ta.Lessons.Count(l => !l.IsDelete.HasValue || !l.IsDelete.Value), // Tính tổng số buổi học
+                        Lessons = ta.Lessons
+                            .Where(l => !l.IsDelete.HasValue || !l.IsDelete.Value)
+                            .Select(l => new ClassLessonResponse
+                            {
+                                Id = l.Id,
+                                ClassLessonCode = l.ClassLessonCode,
+                                Description = l.Description,
+                                PaswordLeassons = l.PaswordLeassons,
+                                Topic = l.Topic,
+                                Duration = l.Duration,
+                                StartDate = l.StartDate,
+                                EndDate = l.EndDate,
+                                IsResearchable = l.IsResearchable,
+                                IsAutoStart = l.IsAutoStart,
+                                IsSave = l.IsSave,
+                                LessonLink = l.LessonLink,
+                                TeacherName = l.User.FullName
+                            }).ToList()
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (teachingAssignment == null)
+                {
+                    return new ApiResponse<TeachingAssignmentDetailResponse>(1, "Không tìm thấy phân công giảng dạy", null);
+                }
+
+                return new ApiResponse<TeachingAssignmentDetailResponse>(0, "Lấy thông tin phân công giảng dạy thành công", teachingAssignment);
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<TeachingAssignmentDetailResponse>(1, $"Lỗi khi lấy thông tin phân công giảng dạy: {ex.Message}", null);
+            }
+        }
 
     }
+
 }

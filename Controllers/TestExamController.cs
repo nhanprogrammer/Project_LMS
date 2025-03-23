@@ -172,5 +172,17 @@ namespace Project_LMS.Controllers
 
             return Ok(response);
         }
+        
+        [HttpGet("academic-year/{academicYearId}")]
+        public async Task<ActionResult<IEnumerable<object>>> GetAcademicYearById(int academicYearId)
+        {
+            var response = await _testExamService.GetAlSemestersforAcademicYears(academicYearId);
+            if (response.Status == 1)
+            {
+                return BadRequest(response);
+            }
+
+            return Ok(response);
+        }
     }
 }

@@ -16,20 +16,19 @@ namespace Project_LMS.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllTopics([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+        public async Task<IActionResult> GetAllTopics()
         {
-            var result = await _topicService.GetAllTopicsAsync(pageNumber, pageSize);
+            var result = await _topicService.GetAllTopicsAsync();
             return Ok(result);
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetTopicById(int id)
+        public async Task<IActionResult> GetTopicById(int id, [FromQuery] int? userId)
         {
-            var result = await _topicService.GetTopicByIdAsync(id);
-            if (result.Data == null)
+            var result = await _topicService.GetTopicByIdAsync(id, userId);
+            if (result.Status == 1)
             {
-                // Nếu topic không tồn tại
-                return NotFound(result);
+                return BadRequest(result);
             }
 
             return Ok(result);
@@ -49,6 +48,7 @@ namespace Project_LMS.Controllers
                 // Nếu topic không tồn tại
                 return NotFound(result);
             }
+
             // 201 - Created nếu muốn chuẩn REST
             return Ok(result);
         }
@@ -72,9 +72,9 @@ namespace Project_LMS.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteTopic(int id)
+        public async Task<IActionResult> DeleteTopic(int id, [FromQuery] int userId)
         {
-            var result = await _topicService.DeleteTopicAsync(id);
+            var result = await _topicService.DeleteTopicAsync(id, userId);
             if (result.Status == 1)
             {
                 // Nếu topic không tồn tại

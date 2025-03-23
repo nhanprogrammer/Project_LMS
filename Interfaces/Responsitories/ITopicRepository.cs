@@ -5,10 +5,11 @@ namespace Project_LMS.Interfaces.Responsitories;
 
 public interface ITopicRepository
 {
-    Task<PaginatedResponse<Topic>> GetAllTopic(int pageNumber, int pageSize);
-    Task<Topic?> GetTopicById(int id);
+    Task<IEnumerable<TopicResponse>> GetAllTopic();
+    Task<TopicResponse?> GetTopicById(int id);
     Task<Topic> AddTopic(Topic subject);
     Task<Topic?> UpdateTopict(Topic subject);
     Task<bool> DeleteTopic(int id);
-    Task<IEnumerable<Topic?>> SearchTopic(string? keyword);
+    Task<IEnumerable<TopicResponse>> SearchTopic(string? keyword);
+    Task<bool> IsUserInClassAsync(int userId, int classId);
 }

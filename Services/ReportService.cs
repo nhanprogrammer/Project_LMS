@@ -4,6 +4,7 @@ using Project_LMS.DTOs.Response;
 using Project_LMS.Exceptions;
 using Project_LMS.Interfaces.Repositories;
 using Project_LMS.Interfaces.Services;
+using Project_LMS.Models;
 using Project_LMS.Repositories;
 
 namespace Project_LMS.Services
@@ -87,57 +88,253 @@ namespace Project_LMS.Services
             };
         }
 
-        public async Task<List<TeacherSemesterStatisticsResponse>> GetTeacherSemesterStatisticsAsync(int teacherId)
+        // public async Task<List<TeacherSemesterStatisticsResponse>> GetTeacherSemesterStatisticsAsync(int teacherId)
+        // {
+        //     // Bước 1: Lấy danh sách phân công giảng dạy của giáo viên
+        //     var teachingAssignments = await _reportRepository.GetTeachingAssignmentsByTeacherAsync(teacherId);
+
+        //     // Bước 2: Lấy danh sách các ID của năm học
+        //     var academicYearIds = teachingAssignments
+        //         .Where(ta => ta.Class?.AcademicYearId.HasValue == true)
+        //         .Select(ta => ta.Class.AcademicYearId.Value)
+        //         .Distinct()
+        //         .ToList();
+
+        //     // Bước 3: Lấy danh sách các học kỳ
+        //     var semesters = await _reportRepository.GetSemestersByAcademicYearIdsAsync(academicYearIds);
+
+        //     // Bước 4: Lấy buổi học đầu tiên cho các lớp và môn học
+        //     var classTeachingDetailsWithLesson = new List<(TeachingAssignment Ta, Lesson? FirstLesson)>();
+        //     foreach (var ta in teachingAssignments)
+        //     {
+        //         var firstLesson = await _reportRepository.GetFirstLessonByClassAndSubjectAsync(ta.ClassId ?? 0, ta.SubjectId ?? 0, teacherId);
+        //         classTeachingDetailsWithLesson.Add((ta, firstLesson));
+        //     }
+
+        //     // Bước 5: Nhóm theo học kỳ và tạo response
+        //     var groupedBySemester = semesters
+        //         .GroupBy(s => new
+        //         {
+        //             SemesterId = s.Id,
+        //             SemesterName = s.Name,
+        //             AcademicYear = s.AcademicYear,
+        //             StartDate = s.StartDate,
+        //             EndDate = s.EndDate
+        //         })
+
+        //         .Select(g => new TeacherSemesterStatisticsResponse
+        //         {
+        //             SemesterName = (g.Key.SemesterName ?? "Unknown Semester") + " - " +
+        //                 (g.Key.StartDate.HasValue && g.Key.EndDate.HasValue && g.Key.StartDate <= g.Key.EndDate
+        //                     ? (g.Key.StartDate.Value.Year == g.Key.EndDate.Value.Year
+        //                         ? g.Key.StartDate.Value.ToString("yyyy")
+        //                         : g.Key.StartDate.Value.ToString("yyyy") + "-" + g.Key.EndDate.Value.ToString("yyyy"))
+        //                     : "Unknown Year"),
+        //             AcademicYear = g.Key.AcademicYear != null
+        //                 ? $"{g.Key.AcademicYear.StartDate:yyyy} - {g.Key.AcademicYear.EndDate:yyyy}"
+        //                 : "Unknown Year",
+        //             ClassTeachingDetails = classTeachingDetailsWithLesson
+        //                 .Where(ta => ta.Ta.Class?.AcademicYearId == g.Key.AcademicYear?.Id &&
+        //                             ta.Ta.StartDate.HasValue &&
+        //                             g.Key.StartDate.HasValue &&
+        //                             g.Key.EndDate.HasValue &&
+        //                             ta.Ta.StartDate.Value >= g.Key.StartDate.Value &&
+        //                             ta.Ta.StartDate.Value <= g.Key.EndDate.Value)
+        //                 //Thời gian bắt đầu và kết thúc của phân công giảng dạy phải nằm trong thời gian học kỳ
+        //                 // thì mới thêm vào response của ClassTeachingDetail được
+        //                 .Select(ta => new ClassTeachingDetail
+        //                 {
+        //                     ClassId = ta.Ta.ClassId ?? 0,
+        //                     ClassName = ta.Ta.Class?.Name ?? "Unknown Class",
+        //                     SubjectName = ta.Ta.Subject?.SubjectName ?? "Unknown Subject",
+        //                     StartDate = ta.Ta.StartDate,
+        //                     EndDate = ta.Ta.EndDate,
+        //                     ClassStatus = ta.Ta.EndDate.HasValue && DateTime.Now > ta.Ta.EndDate.Value
+        //                     ? "Đã hoàn thành"
+        //                     : (ta.Ta.StartDate.HasValue && DateTime.Now < ta.Ta.StartDate.Value
+        //                         ? "Chưa bắt đầu"
+        //                         : "Chưa hoàn thành"),
+        //                     FirstSchedule = ta.FirstLesson != null
+        //                         ? new ClassScheduleDetail
+        //                         {
+        //                             StartTime = ta.FirstLesson.StartDate ?? DateTime.MinValue,
+        //                             EndTime = ta.FirstLesson.EndDate ?? DateTime.MinValue
+        //                         }
+        //                         : null // Gán buổi học đầu tiên (nếu có)
+        //                 }).ToList()
+        //         })
+        //         .ToList();
+
+        //     return groupedBySemester;
+        // }
+
+        public async Task<StudentClassStatisticsResponse> GetStudentClassStatisticsAsync(int studentId)
         {
-            var teachingAssignments = await _reportRepository.GetTeachingAssignmentsByTeacherAsync(teacherId);
+            var classStudents = await _reportRepository.GetClassStudentsByStudentIdAsync(studentId);
 
-            var academicYearIds = teachingAssignments
-                .Where(ta => ta.Class?.AcademicYearId.HasValue == true)
-                .Select(ta => ta.Class.AcademicYearId.Value)
-                .Distinct()
-                .ToList();
+            int completedClasses = 0;
+            int ongoingClasses = 0;
+            double totalScore = 0;
+            double totalCoefficient = 0;
 
-            var semesters = await _context.AcademicYears
-                .Where(ay => academicYearIds.Contains(ay.Id))
-                .Include(ay => ay.Semesters)
-                .SelectMany(ay => ay.Semesters)
-                .ToListAsync();
-
-            var groupedBySemester = semesters
-                .GroupBy(s => new
+            foreach (var classStudent in classStudents)
+            {
+                var academicYear = classStudent.Class?.AcademicYear;
+                if (academicYear != null)
                 {
-                    SemesterId = s.Id,
-                    SemesterName = s.Name,
-                    AcademicYear = s.AcademicYear,
-                    StartDate = s.StartDate,
-                    EndDate = s.EndDate
-                })
-                .Select(g => new TeacherSemesterStatisticsResponse
-                {
-                    SemesterName = g.Key.SemesterName ?? "Unknown Semester",
-                    AcademicYear = g.Key.AcademicYear != null
-                        ? $"{g.Key.AcademicYear.StartDate:yyyy} - {g.Key.AcademicYear.EndDate:yyyy}"
-                        : "Unknown Year",
-                    ClassTeachingDetails = teachingAssignments
-                        .Where(ta => ta.Class?.AcademicYearId == g.Key.AcademicYear?.Id &&
-                                    ta.StartDate.HasValue &&
-                                    g.Key.StartDate.HasValue &&
-                                    g.Key.EndDate.HasValue &&
-                                    ta.StartDate.Value >= g.Key.StartDate.Value &&
-                                    ta.StartDate.Value <= g.Key.EndDate.Value)
-                        .Select(ta => new ClassTeachingDetail
-                        {
-                            ClassId = ta.ClassId ?? 0,
-                            ClassName = ta.Class?.Name ?? "Unknown Class",
-                            SubjectName = ta.Subject?.SubjectName ?? "Unknown Subject",
-                            StartDate = ta.StartDate,
-                            EndDate = ta.EndDate,
-                            ClassStatus = ta.Class?.IsDelete == false ? "Active" : "Inactive"
-                        }).ToList()
-                })
-                .ToList();
+                    if (academicYear.EndDate.HasValue && DateTime.Now > academicYear.EndDate.Value)
+                    {
+                        completedClasses++;
+                    }
+                    else
+                    {
+                        ongoingClasses++;
+                    }
+                }
 
-            return groupedBySemester;
+                var assignments = await _reportRepository.GetAssignmentsByStudentAndClassAsync(studentId, classStudent.ClassId ?? 0);
+
+                foreach (var assignment in assignments)
+                {
+                    if (assignment.TestExam?.TestExamType != null)
+                    {
+                        var coefficient = assignment.TestExam.TestExamType.Coefficient ?? 1;
+                        totalScore += (assignment.TotalScore ?? 0) * coefficient;
+                        totalCoefficient += coefficient;
+                    }
+                }
+            }
+
+            double averageScore = totalCoefficient > 0 ? totalScore / totalCoefficient : 0;
+
+            return new StudentClassStatisticsResponse
+            {
+                TotalClasses = classStudents.Count,
+                CompletedClasses = completedClasses,
+                OngoingClasses = ongoingClasses,
+                AverageScore = averageScore
+            };
         }
+
+        public async Task<StudentSubjectStatisticsResponse> GetStudentSubjectStatisticsAsync(int studentId)
+        {
+            var classStudents = await _reportRepository.GetClassStudentsByStudentIdAsync(studentId);
+
+            int completedSubjects = 0;
+            int ongoingSubjects = 0;
+            var subjectIds = new HashSet<int>();
+
+            foreach (var classStudent in classStudents)
+            {
+                var academicYear = classStudent.Class?.AcademicYear;
+                if (academicYear != null)
+                {
+                    var isCompleted = academicYear.EndDate.HasValue && DateTime.Now > academicYear.EndDate.Value;
+
+                    var subjects = await _reportRepository.GetSubjectsByClassIdAsync(classStudent.ClassId ?? 0);
+
+                    foreach (var subject in subjects)
+                    {
+                        if (!subjectIds.Contains(subject.Id))
+                        {
+                            subjectIds.Add(subject.Id);
+
+                            if (isCompleted)
+                                completedSubjects++;
+                            else
+                                ongoingSubjects++;
+                        }
+                    }
+                }
+            }
+
+            return new StudentSubjectStatisticsResponse
+            {
+                TotalSubjects = subjectIds.Count,
+                CompletedSubjects = completedSubjects,
+                OngoingSubjects = ongoingSubjects
+            };
+        }
+
+        // public async Task<List<StudentSemesterStatisticsResponse>> GetStudentSemesterStatisticsAsync(int studentId)
+        // {
+        //     var classStudents = await _reportRepository.GetClassStudentsByStudentIdAsync(studentId);
+
+        //     var academicYearIds = classStudents
+        //         .Where(cs => cs.Class?.AcademicYearId.HasValue == true)
+        //         .Select(cs => cs.Class.AcademicYearId.Value)
+        //         .Distinct()
+        //         .ToList();
+
+        //     var semesters = await _reportRepository.GetSemestersByAcademicYearIdsAsync(academicYearIds);
+            
+
+        //     var classSubjectDetails = new List<(ClassStudent Cs, ClassSubject Subject, Lesson? FirstLesson)>();
+
+        //     foreach (var cs in classStudents)
+        //     {
+        //        var subjects = await _reportRepository.GetClassSubjectsWithSubjectsByClassIdAsync(cs.ClassId ?? 0);
+
+        //         foreach (var subject in subjects)
+        //         {
+        //             var firstLesson = await _reportRepository.GetFirstLessonByClassAndSubjectAsync(cs.ClassId ?? 0, subject.SubjectId ?? 0);
+        //             classSubjectDetails.Add((cs, subject, firstLesson));
+        //         }
+        //     }
+
+        //     var groupedBySemester = semesters
+        //         .GroupBy(s => new
+        //         {
+        //             SemesterId = s.Id,
+        //             SemesterName = s.Name,
+        //             AcademicYear = s.AcademicYear,
+        //             StartDate = s.StartDate,
+        //             EndDate = s.EndDate
+        //         })
+        //         .Select(g => new StudentSemesterStatisticsResponse
+        //         {
+        //             SemesterName = (g.Key.SemesterName ?? "Unknown Semester") + " - " +
+        //                 (g.Key.StartDate.HasValue && g.Key.EndDate.HasValue && g.Key.StartDate <= g.Key.EndDate
+        //                     ? (g.Key.StartDate.Value.Year == g.Key.EndDate.Value.Year
+        //                         ? g.Key.StartDate.Value.ToString("yyyy")
+        //                         : g.Key.StartDate.Value.ToString("yyyy") + "-" + g.Key.EndDate.Value.ToString("yyyy"))
+        //                     : "Unknown Year"),
+        //             AcademicYear = g.Key.AcademicYear != null
+        //                 ? $"{g.Key.AcademicYear.StartDate:yyyy} - {g.Key.AcademicYear.EndDate:yyyy}"
+        //                 : "Unknown Year",
+        //             ClassDetails = classSubjectDetails
+        //                 .Where(cs => cs.Cs.Class?.AcademicYearId == g.Key.AcademicYear?.Id &&
+        //                             cs.Cs.Class?.StartDate.HasValue == true &&
+        //                             g.Key.StartDate.HasValue &&
+        //                             g.Key.EndDate.HasValue &&
+        //                             cs.Cs.Class.StartDate.Value >= g.Key.StartDate.Value &&
+        //                             cs.Cs.Class.StartDate.Value <= g.Key.EndDate.Value)
+        //                 .Distinct()
+        //                 .Select(cs => new StudentClassDetail
+        //                 {
+        //                     ClassId = cs.Cs.ClassId ?? 0,
+        //                     ClassName = cs.Cs.Class?.Name ?? "Unknown Class",
+        //                     SubjectName = cs.Subject.Subject?.SubjectName ?? "Unknown Subject",
+        //                     StartDate = cs.Cs.Class?.StartDate,
+        //                     EndDate = cs.Cs.Class?.EndDate,
+        //                     Status = cs.Cs.Class != null && cs.Cs.Class.EndDate.HasValue && DateTime.Now > cs.Cs.Class.EndDate.Value
+        //                         ? "Đã hoàn thành"
+        //                         : (cs.Cs.Class?.StartDate.HasValue == true && DateTime.Now < cs.Cs.Class.StartDate.GetValueOrDefault()
+        //                             ? "Chưa bắt đầu"
+        //                             : "Chưa hoàn thành"),
+        //                     FirstSchedule = cs.FirstLesson != null
+        //                         ? new ClassScheduleDetail
+        //                         {
+        //                             StartTime = cs.FirstLesson.StartDate ?? DateTime.MinValue,
+        //                             EndTime = cs.FirstLesson.EndDate ?? DateTime.MinValue,
+        //                         }
+        //                         : null
+        //                 }).Distinct()
+        //                 .ToList()
+        //         })
+        //         .Distinct()
+        //         .ToList();
+        //     return groupedBySemester;
+        // }
     }
 }
