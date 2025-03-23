@@ -13,6 +13,7 @@ namespace Project_LMS.Models
             Assignments = new HashSet<Assignment>();
             ChatMessages = new HashSet<ChatMessage>();
             ClassStudentOnlines = new HashSet<ClassStudentOnline>();
+            ClassOnlines = new HashSet<ClassOnline>();
             ClassStudents = new HashSet<ClassStudent>();
             Classes = new HashSet<Class>();
             Disciplines = new HashSet<Discipline>();
@@ -97,6 +98,7 @@ namespace Project_LMS.Models
         public virtual ICollection<Assignment> Assignments { get; set; }
         public virtual ICollection<ChatMessage> ChatMessages { get; set; }
         public virtual ICollection<ClassStudentOnline> ClassStudentOnlines { get; set; }
+        public virtual ICollection<ClassOnline> ClassOnlines { get; set; }
         public virtual ICollection<ClassStudent> ClassStudents { get; set; }
         public virtual ICollection<Class> Classes { get; set; }
         public virtual ICollection<Discipline> Disciplines { get; set; }

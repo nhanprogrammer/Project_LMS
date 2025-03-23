@@ -86,24 +86,24 @@ public class MappingProfile : Profile
         CreateMap<CreateClassRequest, Class>();
         CreateMap<UpdateClassRequest, Class>();
 
-        CreateMap<ClassOnline, ClassOnlineResponse>()
-            //    .ForMember(dest => dest.TeacherName, opt => opt.MapFrom(src => src..FullName))
-            .ForMember(dest => dest.ClassCode, opt => opt.MapFrom(src => src.ClassCode))
-            .ForMember(dest => dest.ClassTitle, opt => opt.MapFrom(src => src.ClassTitle))
-            .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
-            .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate))
-            .ForMember(dest => dest.ClassDescription, opt => opt.MapFrom(src => src.ClassDescription))
-            .ForMember(dest => dest.MaxStudents, opt => opt.MapFrom(src => src.MaxStudents))
-            .ForMember(dest => dest.CurrentStudents, opt => opt.MapFrom(src => src.CurrentStudents))
-            .ForMember(dest => dest.ClassStatus, opt => opt.MapFrom(src => src.ClassStatus))
-            .ForMember(dest => dest.ClassLink, opt => opt.MapFrom(src => src.ClassLink));
-        CreateMap<CreateClassOnlineRequest, ClassOnline>();
-        CreateMap<UpdateClassOnlineRequest, ClassOnline>();
+        // CreateMap<ClassOnline, ClassOnlineResponse>()
+        //     //    .ForMember(dest => dest.TeacherName, opt => opt.MapFrom(src => src..FullName))
+        //     .ForMember(dest => dest.ClassCode, opt => opt.MapFrom(src => src.ClassCode))
+        //     .ForMember(dest => dest.ClassTitle, opt => opt.MapFrom(src => src.ClassTitle))
+        //     .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate))
+        //     .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate))
+        //     .ForMember(dest => dest.ClassDescription, opt => opt.MapFrom(src => src.ClassDescription))
+        //     .ForMember(dest => dest.MaxStudents, opt => opt.MapFrom(src => src.MaxStudents))
+        //     .ForMember(dest => dest.CurrentStudents, opt => opt.MapFrom(src => src.CurrentStudents))
+        //     .ForMember(dest => dest.ClassStatus, opt => opt.MapFrom(src => src.ClassStatus))
+        //     .ForMember(dest => dest.ClassLink, opt => opt.MapFrom(src => src.ClassLink));
+        // CreateMap<CreateClassOnlineRequest, ClassOnline>();
+        // CreateMap<UpdateClassOnlineRequest, ClassOnline>();
 
-        CreateMap<ClassStudentOnline, ClassStudentOnlineResponse>();
+        // CreateMap<ClassStudentOnline, ClassStudentOnlineResponse>();
 
-        CreateMap<ClassStudentOnline, CreateClassStudentOnlineRequest>();
-        CreateMap<ClassStudentOnline, UpdateClassStudentOnlineRequest>();
+        // CreateMap<ClassStudentOnline, CreateClassStudentOnlineRequest>();
+        // CreateMap<ClassStudentOnline, UpdateClassStudentOnlineRequest>();
 
         CreateMap<CreateDepartmentRequest, Department>()
             .ForMember(dest => dest.DepartmentCode, opt => opt.MapFrom(src => src.departmentCode))

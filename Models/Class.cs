@@ -7,8 +7,7 @@ namespace Project_LMS.Models
     {
         public Class()
         {
-            ChatMessages = new HashSet<ChatMessage>();
-            ClassStudentOnlines = new HashSet<ClassStudentOnline>();
+           
             ClassStudents = new HashSet<ClassStudent>();
             ClassSubjects = new HashSet<ClassSubject>();
             ClassTestExams = new HashSet<ClassTestExam>();
@@ -40,8 +39,7 @@ namespace Project_LMS.Models
         public virtual ClassType? ClassType { get; set; }
         public virtual Department? Department { get; set; }
         public virtual User? User { get; set; }
-        public virtual ICollection<ChatMessage> ChatMessages { get; set; }
-        public virtual ICollection<ClassStudentOnline> ClassStudentOnlines { get; set; }
+    
         public virtual ICollection<ClassStudent> ClassStudents { get; set; }
         public virtual ICollection<ClassSubject> ClassSubjects { get; set; }
         public virtual ICollection<ClassTestExam> ClassTestExams { get; set; }
