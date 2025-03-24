@@ -24,28 +24,15 @@ namespace Project_LMS.Controllers
         [HttpGet]
         public async Task<ActionResult<ApiResponse<PaginatedResponse<AcademicHoldResponse>>>> GetAll([FromQuery] PaginationRequest request)
         {
-            var result = await _academicHoldsService.GetPagedAcademicHolds(request);
-            return Ok(new ApiResponse<PaginatedResponse<AcademicHoldResponse>>(
-                0,
-                "Thành công",
-                result));
-        }
 
-
-        [HttpGet("classes")]
-        public async Task<IActionResult> GetClassesByAcademicYearAndKeyword([FromQuery] int academicYearId, [FromQuery] string keyword)
-        {
             try
             {
-                var classes = await _academicHoldsService.GetClassesByAcademicYearAndKeyword(academicYearId, keyword);
-                return Ok(new ApiResponse<List<Class_UserResponse>>(
-                    0,
-                    "Tìm kiếm lớp học thành công!",
-                    classes));
+                var result = await _academicHoldsService.GetPagedAcademicHolds(request);
+                return Ok(new ApiResponse<PaginatedResponse<AcademicHoldResponse>>(0, "Lấy danh sách bảo lưu thành công", result));
             }
             catch (Exception ex)
             {
-                return BadRequest(new ApiResponse<string>(1, ex.Message, null));
+                return BadRequest(new ApiResponse<PaginatedResponse<AcademicHoldResponse>>(1, "Lấy danh sách bảo lưu thất bại", null));
             }
         }
 

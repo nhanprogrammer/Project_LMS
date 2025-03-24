@@ -232,5 +232,24 @@ namespace Project_LMS.Controllers
             }
         }
 
+
+         [HttpGet("search-classes")]
+        public async Task<IActionResult> GetClassesByAcademicYearAndKeyword([FromQuery] int academicYearId, [FromQuery] string keyword)
+        {
+            try
+            {
+                var classes = await _classService.GetClassesByAcademicYearAndKeyword(academicYearId, keyword);
+                return Ok(new ApiResponse<List<Class_UserResponse>>(
+                    0,
+                    "Tìm kiếm lớp học thành công!",
+                    classes));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<string>(1, ex.Message, null));
+            }
+        }
+
+
     }
 }

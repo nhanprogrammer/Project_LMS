@@ -62,7 +62,7 @@ namespace Project_LMS.Controllers
                 }
 
                 var result = await _subjectService.CreateSubjectAsync(request);
-                
+
                 if (result.Status != 0)
                 {
                     return BadRequest(result);
@@ -97,7 +97,7 @@ namespace Project_LMS.Controllers
                 }
 
                 var result = await _subjectService.UpdateSubjectAsync(request);
-                
+
                 if (result.Status != 0)
                 {
                     // Handle specific error cases
@@ -141,6 +141,15 @@ namespace Project_LMS.Controllers
             {
                 return StatusCode(500, new ApiResponse<bool>(1, $"Error deleting subjects: {ex.Message}", false));
             }
+        }
+
+        [HttpGet("search-subject")]
+        public async Task<IActionResult> SearchSubject([FromQuery] string? keyword)
+        {
+            var result = await _subjectService.SearchSubjectByKeywordAsync(keyword);
+            if (!result.Any() || result == null)
+                return Ok(new ApiResponse<object>(1, "Không tìm thấy môn học"));
+            return Ok(new ApiResponse<object>(0, "Tìm thành công môn học", result));
         }
     }
 }

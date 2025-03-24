@@ -100,7 +100,7 @@ namespace Project_LMS.Services
 
                 // Check for duplicate SubjectCode
                 if (await _context.Subjects
-                    .AnyAsync(s => s.SubjectCode == request.SubjectCode 
+                    .AnyAsync(s => s.SubjectCode == request.SubjectCode
                         && (!s.IsDelete.HasValue || !s.IsDelete.Value)))
                 {
                     return new ApiResponse<SubjectResponse>(1, "Subject code already exists", null);
@@ -159,7 +159,7 @@ namespace Project_LMS.Services
 
                 // Check for duplicate SubjectCode, excluding current subject
                 var duplicateExists = await _context.Subjects
-                    .AnyAsync(s => s.SubjectCode == request.SubjectCode 
+                    .AnyAsync(s => s.SubjectCode == request.SubjectCode
                         && s.Id != request.Id
                         && (!s.IsDelete.HasValue || !s.IsDelete.Value));
 
@@ -238,5 +238,25 @@ namespace Project_LMS.Services
                 return new ApiResponse<bool>(1, $"Error deleting subjects: {ex.Message}", false);
             }
         }
+        public async Task<List<SubjectResponseSearch>> SearchSubjectByKeywordAsync(string? keyword)
+        {
+            var query = _context.Subjects.AsQueryable();
+            if (!string.IsNullOrEmpty(keyword))
+            {
+                var searchKeyword = keyword.ToLower();
+                query = query.Where(x => (x.SubjectName != null && x.SubjectName.Contains(searchKeyword)) || (x.SubjectCode != null && x.SubjectCode.Contains(searchKeyword)) && (x.IsDelete == null || x.IsDelete == false));
+            }
+            else
+            {
+                query = query.Where(x => x.IsDelete == null || x.IsDelete == false);
+            }
+
+            var subjects = await query
+                .Select(x => new SubjectResponseSearch { Id = x.Id, SubjectName = x.SubjectName })
+                .ToListAsync();
+
+            return subjects;
+        }
+
     }
 }
