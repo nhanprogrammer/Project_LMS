@@ -38,7 +38,7 @@ public class TeachingAssignmentService : ITeachingAssignmentService
         {
             Id = assignment.Id,
             UserId = assignment.UserId,
-            UserName = assignment?.User?.FullName,
+            FullName = assignment?.User?.FullName,
             ClassId = assignment?.ClassId,
             ClassName = assignment?.Class?.Name,
             SubjectId = assignment?.SubjectId,
@@ -378,7 +378,7 @@ public class TeachingAssignmentService : ITeachingAssignmentService
             {
                 Id = assignment.Id,
                 UserId = assignment.UserId,
-                UserName = assignment.User?.FullName,
+                FullName = assignment.User?.FullName,
                 ClassId = assignment.ClassId,
                 ClassName = assignment.Class?.Name,
                 SubjectId = assignment.SubjectId,
@@ -544,7 +544,7 @@ public class TeachingAssignmentService : ITeachingAssignmentService
             {
                 Id = t.Id,
                 UserId = t.UserId,
-                UserName = t.User != null ? t.User.FullName : null,
+                FullName = t.User != null ? t.User.FullName : null,
                 ClassId = t.ClassId,
                 ClassName = t.Class != null ? t.Class.Name : null,
                 SubjectId = t.SubjectId,
