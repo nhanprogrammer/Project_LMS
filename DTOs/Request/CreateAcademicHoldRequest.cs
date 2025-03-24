@@ -8,7 +8,7 @@ public class CreateAcademicHoldRequest
     public int ClassId { get; set; }
     public int? UserId { get; set; }
     public DateTimeOffset HoldDate { get; set; }
-    public int? HoldDuration { get; set; }
+    public string? HoldDuration { get; set; }
     public string? Reason { get; set; }
     public string? FileName { get; set; }
     //public DateTimeOffset CreateAt { get; set; }
