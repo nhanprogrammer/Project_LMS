@@ -15,16 +15,14 @@ namespace Project_LMS.Services
         private readonly ISemesterRepository _semesterRepository;
         private readonly IAcademicYearRepository _academicYearRepository;
         private readonly IUserRepository _userRepository;
-        private readonly ILogger<LessonsService> _logger;
         private readonly IMapper _mapper;
 
-        public AcademicYearsService(IAcademicYearRepository academicYearRepository,  ISemesterRepository semesterRepository, IUserRepository userRepository, IMapper mapper, ILogger<LessonsService> logger)
+        public AcademicYearsService(IAcademicYearRepository academicYearRepository,  ISemesterRepository semesterRepository, IUserRepository userRepository, IMapper mapper)
         {
             _semesterRepository = semesterRepository;
             _academicYearRepository = academicYearRepository;
             _userRepository = userRepository;
             _mapper = mapper;
-            _logger = logger;
         }
 
         public async Task<PaginatedResponse<AcademicYearResponse>> GetPagedAcademicYears(PaginationRequest request)
@@ -280,7 +278,6 @@ namespace Project_LMS.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error occurred while deleting the lessons.");
                 return new ApiResponse<AcademicYearResponse>(1, "Xóa niên khóa thất bại.", null);
             }
         }
