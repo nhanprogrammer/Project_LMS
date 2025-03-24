@@ -22,6 +22,23 @@ namespace Project_LMS.Controllers
             _authService = authService ?? throw new ArgumentNullException(nameof(authService));
         }
 
+        [HttpGet]
+        public async Task<ActionResult<ApiResponse<AcademicYearResponse>>> SearchAcademicYear(DateOnly year)
+        {
+            var result = await _academicYearsService.SearchAcademicYear(year);
+            if (result == null)
+            {
+                return NotFound(new ApiResponse<AcademicYearResponse>(
+                    1,
+                    "Academic Year not found"));
+            }
+
+            return Ok(new ApiResponse<AcademicYearResponse>(
+                0,
+                "Success",
+                result));
+        }
+
         [HttpGet("{id}")]
         public async Task<ActionResult<ApiResponse<AcademicYearResponse>>> GetById(int id)
         {
@@ -30,13 +47,12 @@ namespace Project_LMS.Controllers
             {
                 return NotFound(new ApiResponse<AcademicYearResponse>(
                     1,
-                    "Academic Year not found",
-                    null));
+                    $"Không tim thấy Niên Khóa có Id {id}"));
             }
 
             return Ok(new ApiResponse<AcademicYearResponse>(
                 0,
-                "Success",
+                $"Lấy danh sách Niên Khóa theo Id {id} thành công",
                 result));
         }
 
@@ -46,10 +62,10 @@ namespace Project_LMS.Controllers
             var result = await _academicYearsService.GetPagedAcademicYears(request);
             return Ok(new ApiResponse<PaginatedResponse<AcademicYearResponse>>(
                 0,
-                "Success",
+                "Lấy danh sách Niên Khóa thành công",
                 result));
         }
-
+        [Authorize]
         [HttpPost]
         public async Task<ActionResult<ApiResponse<CreateAcademicYearRequest>>> Add([FromBody] CreateAcademicYearRequest request)
         {

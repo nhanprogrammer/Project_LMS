@@ -38,21 +38,33 @@ public class MappingProfile : Profile
 
 
         CreateMap<AcademicYear, AcademicYearResponse>()
-            .ForMember(dest => dest.Semesters, otp => otp.MapFrom(src => src.Semesters));
+            .ForMember(dest => dest.Semesters, otp => otp.MapFrom(src => src.Semesters))
+            .ForMember(dest => dest.StartDate, otp => otp.MapFrom(src => DateOnly.FromDateTime((DateTime)src.StartDate)))
+            .ForMember(dest => dest.EndDate, otp => otp.MapFrom(src => DateOnly.FromDateTime((DateTime)src.EndDate)));
+
         CreateMap<CreateAcademicYearRequest, AcademicYear>()
-            .ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => TimeHelper.Now)); // Chuyển về UTC+7
+            .ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => TimeHelper.Now))
+            .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate.ToDateTime(TimeOnly.MinValue)))
+            .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate.ToDateTime(TimeOnly.MinValue)));
+
         CreateMap<UpdateAcademicYearRequest, AcademicYear>()
-            .ForMember(dest => dest.UpdateAt, opt => opt.MapFrom(src => TimeHelper.Now)); // Chuyển về UTC+7
+            .ForMember(dest => dest.UpdateAt, opt => opt.MapFrom(src => TimeHelper.Now))
+            .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate.ToDateTime(TimeOnly.MinValue)))
+            .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate.ToDateTime(TimeOnly.MinValue)));
 
         CreateMap<Semester, SemesterResponse>()
-            .ForMember(dest => dest.DateStart, opt => opt.MapFrom(src => src.StartDate))
-            .ForMember(dest => dest.DateEnd, opt => opt.MapFrom(src => src.EndDate));
+            .ForMember(dest => dest.DateStart, opt => opt.MapFrom(src => DateOnly.FromDateTime((DateTime)src.StartDate)))
+            .ForMember(dest => dest.DateEnd, opt => opt.MapFrom(src => DateOnly.FromDateTime((DateTime)src.EndDate)));
+
+        
         CreateMap<CreateSemesterRequest, Semester>()
-            .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.DateStart))
-            .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.DateEnd));
+            .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.DateStart.ToDateTime(TimeOnly.MinValue)))
+            .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.DateEnd.ToDateTime(TimeOnly.MinValue)));
+            
+
         CreateMap<UpdateSemesterRequest, Semester>()
-            .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.DateStart))
-            .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.DateEnd));
+            .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.DateStart.ToDateTime(TimeOnly.MinValue)))
+            .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.DateEnd.ToDateTime(TimeOnly.MinValue)));
 
         CreateMap<Answer, AnswerResponse>()
             .ForMember(dest => dest.Answer, opt => opt.MapFrom(src => src.Answer1));

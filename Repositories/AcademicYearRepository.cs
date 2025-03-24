@@ -16,7 +16,9 @@ public class AcademicYearRepository : IAcademicYearRepository
 
     public async Task<IEnumerable<AcademicYear>> GetAllAsync()
     {
-        return await _context.AcademicYears.ToListAsync();
+        return await _context.AcademicYears
+            .Include(a => a.Semesters)
+            .ToListAsync();
     }
 
     public async Task<AcademicYear> GetByIdAsync(int id)
@@ -59,7 +61,9 @@ public class AcademicYearRepository : IAcademicYearRepository
 
     public IQueryable<AcademicYear> GetQueryable()
     {
-        return _context.AcademicYears.AsQueryable();
+        return _context.AcademicYears
+            .Include(a => a.Semesters)
+            .AsQueryable();
     }
 
     //public async Task InheritAcademicYear(int newYearId, int oldYearId)
