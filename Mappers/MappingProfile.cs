@@ -36,9 +36,22 @@ public class MappingProfile : Profile
         CreateMap<AcademicHold, AcademicHoldResponse>();
 
 
-        CreateMap<AcademicYear, AcademicYearResponse>();
-        CreateMap<CreateAcademicYearRequest, AcademicYear>();
-        CreateMap<UpdateAcademicYearRequest, AcademicYear>();
+        CreateMap<AcademicYear, AcademicYearResponse>()
+            .ForMember(dest => dest.Semesters, otp => otp.MapFrom(src => src.Semesters));
+        CreateMap<CreateAcademicYearRequest, AcademicYear>()
+            .ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => TimeHelper.Now)); // Chuyển về UTC+7
+        CreateMap<UpdateAcademicYearRequest, AcademicYear>()
+            .ForMember(dest => dest.UpdateAt, opt => opt.MapFrom(src => TimeHelper.Now)); // Chuyển về UTC+7
+
+        CreateMap<Semester, SemesterResponse>()
+            .ForMember(dest => dest.DateStart, opt => opt.MapFrom(src => src.StartDate))
+            .ForMember(dest => dest.DateEnd, opt => opt.MapFrom(src => src.EndDate));
+        CreateMap<CreateSemesterRequest, Semester>()
+            .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.DateStart))
+            .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.DateEnd));
+        CreateMap<UpdateSemesterRequest, Semester>()
+            .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.DateStart))
+            .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.DateEnd));
 
         CreateMap<Answer, AnswerResponse>()
             .ForMember(dest => dest.Answer, opt => opt.MapFrom(src => src.Answer1));
@@ -72,10 +85,6 @@ public class MappingProfile : Profile
 
         CreateMap<SchoolTransfer, SchoolTransferResponse>().ReverseMap();
         CreateMap<SchoolTransferRequest, SchoolTransfer>().ReverseMap();
-
-        CreateMap<Semester, SemesterResponse>().ReverseMap();
-        CreateMap<SemesterRequest, Semester>().ReverseMap();
-
 
         CreateMap<Class, ClassResponse>()
             .ForMember(dest => dest.AcademicYear, opt => opt.MapFrom(src => src.AcademicYearId))
