@@ -7,8 +7,8 @@ namespace Project_LMS.Interfaces
     {
         //Task<IEnumerable<AcademicYearResponse>> GetAllAcademicYears();
         Task<AcademicYearResponse> GetByIdAcademicYear(int id);
-        Task AddAcademicYear(CreateAcademicYearRequest request);
-        Task<ApiResponse<AcademicYearResponse>> UpdateAcademicYear(UpdateAcademicYearRequest request);
+        Task<ApiResponse<AcademicYearResponse>> AddAcademicYear(CreateAcademicYearRequest request, int userId);
+        Task<ApiResponse<AcademicYearResponse>> UpdateAcademicYear(UpdateAcademicYearRequest request, int userId);
         Task<ApiResponse<AcademicYearResponse>> DeleteLessonAsync(DeleteRequest deleteRequest);
 
         Task<PaginatedResponse<AcademicYearResponse>> GetPagedAcademicYears(PaginationRequest request);

@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces;
@@ -6,15 +8,18 @@ using Project_LMS.Services;
 
 namespace Project_LMS.Controllers
 {
+    [Authorize(Policy = "DATA-MNG-VIEW")]
     [ApiController]
     [Route("api/[controller]")]
     public class AcademicYearController : ControllerBase
     {
         private readonly IAcademicYearsService _academicYearsService;
+        private readonly IAuthService _authService;
 
-        public AcademicYearController(IAcademicYearsService academicYearsService)
+        public AcademicYearController(IAcademicYearsService academicYearsService, IAuthService authService)
         {
             _academicYearsService = academicYearsService;
+            _authService = authService ?? throw new ArgumentNullException(nameof(authService));
         }
 
         [HttpGet("{id}")]
@@ -48,48 +53,26 @@ namespace Project_LMS.Controllers
         [HttpPost]
         public async Task<ActionResult<ApiResponse<CreateAcademicYearRequest>>> Add([FromBody] CreateAcademicYearRequest request)
         {
-            try
-            {
-                if (request == null)
-                {
-                    return BadRequest(new ApiResponse<CreateAcademicYearRequest>(
-                        1,
-                        "Request is null",
-                        null));
-                }
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new ApiResponse<CreateAcademicYearRequest>(
-                    1,
-                    ex.Message,
-                    null));
-            }
-            await _academicYearsService.AddAcademicYear(request);
-            return Ok(new ApiResponse<CreateAcademicYearRequest>(
-                0,
-                "Add success",
-                request));
+            var user = await _authService.GetUserAsync();
+            if (user == null)
+                return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!"));
+
+            var userId = user.Id;
+
+            var result = await _academicYearsService.AddAcademicYear(request, userId);
+            return Ok(result);     
         }
 
         [HttpPut]
         public async Task<ActionResult<ApiResponse<UpdateAcademicYearRequest>>> Update([FromBody] UpdateAcademicYearRequest request)
         {
-            try
-            {
-                await _academicYearsService.UpdateAcademicYear(request);
-                return Ok(new ApiResponse<UpdateAcademicYearRequest>(
-                    0,
-                    "Update success",
-                    request));
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new ApiResponse<UpdateAcademicYearRequest>(
-                    1,
-                    ex.Message,
-                    null));
-            }
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+
+                var userId = user.Id;
+                var result = await _academicYearsService.UpdateAcademicYear(request, userId);
+            return Ok(result);
         }
 
         [HttpDelete]
