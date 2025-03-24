@@ -6,12 +6,7 @@ using Project_LMS.Interfaces.Repositories;
 using Project_LMS.Models;
 using Project_LMS.Exceptions;
 using Project_LMS.Helpers;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Project_LMS.Interfaces.Responsitories;
-using Microsoft.EntityFrameworkCore;
-using Project_LMS.Interfaces;
 
 namespace Project_LMS.Services
 {
@@ -97,7 +92,6 @@ namespace Project_LMS.Services
             var existingSemesters = (await _semesterRepository.GetByAcademicYearIdAsync(academicYearId)).ToList();
             var updatedSemesters = new List<Semester>();
             var newSemesters = new List<Semester>();
-            // Kiểm tra tính hợp lệ của danh sách Semester
             var sortedSemesters = semesters.OrderBy(s => s.DateStart).ToList();
             for (int i = 0; i < sortedSemesters.Count - 1; i++)
             {

@@ -1,6 +1,5 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using Project_LMS.Data;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Helpers;
@@ -16,7 +15,6 @@ namespace Project_LMS.Services
         private readonly ISemesterRepository _semesterRepository;
         private readonly IAcademicYearRepository _academicYearRepository;
         private readonly IUserRepository _userRepository;
-        private readonly ApplicationDbContext _context;
         private readonly ILogger<LessonsService> _logger;
         private readonly IMapper _mapper;
 
