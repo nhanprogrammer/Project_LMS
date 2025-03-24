@@ -1,6 +1,5 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
 using Project_LMS.Data;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
@@ -8,9 +7,7 @@ using Project_LMS.Helpers;
 using Project_LMS.Interfaces;
 using Project_LMS.Interfaces.Repositories;
 using Project_LMS.Interfaces.Responsitories;
-using Project_LMS.Interfaces.Services;
 using Project_LMS.Models;
-using Project_LMS.Repositories;
 
 namespace Project_LMS.Services
 {
@@ -22,16 +19,14 @@ namespace Project_LMS.Services
         private readonly ApplicationDbContext _context;
         private readonly ILogger<LessonsService> _logger;
         private readonly IMapper _mapper;
-        private readonly ISemesterService _semesterService;
 
-        public AcademicYearsService(IAcademicYearRepository academicYearRepository,  ISemesterRepository semesterRepository, IUserRepository userRepository, IMapper mapper, ILogger<LessonsService> logger, ISemesterService semesterService)
+        public AcademicYearsService(IAcademicYearRepository academicYearRepository,  ISemesterRepository semesterRepository, IUserRepository userRepository, IMapper mapper, ILogger<LessonsService> logger)
         {
             _semesterRepository = semesterRepository;
             _academicYearRepository = academicYearRepository;
             _userRepository = userRepository;
             _mapper = mapper;
             _logger = logger;
-            _semesterService = semesterService;
         }
 
         public async Task<PaginatedResponse<AcademicYearResponse>> GetPagedAcademicYears(PaginationRequest request)
@@ -148,38 +143,32 @@ namespace Project_LMS.Services
 
         public async Task<ApiResponse<AcademicYearResponse>> UpdateAcademicYear(UpdateAcademicYearRequest academicYearRequest, int userId)
         {
-            // 1. Kiểm tra User có tồn tại không
             var user = await _userRepository.FindAsync(userId);
             if (user == null)
             {
                 return new ApiResponse<AcademicYearResponse>(1, "User không tồn tại.");
             }
 
-            // 2. Kiểm tra Niên Khóa có tồn tại không
             var academicYear = await _academicYearRepository.GetByIdAsync(academicYearRequest.Id);
             if (academicYear == null)
             {
                 return new ApiResponse<AcademicYearResponse>(1, "Niên Khóa không tồn tại.");
             }
 
-            // 3. Kiểm tra ngày bắt đầu và kết thúc của Niên Khóa
             if (academicYearRequest.StartDate > academicYearRequest.EndDate)
             {
                 return new ApiResponse<AcademicYearResponse>(1, "Ngày kết thúc của Niên Khóa không thể thấp hơn ngày bắt đầu.");
             }
 
-            // Cập nhật thông tin Niên Khóa
             _mapper.Map(academicYearRequest, academicYear);
             academicYear.UserUpdate = userId;
             academicYear.UpdateAt = TimeHelper.Now;
             await _academicYearRepository.UpdateAsync(academicYear);
 
-            // Lấy danh sách học kỳ hiện có
             var existingSemesters = (await _semesterRepository.GetByAcademicYearIdAsync(academicYearRequest.Id)).ToList();
             var updatedSemesters = new List<Semester>();
             var newSemesters = new List<Semester>();
 
-            // Kiểm tra tính hợp lệ của danh sách Semester
             var sortedSemesters = academicYearRequest.Semesters.OrderBy(s => s.DateStart).ToList();
             for (int i = 0; i < sortedSemesters.Count - 1; i++)
             {
@@ -233,7 +222,6 @@ namespace Project_LMS.Services
                 }
             }
 
-            // Xóa học kỳ không còn trong danh sách cập nhật
             var semesterIdsFromRequest = academicYearRequest.Semesters.Where(s => s.Id > 0).Select(s => s.Id).ToList();
             var semestersToDelete = existingSemesters.Where(s => !semesterIdsFromRequest.Contains(s.Id)).ToList();
             if (semestersToDelete.Any())
@@ -254,9 +242,6 @@ namespace Project_LMS.Services
             var response = _mapper.Map<AcademicYearResponse>(academicYear);
             return new ApiResponse<AcademicYearResponse>(0, "Niên khóa đã cập nhật thành công", response);
         }
-
-
-
         public async Task<ApiResponse<AcademicYearResponse>> DeleteLessonAsync(DeleteRequest deleteRequest)
         {
             if (deleteRequest == null || deleteRequest.ids == null || deleteRequest.ids.Count == 0)
