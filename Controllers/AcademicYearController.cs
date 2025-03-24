@@ -1,25 +1,31 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces;
+using Project_LMS.Services;
 
 namespace Project_LMS.Controllers
 {
+    [Authorize(Policy = "DATA-MNG-VIEW")]
     [ApiController]
     [Route("api/[controller]")]
     public class AcademicYearController : ControllerBase
     {
-        private readonly IAcademicYearsService _service;
+        private readonly IAcademicYearsService _academicYearsService;
+        private readonly IAuthService _authService;
 
-        public AcademicYearController(IAcademicYearsService service)
+        public AcademicYearController(IAcademicYearsService academicYearsService, IAuthService authService)
         {
-            _service = service;
+            _academicYearsService = academicYearsService;
+            _authService = authService ?? throw new ArgumentNullException(nameof(authService));
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<ApiResponse<AcademicYearResponse>>> GetById(int id)
         {
-            var result = await _service.GetByIdAcademicYear(id);
+            var result = await _academicYearsService.GetByIdAcademicYear(id);
             if (result == null)
             {
                 return NotFound(new ApiResponse<AcademicYearResponse>(
@@ -37,7 +43,7 @@ namespace Project_LMS.Controllers
         [HttpGet]
         public async Task<ActionResult<ApiResponse<PaginatedResponse<AcademicYearResponse>>>> GetAll([FromQuery] PaginationRequest request)
         {
-            var result = await _service.GetPagedAcademicYears(request);
+            var result = await _academicYearsService.GetPagedAcademicYears(request);
             return Ok(new ApiResponse<PaginatedResponse<AcademicYearResponse>>(
                 0,
                 "Success",
@@ -47,66 +53,38 @@ namespace Project_LMS.Controllers
         [HttpPost]
         public async Task<ActionResult<ApiResponse<CreateAcademicYearRequest>>> Add([FromBody] CreateAcademicYearRequest request)
         {
-            try
-            {
-                if (request == null)
-                {
-                    return BadRequest(new ApiResponse<CreateAcademicYearRequest>(
-                        1,
-                        "Request is null",
-                        null));
-                }
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new ApiResponse<CreateAcademicYearRequest>(
-                    1,
-                    ex.Message,
-                    null));
-            }
-            await _service.AddAcademicYear(request);
-            return Ok(new ApiResponse<CreateAcademicYearRequest>(
-                0,
-                "Add success",
-                request));
+            var user = await _authService.GetUserAsync();
+            if (user == null)
+                return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!"));
+
+            var userId = user.Id;
+
+            var result = await _academicYearsService.AddAcademicYear(request, userId);
+            return Ok(result);     
         }
 
-        [HttpPut("{id}")]
-        public async Task<ActionResult<ApiResponse<UpdateAcademicYearRequest>>> Update(int id, [FromBody] UpdateAcademicYearRequest request)
+        [HttpPut]
+        public async Task<ActionResult<ApiResponse<UpdateAcademicYearRequest>>> Update([FromBody] UpdateAcademicYearRequest request)
         {
-            try
-            {
-                await _service.UpdateAcademicYear(id, request);
-                return Ok(new ApiResponse<UpdateAcademicYearRequest>(
-                    0,
-                    "Update success",
-                    request));
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new ApiResponse<UpdateAcademicYearRequest>(
-                    1,
-                    ex.Message,
-                    null));
-            }
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+
+                var userId = user.Id;
+                var result = await _academicYearsService.UpdateAcademicYear(request, userId);
+            return Ok(result);
         }
 
-        [HttpDelete("{id}")]
-        public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
+        [HttpDelete]
+        public async Task<IActionResult> DeleteLesson(DeleteRequest ids)
         {
-            var result = await _service.DeleteAcademicYear(id);
-            if (!result)
+            var response = await _academicYearsService.DeleteLessonAsync(ids);
+            if (response.Status == 1)
             {
-                return NotFound(new ApiResponse<bool>(
-                    1,
-                    "Academic Year not found",
-                    false));
+                return BadRequest(new ApiResponse<AcademicYearResponse>(response.Status, response.Message, response.Data));
             }
 
-            return Ok(new ApiResponse<bool>(
-                0,
-                "Delete success",
-                true));
+            return Ok(new ApiResponse<AcademicYearResponse>(response.Status, response.Message, response.Data));
         }
     }
 }

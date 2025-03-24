@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Project_LMS.DTOs.Request
 {
-    public class SemesterRequest
+    public class UpdateSemesterRequest
     {
         public int Id { get; set; }
 
