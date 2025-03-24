@@ -9,6 +9,7 @@ using System.Text.Json;
 using OfficeOpenXml;
 using System.ComponentModel.DataAnnotations;
 using Project_LMS.Services;
+using Project_LMS.Interfaces;
 
 namespace Project_LMS.Controllers
 {
@@ -19,12 +20,14 @@ namespace Project_LMS.Controllers
     {
         private readonly ISchoolService _schoolService;
         private readonly IExcelService _excelService;
+        private readonly IAuthService _authService;
         private readonly ICloudinaryService _cloudinaryService;
 
-        public SchoolController(ISchoolService schoolService, IExcelService excelService, ICloudinaryService cloudinaryService)
+        public SchoolController(ISchoolService schoolService, IExcelService excelService, IAuthService authService, ICloudinaryService cloudinaryService)
         {
             _schoolService = schoolService;
             _excelService = excelService;
+            _authService = authService;
             _cloudinaryService = cloudinaryService;
         }
 
@@ -114,6 +117,9 @@ namespace Project_LMS.Controllers
         {
             try
             {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
                 string jsonString = JsonSerializer.Serialize(schoolRequest);
 
                 if (!JsonValidator.IsValidJson(jsonString))
@@ -126,7 +132,7 @@ namespace Project_LMS.Controllers
                     return BadRequest(new ApiResponse<string>(1, "Request body hoặc Id không được để trống", null));
                 }
 
-                var school = await _schoolService.UpdateAsync(schoolRequest.Id ?? 0, schoolRequest);
+                var school = await _schoolService.UpdateAsync(schoolRequest.Id ?? 0, schoolRequest, user.Id);
                 if (school == null)
                 {
                     return NotFound(new ApiResponse<SchoolResponse>(1, "Không tìm thấy trường"));

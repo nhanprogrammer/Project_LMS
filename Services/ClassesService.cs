@@ -837,7 +837,27 @@ namespace Project_LMS.Services
                 return new ApiResponse<TeachingAssignmentDetailResponse>(1, $"Lỗi khi lấy thông tin phân công giảng dạy: {ex.Message}", null);
             }
         }
+        public async Task<List<Class_UserResponse>> GetClassesByAcademicYearAndKeyword(int academicYearId, string keyword)
+        {
+            var query = _context.Classes
+                .Where(c => c.AcademicYearId == academicYearId && c.IsDelete == false);
 
+            if (!string.IsNullOrWhiteSpace(keyword))
+            {
+                var searchKeyword = keyword.ToLower();
+                query = query.Where(c => c.Name != null && c.Name.Contains(searchKeyword));
+            }
+
+            var classes = await query
+                .Select(c => new Class_UserResponse
+                {
+                    ClassId = c.Id,
+                    ClassName = c.Name ?? string.Empty,
+                })
+                .ToListAsync();
+
+            return classes;
+        }
     }
 
 }

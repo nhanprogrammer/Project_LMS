@@ -25,5 +25,6 @@ namespace Project_LMS.Interfaces
 
         Task<ApiResponse<PaginatedResponse<ClassFutureResponse>>> GetClassFuture(string? keyword, int? subjectId, int pageNumber = 1, int pageSize = 10);
         Task<ApiResponse<TeachingAssignmentDetailResponse>> GetClassFutureDetail(int teachingAssignmentId);
+        Task<List<Class_UserResponse>> GetClassesByAcademicYearAndKeyword(int academicYearId, string keyword);
     }
 }

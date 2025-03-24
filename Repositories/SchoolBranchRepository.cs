@@ -16,7 +16,9 @@ namespace Project_LMS.Repositories
 
         public async Task<IEnumerable<SchoolBranch>> GetAllAsync()
         {
-            return await _context.SchoolBranches.ToListAsync();
+            return await _context.SchoolBranches
+                .Where(sb => sb.IsDelete != true)
+                .ToListAsync();
         }
 
         public async Task<SchoolBranch?> GetByIdAsync(int id)

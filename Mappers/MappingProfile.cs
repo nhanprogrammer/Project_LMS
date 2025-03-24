@@ -31,8 +31,8 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.HoldDuration, opt => opt.MapFrom(src => src.HoldDuration))
             .ForMember(dest => dest.Reason, opt => opt.MapFrom(src => src.Reason))
             .ForMember(dest => dest.FileName, opt => opt.MapFrom(src => src.FileName));
-            //.ForMember(dest => dest.UpdateAt, opt => opt.MapFrom(src => src.UpdateAt))
-            //.ForMember(dest => dest.UserCreate, opt => opt.MapFrom(src => src.UserUpdate));
+        //.ForMember(dest => dest.UpdateAt, opt => opt.MapFrom(src => src.UpdateAt))
+        //.ForMember(dest => dest.UserCreate, opt => opt.MapFrom(src => src.UserUpdate));
         CreateMap<AcademicHold, AcademicHoldResponse>();
 
 
@@ -63,10 +63,12 @@ public class MappingProfile : Profile
         CreateMap<RoleRequest, Role>().ReverseMap();
 
         CreateMap<School, SchoolResponse>().ReverseMap();
-        CreateMap<SchoolRequest, School>().ReverseMap();
+        CreateMap<SchoolRequest, School>()
+            .ForMember(dest => dest.Image, opt => opt.Ignore());
 
         CreateMap<SchoolBranch, SchoolBranchResponse>().ReverseMap();
-        CreateMap<SchoolBranchRequest, SchoolBranch>().ReverseMap();
+        CreateMap<SchoolBranchRequest, SchoolBranch>().
+            ForMember(dest => dest.Image, opt => opt.Ignore());
 
         CreateMap<SchoolTransfer, SchoolTransferResponse>().ReverseMap();
         CreateMap<SchoolTransferRequest, SchoolTransfer>().ReverseMap();
@@ -407,7 +409,7 @@ public class MappingProfile : Profile
         CreateMap<Notification, NotificationResponse>()
             .ForMember(dest => dest.Type, opt => opt.MapFrom(src => src.Type.Value ? "System" : "User"))
             .ForMember(dest => dest.SenderName, opt => opt.Ignore());
-        
+
         CreateMap<TestExam, TeacherTestExamResponse>()
             .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
             .ForMember(dest => dest.DateOfExam, opt => opt.MapFrom(src =>
@@ -415,15 +417,15 @@ public class MappingProfile : Profile
                     ? src.StartDate.Value.ToString("dddd, 'ngày' dd-MM-yyyy, HH:mm",
                         new System.Globalization.CultureInfo("vi-VN"))
                     : "Chưa có ngày thi"))
-            .ForMember(dest => dest.ContentTest , opt => opt.MapFrom(src => src.Topic))
+            .ForMember(dest => dest.ContentTest, opt => opt.MapFrom(src => src.Topic))
             .ForMember(dest => dest.ClassName,
                 opt => opt.MapFrom(src => string.Join(", ", src.ClassTestExams.Select(e => e.Class.Name))))
             .ForMember(dest => dest.SubjectName, opt => opt.MapFrom(src => src.Subject.SubjectName))
             .ForMember(dest => dest.Duration, opt => opt.MapFrom(src => src.Duration))
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.ExamScheduleStatus.Names));
- 
-        
-    
+
+
+
 
     }
 

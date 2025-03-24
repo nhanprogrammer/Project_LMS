@@ -1574,11 +1574,15 @@ namespace Project_LMS.Data
                 entity.Property(e => e.Address)
                     .HasMaxLength(255)
                     .HasColumnName("address");
+                      entity.Property(e => e.SchoolPhone)
+                    .HasMaxLength(10)
+                    .HasColumnName("school_phone");
 
                 entity.Property(e => e.BranchName)
                     .HasMaxLength(255)
                     .HasColumnName("branch_name");
-
+                entity.Property(e => e.Image)
+                                    .HasColumnName("image");
                 entity.Property(e => e.CreateAt)
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("create_at")
@@ -1599,6 +1603,7 @@ namespace Project_LMS.Data
                 entity.Property(e => e.Phone)
                     .HasMaxLength(10)
                     .HasColumnName("phone");
+
 
                 entity.Property(e => e.SchoolId).HasColumnName("school_id");
 
@@ -1659,11 +1664,6 @@ namespace Project_LMS.Data
                 entity.Property(e => e.UserId).HasColumnName("user_id");
 
                 entity.Property(e => e.UserUpdate).HasColumnName("user_update");
-
-                entity.HasOne(d => d.SchoolBranches)
-                    .WithMany(p => p.SchoolTransfers)
-                    .HasForeignKey(d => d.SchoolBranchesId)
-                    .HasConstraintName("fk_school_transfers_branch");
 
                 entity.HasOne(d => d.User)
                     .WithMany(p => p.SchoolTransfers)
@@ -2128,7 +2128,7 @@ namespace Project_LMS.Data
                     .WithMany(p => p.TeachingAssignments)
                     .HasForeignKey(d => d.ClassId)
                     .HasConstraintName("fk_teaching_assignments_class");
-
+                entity.Property(e => e.Description).HasColumnName("description");
                 entity.HasOne(d => d.Subject)
                     .WithMany(p => p.TeachingAssignments)
                     .HasForeignKey(d => d.SubjectId)

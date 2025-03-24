@@ -33,28 +33,6 @@ namespace Project_LMS.Services
             _semesterRepository = semesterRepository;
         }
 
-
-        public async Task<List<Class_UserResponse>> GetClassesByAcademicYearAndKeyword(int academicYearId, string keyword)
-        {
-            var query = _context.Classes
-                .Where(c => c.AcademicYearId == academicYearId && c.IsDelete == false);
-
-            if (!string.IsNullOrWhiteSpace(keyword))
-            {
-                query = query.Where(c => c.Name != null && c.Name.Contains(keyword));
-            }
-
-            var classes = await query
-                .Select(c => new Class_UserResponse
-                {
-                    ClassId = c.Id,
-                    ClassName = c.Name ?? string.Empty,
-                })
-                .ToListAsync();
-
-            return classes;
-        }
-
         public async Task<PaginatedResponse<AcademicHoldResponse>> GetPagedAcademicHolds(PaginationRequest request)
         {
             var query = from ah in _academicHoldRepository.GetQueryable().Where(ah => !ah.IsDelete)
@@ -318,6 +296,18 @@ namespace Project_LMS.Services
             // Upload file nếu có
             if (!string.IsNullOrEmpty(academicHold.FileName))
             {
+                if (!string.IsNullOrEmpty(existingHold.FileName))
+                {
+                    try
+                    {
+                        await _cloudinaryService.DeleteFileByUrlAsync(existingHold.FileName);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new Exception($"Lỗi khi xóa file cũ: {ex.Message}");
+                    }
+                }
+
                 existingHold.FileName = await _cloudinaryService.UploadDocxAsync(academicHold.FileName);
             }
 
