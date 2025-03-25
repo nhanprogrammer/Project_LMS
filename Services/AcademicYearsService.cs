@@ -19,7 +19,7 @@ namespace Project_LMS.Services
         private readonly IUserRepository _userRepository;
         private readonly IMapper _mapper;
 
-        public AcademicYearsService(IAcademicYearRepository academicYearRepository, ISemesterRepository semesterRepository, IUserRepository userRepository, IMapper mapper, ILogger<LessonsService> logger)
+        public AcademicYearsService(IAcademicYearRepository academicYearRepository, ISemesterRepository semesterRepository, IUserRepository userRepository, IMapper mapper)
         {
             _semesterRepository = semesterRepository;
             _academicYearRepository = academicYearRepository;
