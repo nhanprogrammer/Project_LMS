@@ -353,23 +353,13 @@ namespace Project_LMS.Services
                 })
                 .ToListAsync();
         }
-        public async Task<List<User_AcademicHoldsResponse>> SearchUsersByCriteriaAsync(int classId, string keyword)
+        public async Task<List<User_AcademicHoldsResponse>> SearchUsersByCriteriaAsync(int classId)
         {
             var query = _context.ClassStudents
                 .Include(cs => cs.User)
                 .Include(cs => cs.Class)
                 .ThenInclude(c => c != null ? c.AcademicYear : null)
                 .Where(cs => cs.Class != null && cs.ClassId == classId && cs.IsDelete == false);
-
-            if (!string.IsNullOrWhiteSpace(keyword))
-            {
-                var searchKeyword = keyword.ToLower();
-                query = query.Where(cs =>
-            (cs.User != null && cs.User.FullName != null && cs.User.FullName.ToLower().Contains(searchKeyword)) ||
-            (cs.User != null && cs.User.UserCode != null && cs.User.UserCode.ToLower().Contains(searchKeyword)) ||
-            (cs.User != null && cs.User.Email != null && cs.User.Email.ToLower().Contains(searchKeyword))
-        );
-            }
 
             var users = await query
                 .Select(cs => new User_AcademicHoldsResponse

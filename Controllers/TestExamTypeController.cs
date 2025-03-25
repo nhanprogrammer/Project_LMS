@@ -71,5 +71,29 @@ namespace Project_LMS.Controllers
         {
             return _service.Delete(id);
         }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<ApiResponse<TestExamTypeResponse>>> GetById(int id)
+        {
+            try
+            {
+                if (id <= 0)
+                {
+                    return BadRequest(new ApiResponse<string>(1, "Id không hợp lệ. Id phải lớn hơn 0.", null));
+                }
+
+                var response = await _service.GetById(id);
+                if (response == null || response.Status == 1)
+                {
+                    return NotFound(new ApiResponse<TestExamTypeResponse>(1, "Không tìm thấy loại điểm với Id được cung cấp.", null));
+                }
+
+                return Ok(new ApiResponse<TestExamTypeResponse>(0, "Lấy loại điểm thành công!", response.Data));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, $"Đã xảy ra lỗi khi lấy loại điểm: {ex.Message}", null));
+            }
+        }
     }
 }

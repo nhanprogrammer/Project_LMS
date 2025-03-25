@@ -60,18 +60,18 @@ namespace Project_LMS.Controllers
             var userId = user.Id;
 
             var result = await _academicYearsService.AddAcademicYear(request, userId);
-            return Ok(result);     
+            return Ok(result);
         }
 
         [HttpPut]
         public async Task<ActionResult<ApiResponse<UpdateAcademicYearRequest>>> Update([FromBody] UpdateAcademicYearRequest request)
         {
-                var user = await _authService.GetUserAsync();
-                if (user == null)
-                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+            var user = await _authService.GetUserAsync();
+            if (user == null)
+                return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
 
-                var userId = user.Id;
-                var result = await _academicYearsService.UpdateAcademicYear(request, userId);
+            var userId = user.Id;
+            var result = await _academicYearsService.UpdateAcademicYear(request, userId);
             return Ok(result);
         }
 
@@ -85,6 +85,18 @@ namespace Project_LMS.Controllers
             }
 
             return Ok(new ApiResponse<AcademicYearResponse>(response.Status, response.Message, response.Data));
+        }
+
+        [HttpGet("names")]
+        public async Task<ActionResult<ApiResponse<List<AcademicYearNameResponse>>>> GetAcademicYearNames()
+        {
+            var result = await _academicYearsService.GetAcademicYearNamesAsync();
+            if (!result.Any())
+            {
+                return Ok(new ApiResponse<List<AcademicYearNameResponse>>(1, "Không tìm thấy niên khóa", null));
+            }
+
+            return Ok(new ApiResponse<List<AcademicYearNameResponse>>(0, "Lấy danh sách niên khóa thành công", result));
         }
     }
 }

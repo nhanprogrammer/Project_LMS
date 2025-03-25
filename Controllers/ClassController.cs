@@ -234,14 +234,14 @@ namespace Project_LMS.Controllers
 
 
          [HttpGet("search-classes")]
-        public async Task<IActionResult> GetClassesByAcademicYearAndKeyword([FromQuery] int academicYearId, [FromQuery] string keyword)
+        public async Task<IActionResult> GetClassesByAcademicYear([FromQuery] int academicYearId)
         {
             try
             {
-                var classes = await _classService.GetClassesByAcademicYearAndKeyword(academicYearId, keyword);
+                var classes = await _classService.GetClassesByAcademicYear(academicYearId);
                 return Ok(new ApiResponse<List<Class_UserResponse>>(
                     0,
-                    "Tìm kiếm lớp học thành công!",
+                    "Lấy danh sách lớp học thành công!",
                     classes));
             }
             catch (Exception ex)

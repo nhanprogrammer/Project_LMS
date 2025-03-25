@@ -19,7 +19,7 @@ public class SubjectGroupController : ControllerBase
 
 
     [HttpGet]
-    public async Task<IActionResult> GetAllDisciplinesAsync(    int? pageNumber,
+    public async Task<IActionResult> GetAllDisciplinesAsync(int? pageNumber,
         int? pageSize,
         string? sortDirection)
     {
@@ -85,20 +85,33 @@ public class SubjectGroupController : ControllerBase
         return Ok(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
     }
 
- [HttpDelete]
- public async Task<IActionResult> DeleteListSubject([FromBody] DeleteRequest deleteRequest)
-{
-    Console.WriteLine($"Received IDs: {string.Join(", ", deleteRequest)}");
-
-
-    var response = await _subjectGroupService.DeleteSubjectGroupSubject(deleteRequest);
-    
-    if (response.Status == 1)
+    [HttpDelete]
+    public async Task<IActionResult> DeleteListSubject([FromBody] DeleteRequest deleteRequest)
     {
-        return BadRequest(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
+        Console.WriteLine($"Received IDs: {string.Join(", ", deleteRequest)}");
+
+
+        var response = await _subjectGroupService.DeleteSubjectGroupSubject(deleteRequest);
+
+        if (response.Status == 1)
+        {
+            return BadRequest(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
+        }
+
+        return Ok(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
     }
 
-    return Ok(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
-}
+    [HttpGet("names")]
+    public async Task<IActionResult> GetSubjectGroupDropdown()
+    {
+        var response = await _subjectGroupService.GetSubjectGroupDropdownAsync();
+
+        if (response.Status == 1)
+        {
+            return BadRequest(new ApiResponse<List<SubjectGroupDropdownResponse>>(response.Status, response.Message, response.Data));
+        }
+
+        return Ok(new ApiResponse<List<SubjectGroupDropdownResponse>>(response.Status, response.Message, response.Data));
+    }
 
 }

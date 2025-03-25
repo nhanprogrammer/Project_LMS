@@ -144,12 +144,34 @@ namespace Project_LMS.Controllers
         }
 
         [HttpGet("search-subject")]
-        public async Task<IActionResult> SearchSubject([FromQuery] string? keyword)
+        public async Task<IActionResult> getSubjectByUserId([FromQuery] int userId)
         {
-            var result = await _subjectService.SearchSubjectByKeywordAsync(keyword);
+            if (userId <= 0)
+            {
+                return BadRequest(new ApiResponse<object>(1, "UserId không hợp lệ."));
+            }
+
+            var result = await _subjectService.getSubjectByUserId(userId);
             if (!result.Any() || result == null)
-                return Ok(new ApiResponse<object>(1, "Không tìm thấy môn học"));
-            return Ok(new ApiResponse<object>(0, "Tìm thành công môn học", result));
+                return Ok(new ApiResponse<object>(1, "Giảng viên chưa có môn học nào!", null));
+            return Ok(new ApiResponse<object>(0, "Lấy danh sách môn học thành công!", result));
+        }
+        [HttpGet("by-subject-group/{subjectGroupId}")]
+        public async Task<IActionResult> GetSubjectsBySubjectGroupId(int subjectGroupId)
+        {
+            if (subjectGroupId <= 0)
+            {
+                return BadRequest(new ApiResponse<object>(1, "SubjectGroupId không hợp lệ."));
+            }
+
+            var result = await _subjectService.GetSubjectsBySubjectGroupIdAsync(subjectGroupId);
+
+            if (result == null || !result.Any())
+            {
+                return Ok(new ApiResponse<object>(1, "Không có môn học nào thuộc tổ bộ môn này!", null));
+            }
+
+            return Ok(new ApiResponse<object>(0, "Lấy danh sách môn học thành công!", result));
         }
     }
 }
