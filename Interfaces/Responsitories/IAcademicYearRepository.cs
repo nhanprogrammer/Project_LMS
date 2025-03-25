@@ -9,4 +9,8 @@ public interface IAcademicYearRepository :IRepository<AcademicYear>
     Task<List<AcademicYear>> GetByIdsAsync(List<int> ids);
 
     Task UpdateRangeAsync(List<AcademicYear> lessons);
+
+    Task<List<AcademicYear>> SearchAcademicYear(int year);
+
+    Task<bool> IsAcademicYearExist(int academicYearId);
 }
