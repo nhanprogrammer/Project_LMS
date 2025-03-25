@@ -5,10 +5,9 @@ namespace Project_LMS.Interfaces.Services
 {
     public interface IRewardService
     {
-        Task<IEnumerable<RewardResponse>> GetAllAsync();
-        Task<RewardResponse> GetByIdAsync(int id);
-        Task<RewardResponse> CreateAsync(RewardRequest request);
-        Task<RewardResponse> UpdateAsync(int id, RewardRequest request);
-        Task<RewardResponse> DeleteAsync(int id);
+        Task<ApiResponse<object>> GetByIdAsync(int id);
+        Task<ApiResponse<object>> AddAsync(RewardRequest request);
+        Task<ApiResponse<object>> UpdateAsync(UpdateRewardRequest request);
+        Task<ApiResponse<object>> DeleteAsync(int id);
     }
 }

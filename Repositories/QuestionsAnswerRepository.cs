@@ -288,44 +288,66 @@ namespace Project_LMS.Repositories
             var userViews = userViewsQuery
                 .ToDictionary(q => q.UserId, q => q.Views);
 
-            // Lấy danh sách câu hỏi của từng user (bao gồm create_at)
+            // Lấy danh sách câu hỏi của từng user (bao gồm create_at, avatar và fullName)
             var userQuestionsQuery = await _context.QuestionAnswers
                 .AsNoTracking()
                 .Where(qa =>
                     qa.TeachingAssignmentId == teachingAssignmentId && qa.IsDelete == false &&
                     qa.QuestionsAnswerId == null)
-                .GroupBy(qa => qa.UserId)
+                .Join(
+                    _context.Users,
+                    qa => qa.UserId,
+                    u => u.Id,
+                    (qa, u) => new
+                    {
+                        qa.UserId,
+                        Question = new QuestionInfo
+                        {
+                            Id = qa.Id,
+                            Message = qa.Message,
+                            CreateAt = qa.CreateAt,
+                            Avatar = u.Image,
+                            FullName = u.FullName
+                        }
+                    })
+                .GroupBy(x => x.UserId)
                 .Select(g => new
                 {
                     UserId = g.Key,
-                    Questions = g.Select(qa => new QuestionInfo
-                    {
-                        Id = qa.Id,
-                        Message = qa.Message,
-                        CreateAt = qa.CreateAt
-                    }).ToList()
+                    Questions = g.Select(x => x.Question).ToList()
                 })
                 .ToListAsync();
 
             var userQuestions = userQuestionsQuery
                 .ToDictionary(uq => uq.UserId, uq => uq.Questions);
 
-            // Lấy danh sách câu trả lời của từng user (bao gồm create_at)
+            // Lấy danh sách câu trả lời của từng user (bao gồm create_at, avatar và fullName)
             var userAnswersQuery = await _context.QuestionAnswers
                 .AsNoTracking()
                 .Where(qa =>
                     qa.TeachingAssignmentId == teachingAssignmentId && qa.IsDelete == false &&
                     qa.QuestionsAnswerId != null)
-                .GroupBy(qa => qa.UserId)
+                .Join(
+                    _context.Users,
+                    qa => qa.UserId,
+                    u => u.Id,
+                    (qa, u) => new
+                    {
+                        qa.UserId,
+                        Answer = new AnswerInfo
+                        {
+                            Id = qa.Id,
+                            Message = qa.Message,
+                            CreateAt = qa.CreateAt,
+                            Avatar = u.Image,
+                            FullName = u.FullName
+                        }
+                    })
+                .GroupBy(x => x.UserId)
                 .Select(g => new
                 {
                     UserId = g.Key,
-                    Answers = g.Select(qa => new AnswerInfo
-                    {
-                        Id = qa.Id,
-                        Message = qa.Message,
-                        CreateAt = qa.CreateAt
-                    }).ToList()
+                    Answers = g.Select(x => x.Answer).ToList()
                 })
                 .ToListAsync();
 
@@ -337,7 +359,6 @@ namespace Project_LMS.Repositories
                 .AsNoTracking()
                 .Where(ta => ta.Id == teachingAssignmentId && ta.IsDelete == false && ta.User.RoleId == 2);
 
-            // Nếu có userIdsWithQuestions, chỉ lấy giáo viên có câu hỏi khớp với searchTerm
             if (userIdsWithQuestions.Any())
             {
                 teachersQuery = teachersQuery.Where(ta => userIdsWithQuestions.Contains(ta.User.Id));
@@ -348,6 +369,7 @@ namespace Project_LMS.Repositories
                 {
                     UserId = ta.User.Id,
                     FullName = ta.User.FullName,
+                    Avatar = ta.User.Image, // Thêm ánh xạ Avatar
                     Email = ta.User.Email,
                     Phone = ta.User.Phone,
                     Role = "teacher",
@@ -365,7 +387,6 @@ namespace Project_LMS.Repositories
                              && cs.IsDelete == false
                              && cs.User.RoleId == 3);
 
-            // Nếu có userIdsWithQuestions, chỉ lấy học sinh có câu hỏi khớp với searchTerm
             if (userIdsWithQuestions.Any())
             {
                 studentsQuery = studentsQuery.Where(cs => userIdsWithQuestions.Contains(cs.User.Id));
@@ -376,6 +397,7 @@ namespace Project_LMS.Repositories
                 {
                     UserId = cs.User.Id,
                     FullName = cs.User.FullName,
+                    Avatar = cs.User.Image, // Thêm ánh xạ Avatar
                     Email = cs.User.Email,
                     Phone = cs.User.Phone,
                     Role = "student",
@@ -386,7 +408,7 @@ namespace Project_LMS.Repositories
                 .Select(g => g.First())
                 .ToListAsync();
 
-            // Gán số lượt xem, câu hỏi và câu trả lời cho từng giáo viên
+            // Gán số lượt xem, câu hỏi, câu trả lời và số lượng câu hỏi/câu trả lời cho từng giáo viên
             foreach (var teacher in teachers)
             {
                 teacher.Views = userViews.ContainsKey(teacher.UserId) ? userViews[teacher.UserId] : 0;
@@ -396,9 +418,11 @@ namespace Project_LMS.Repositories
                 teacher.Answers = userAnswers.ContainsKey(teacher.UserId)
                     ? userAnswers[teacher.UserId]
                     : new List<AnswerInfo>();
+                teacher.TotalQuestions = teacher.Questions.Count; // Tính số lượng câu hỏi
+                teacher.TotalAnswers = teacher.Answers.Count; // Tính số lượng câu trả lời
             }
 
-            // Gán số lượt xem, câu hỏi và câu trả lời cho từng học sinh
+            // Gán số lượt xem, câu hỏi, câu trả lời và số lượng câu hỏi/câu trả lời cho từng học sinh
             foreach (var student in students)
             {
                 student.Views = userViews.ContainsKey(student.UserId) ? userViews[student.UserId] : 0;
@@ -408,6 +432,8 @@ namespace Project_LMS.Repositories
                 student.Answers = userAnswers.ContainsKey(student.UserId)
                     ? userAnswers[student.UserId]
                     : new List<AnswerInfo>();
+                student.TotalQuestions = student.Questions.Count; // Tính số lượng câu hỏi
+                student.TotalAnswers = student.Answers.Count; // Tính số lượng câu trả lời
             }
 
             // Kết hợp danh sách thành viên

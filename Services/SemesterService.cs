@@ -47,6 +47,7 @@ namespace Project_LMS.Services
             {
                 return new ApiResponse<SemesterResponse>(1, "Niên khóa không tồn tại.");
             }
+            
             if (request == null || !request.Any())
                 {
                     return new ApiResponse<SemesterResponse>(1, "Danh sách học kỳ không hợp lệ.");
@@ -122,7 +123,7 @@ namespace Project_LMS.Services
                     return new ApiResponse<SemesterResponse>(1, $"Ngày kết thúc của {semester.Name} không thể thấp hơn ngày bắt đầu.");
                 }
                
-                if (semester.DateStart < academicYearRequest.StartDate || semester.DateEnd > academicYearRequest.EndDate)
+                if (semester.DateStart.ToDateTime(TimeOnly.MinValue) < academicYearRequest.StartDate || semester.DateEnd.ToDateTime(TimeOnly.MinValue) > academicYearRequest.EndDate)
                 {
                     return new ApiResponse<SemesterResponse>(1, $"Thời gian của {semester.Name} không hợp lệ với Niên Khóa.");
                 }

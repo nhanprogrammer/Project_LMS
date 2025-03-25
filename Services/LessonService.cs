@@ -17,21 +17,26 @@ namespace Project_LMS.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly IMapper _mapper;
+        private readonly IAuthService _authService;
 
-        public LessonService(ApplicationDbContext context, IMapper mapper)
+        public LessonService(ApplicationDbContext context, IMapper mapper, IAuthService authService)
         {
             _context = context;
             _mapper = mapper;
+            _authService = authService;
         }
 
         public async Task<ApiResponse<PaginatedResponse<LessonResponse>>> GetLessonAsync(string? keyword, int pageNumber = 1, int pageSize = 10)
         {
             try
             {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return new ApiResponse<PaginatedResponse<LessonResponse>>(1, "Không có quyền truy cập", null);
+
                 var query = _context.Lessons
                     .Where(l => !l.IsDelete.HasValue || !l.IsDelete.Value);
 
-                // Add search condition if keyword is provided
                 if (!string.IsNullOrWhiteSpace(keyword))
                 {
                     keyword = keyword.Trim().ToLower();
@@ -42,7 +47,6 @@ namespace Project_LMS.Services
                     );
                 }
 
-                // Include related entities
                 query = query
                     .Include(l => l.TeachingAssignment)
                         .ThenInclude(ta => ta.Subject)
@@ -70,35 +74,51 @@ namespace Project_LMS.Services
                     HasNextPage = pageNumber < totalPages
                 };
 
-                return new ApiResponse<PaginatedResponse<LessonResponse>>(0, "Success", paginatedResponse);
+                return new ApiResponse<PaginatedResponse<LessonResponse>>(0, "Lấy danh sách bài học thành công", paginatedResponse);
             }
             catch (Exception ex)
             {
-                return new ApiResponse<PaginatedResponse<LessonResponse>>(1, $"Error getting lessons: {ex.Message}", null);
+                return new ApiResponse<PaginatedResponse<LessonResponse>>(1, $"Lỗi khi lấy danh sách bài học: {ex.Message}", null);
             }
         }
 
         public async Task<ApiResponse<LessonResponse>> GetLessonByIdAsync(int id)
         {
-            var lesson = await _context.Lessons
-                .Include(l => l.TeachingAssignment)
-                .Include(l => l.User)
-                .FirstOrDefaultAsync(l => l.Id == id && (!l.IsDelete.HasValue || !l.IsDelete.Value));
+            try
+            {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return new ApiResponse<LessonResponse>(1, "Không có quyền truy cập", null);
 
-            if (lesson == null)
-                return new ApiResponse<LessonResponse>(1, "Lesson not found", null);
+                var lesson = await _context.Lessons
+                    .Include(l => l.TeachingAssignment)
+                    .Include(l => l.User)
+                    .FirstOrDefaultAsync(l => l.Id == id && (!l.IsDelete.HasValue || !l.IsDelete.Value));
 
-            var response = _mapper.Map<LessonResponse>(lesson);
-            return new ApiResponse<LessonResponse>(0, "Success", response);
+                if (lesson == null)
+                    return new ApiResponse<LessonResponse>(1, "Không tìm thấy bài học", null);
+
+                var response = _mapper.Map<LessonResponse>(lesson);
+                return new ApiResponse<LessonResponse>(0, "Lấy thông tin bài học thành công", response);
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<LessonResponse>(1, $"Lỗi khi lấy thông tin bài học: {ex.Message}", null);
+            }
         }
 
         public async Task<ApiResponse<LessonResponse>> CreateLessonAsync(CreateLessonRequest request)
         {
             try
             {
-                if (request == null)
-                    return new ApiResponse<LessonResponse>(1, "Invalid request data", null);
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return new ApiResponse<LessonResponse>(1, "Không có quyền truy cập", null);
 
+                if (request == null)
+                    return new ApiResponse<LessonResponse>(1, "Dữ liệu không hợp lệ", null);
+
+                // Validate ClassLessonCode uniqueness
                 if (!string.IsNullOrEmpty(request.ClassLessonCode))
                 {
                     var existingLesson = await _context.Lessons
@@ -106,25 +126,43 @@ namespace Project_LMS.Services
                                                 (!l.IsDelete.HasValue || !l.IsDelete.Value));
                     if (existingLesson != null)
                     {
-                        return new ApiResponse<LessonResponse>(1, "Class lesson code already exists", null);
+                        return new ApiResponse<LessonResponse>(1, "Mã bài học đã tồn tại", null);
                     }
                 }
 
-                // Validate TeachingAssignment exists
+                // Get TeachingAssignment with its existing lessons
                 var teachingAssignment = await _context.TeachingAssignments
+                    .Include(ta => ta.Lessons.Where(l => !l.IsDelete.HasValue || !l.IsDelete.Value))
                     .FirstOrDefaultAsync(ta => ta.Id == request.TeachingAssignmentId);
 
                 if (teachingAssignment == null)
-                    return new ApiResponse<LessonResponse>(1, "Teaching Assignment not found", null);
+                    return new ApiResponse<LessonResponse>(1, "Không tìm thấy phân công giảng dạy", null);
 
-                var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.UserId);
+                // Validate lesson time within TeachingAssignment time range
+                if (request.StartDate < teachingAssignment.StartDate || request.EndDate > teachingAssignment.EndDate)
+                {
+                    return new ApiResponse<LessonResponse>(1,
+                        $"Thời gian buổi học phải nằm trong khoảng thời gian của phân công giảng dạy " +
+                        $"({teachingAssignment.StartDate:dd/MM/yyyy HH:mm} - {teachingAssignment.EndDate:dd/MM/yyyy HH:mm})", null);
+                }
 
-                if (user == null)
-                    return new ApiResponse<LessonResponse>(1, "User not found", null);
+                // Validate lesson time overlap with other lessons
+                var hasOverlap = teachingAssignment.Lessons.Any(l =>
+                    // Check if new lesson's time range overlaps with any existing lesson
+                    (request.StartDate >= l.StartDate && request.StartDate <= l.EndDate) || // New start within existing
+                    (request.EndDate >= l.StartDate && request.EndDate <= l.EndDate) || // New end within existing
+                    (request.StartDate <= l.StartDate && request.EndDate >= l.EndDate) // New lesson completely contains existing
+                );
 
+                if (hasOverlap)
+                {
+                    return new ApiResponse<LessonResponse>(1,
+                        "Thời gian buổi học trùng với buổi học khác trong cùng phân công giảng dạy", null);
+                }
+
+                // Create new lesson
                 var lesson = _mapper.Map<Lesson>(request);
 
-                // Hash the password if provided
                 if (!string.IsNullOrEmpty(request.PaswordLeassons))
                 {
                     lesson.PaswordLeassons = BCrypt.Net.BCrypt.HashPassword(request.PaswordLeassons);
@@ -132,6 +170,7 @@ namespace Project_LMS.Services
 
                 lesson.CreateAt = DateTime.UtcNow.ToLocalTime();
                 lesson.IsDelete = false;
+                lesson.UserCreate = user.Id;
 
                 _context.Lessons.Add(lesson);
                 await _context.SaveChangesAsync();
@@ -141,11 +180,11 @@ namespace Project_LMS.Services
                     .LoadAsync();
 
                 var response = _mapper.Map<LessonResponse>(lesson);
-                return new ApiResponse<LessonResponse>(0, "Lesson created successfully", response);
+                return new ApiResponse<LessonResponse>(0, "Tạo bài học thành công", response);
             }
             catch (Exception ex)
             {
-                return new ApiResponse<LessonResponse>(1, $"Error creating lesson: {ex.Message}", null);
+                return new ApiResponse<LessonResponse>(1, $"Lỗi khi tạo bài học: {ex.Message}", null);
             }
         }
 
@@ -153,13 +192,18 @@ namespace Project_LMS.Services
         {
             try
             {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return new ApiResponse<LessonResponse>(1, "Không có quyền truy cập", null);
+
                 var existingLesson = await _context.Lessons
                     .Include(l => l.TeachingAssignment)
                     .FirstOrDefaultAsync(l => l.Id == request.Id && (!l.IsDelete.HasValue || !l.IsDelete.Value));
 
                 if (existingLesson == null)
-                    return new ApiResponse<LessonResponse>(1, "Lesson not found", null);
+                    return new ApiResponse<LessonResponse>(1, "Không tìm thấy bài học", null);
 
+                // Validate ClassLessonCode uniqueness
                 if (!string.IsNullOrEmpty(request.ClassLessonCode) &&
                            request.ClassLessonCode != existingLesson.ClassLessonCode)
                 {
@@ -169,35 +213,61 @@ namespace Project_LMS.Services
                                                 (!l.IsDelete.HasValue || !l.IsDelete.Value));
                     if (duplicateLesson != null)
                     {
-                        return new ApiResponse<LessonResponse>(1, "Class lesson code already exists", null);
+                        return new ApiResponse<LessonResponse>(1, "Mã bài học đã tồn tại", null);
                     }
                 }
-                // Validate TeachingAssignment exists if it's being updated
-                if (request.TeachingAssignmentId != existingLesson.TeachingAssignmentId)
+
+                // Get TeachingAssignment with its existing lessons
+                var teachingAssignment = await _context.TeachingAssignments
+                    .Include(ta => ta.Lessons.Where(l => !l.IsDelete.HasValue || !l.IsDelete.Value))
+                    .FirstOrDefaultAsync(ta => ta.Id == request.TeachingAssignmentId);
+
+                if (teachingAssignment == null)
+                    return new ApiResponse<LessonResponse>(1, "Không tìm thấy phân công giảng dạy", null);
+
+                // Validate lesson time within TeachingAssignment time range
+                if (request.StartDate < teachingAssignment.StartDate || request.EndDate > teachingAssignment.EndDate)
                 {
-                    var teachingAssignment = await _context.TeachingAssignments
-                        .FirstOrDefaultAsync(ta => ta.Id == request.TeachingAssignmentId);
-
-                    if (teachingAssignment == null)
-                        return new ApiResponse<LessonResponse>(1, "Teaching Assignment not found", null);
-
-                    var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.UserId);
-
-                    if (user == null)
-                        return new ApiResponse<LessonResponse>(1, "User not found", null);
+                    return new ApiResponse<LessonResponse>(1,
+                        $"Thời gian buổi học phải nằm trong khoảng thời gian của phân công giảng dạy " +
+                        $"({teachingAssignment.StartDate:dd/MM/yyyy HH:mm} - {teachingAssignment.EndDate:dd/MM/yyyy HH:mm})", null);
                 }
 
+                // Validate lesson time overlap with other lessons (excluding the current lesson)
+                var hasOverlap = teachingAssignment.Lessons
+                    .Where(l => l.Id != request.Id) // Exclude current lesson
+                    .Any(l =>
+                        (request.StartDate >= l.StartDate && request.StartDate <= l.EndDate) || // New start within existing
+                        (request.EndDate >= l.StartDate && request.EndDate <= l.EndDate) || // New end within existing
+                        (request.StartDate <= l.StartDate && request.EndDate >= l.EndDate) // New lesson completely contains existing
+                    );
+
+                if (hasOverlap)
+                {
+                    return new ApiResponse<LessonResponse>(1,
+                        "Thời gian buổi học trùng với buổi học khác trong cùng phân công giảng dạy", null);
+                }
+
+                // Update lesson
                 _mapper.Map(request, existingLesson);
+
+                // Hash password if provided
+                if (!string.IsNullOrEmpty(request.PaswordLeassons))
+                {
+                    existingLesson.PaswordLeassons = BCrypt.Net.BCrypt.HashPassword(request.PaswordLeassons);
+                }
+
                 existingLesson.UpdateAt = DateTime.UtcNow.ToLocalTime();
+                existingLesson.UserUpdate = user.Id;
 
                 await _context.SaveChangesAsync();
 
                 var response = _mapper.Map<LessonResponse>(existingLesson);
-                return new ApiResponse<LessonResponse>(0, "Lesson updated successfully", response);
+                return new ApiResponse<LessonResponse>(0, "Cập nhật bài học thành công", response);
             }
             catch (Exception ex)
             {
-                return new ApiResponse<LessonResponse>(1, $"Error updating lesson: {ex.Message}", null);
+                return new ApiResponse<LessonResponse>(1, $"Lỗi khi cập nhật bài học: {ex.Message}", null);
             }
         }
 
@@ -205,19 +275,24 @@ namespace Project_LMS.Services
         {
             try
             {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return new ApiResponse<bool>(1, "Không có quyền truy cập", false);
+
                 var lesson = await _context.Lessons.FindAsync(id);
                 if (lesson == null || lesson.IsDelete == true)
-                    return new ApiResponse<bool>(1, "Lesson not found", false);
+                    return new ApiResponse<bool>(1, "Không tìm thấy bài học", false);
 
                 lesson.IsDelete = true;
                 lesson.UpdateAt = DateTime.UtcNow.ToLocalTime();
+                lesson.UserUpdate = user.Id;
 
                 await _context.SaveChangesAsync();
-                return new ApiResponse<bool>(0, "Lesson deleted successfully", true);
+                return new ApiResponse<bool>(0, "Xóa bài học thành công", true);
             }
             catch (Exception ex)
             {
-                return new ApiResponse<bool>(1, $"Error deleting lesson: {ex.Message}", false);
+                return new ApiResponse<bool>(1, $"Lỗi khi xóa bài học: {ex.Message}", false);
             }
         }
 
@@ -225,25 +300,30 @@ namespace Project_LMS.Services
         {
             try
             {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return new ApiResponse<bool>(1, "Không có quyền truy cập", false);
+
                 var lessons = await _context.Lessons
                     .Where(l => ids.Contains(l.Id) && (!l.IsDelete.HasValue || !l.IsDelete.Value))
                     .ToListAsync();
 
                 if (!lessons.Any())
-                    return new ApiResponse<bool>(1, "No lessons found to delete", false);
+                    return new ApiResponse<bool>(1, "Không tìm thấy bài học để xóa", false);
 
                 foreach (var lesson in lessons)
                 {
                     lesson.IsDelete = true;
                     lesson.UpdateAt = DateTime.UtcNow.ToLocalTime();
+                    lesson.UserUpdate = user.Id;
                 }
 
                 await _context.SaveChangesAsync();
-                return new ApiResponse<bool>(0, $"Successfully deleted {lessons.Count} lessons", true);
+                return new ApiResponse<bool>(0, $"Đã xóa thành công {lessons.Count} bài học", true);
             }
             catch (Exception ex)
             {
-                return new ApiResponse<bool>(1, $"Error deleting lessons: {ex.Message}", false);
+                return new ApiResponse<bool>(1, $"Lỗi khi xóa bài học: {ex.Message}", false);
             }
         }
     }

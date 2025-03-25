@@ -1,0 +1,20 @@
+meta {
+  name: SearchStudentOfReqward
+  type: http
+  seq: 2
+}
+
+get {
+  url: api/Reward/getallstudentreward?academicId=1&departmentId=1&PageNumber=1&PageSize=10&column=2&orderBy=true
+  body: none
+  auth: none
+}
+
+params:query {
+  academicId: 1
+  departmentId: 1
+  PageNumber: 1
+  PageSize: 10
+  column: 2
+  orderBy: true
+}

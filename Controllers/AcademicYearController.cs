@@ -22,6 +22,20 @@ namespace Project_LMS.Controllers
             _authService = authService ?? throw new ArgumentNullException(nameof(authService));
         }
 
+        [HttpGet("search")]
+        public async Task<ActionResult<ApiResponse<PaginatedResponse<AcademicYearResponse>>>> SearchAcademicYear([FromQuery] int year)
+        {
+            var result = await _academicYearsService.SearchAcademicYear(year);
+
+            if (result == null || !result.Items.Any())
+            {
+                return NotFound(new ApiResponse<PaginatedResponse<AcademicYearResponse>>(1, "Không tìm thấy Niên khóa"));
+            }
+
+            return Ok(new ApiResponse<PaginatedResponse<AcademicYearResponse>>(0, "Lấy danh sách Niên khóa thành công", result));
+        }
+
+
         [HttpGet("{id}")]
         public async Task<ActionResult<ApiResponse<AcademicYearResponse>>> GetById(int id)
         {
@@ -30,13 +44,12 @@ namespace Project_LMS.Controllers
             {
                 return NotFound(new ApiResponse<AcademicYearResponse>(
                     1,
-                    "Academic Year not found",
-                    null));
+                    $"Không tim thấy Niên Khóa có Id {id}"));
             }
 
             return Ok(new ApiResponse<AcademicYearResponse>(
                 0,
-                "Success",
+                $"Lấy danh sách Niên Khóa theo Id {id} thành công",
                 result));
         }
 
@@ -46,7 +59,7 @@ namespace Project_LMS.Controllers
             var result = await _academicYearsService.GetPagedAcademicYears(request);
             return Ok(new ApiResponse<PaginatedResponse<AcademicYearResponse>>(
                 0,
-                "Success",
+                "Lấy danh sách Niên Khóa thành công",
                 result));
         }
 
@@ -81,7 +94,7 @@ namespace Project_LMS.Controllers
             var response = await _academicYearsService.DeleteLessonAsync(ids);
             if (response.Status == 1)
             {
-                return BadRequest(new ApiResponse<AcademicYearResponse>(response.Status, response.Message, response.Data));
+                return Ok(new ApiResponse<AcademicYearResponse>(response.Status, response.Message, response.Data));
             }
 
             return Ok(new ApiResponse<AcademicYearResponse>(response.Status, response.Message, response.Data));
