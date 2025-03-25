@@ -1,6 +1,9 @@
-﻿namespace Project_LMS.Interfaces.Services
+﻿using Project_LMS.DTOs.Response;
+
+namespace Project_LMS.Interfaces.Services
 {
-    public class IDependentService
-    {
-    }
+    //public interface IDependentService
+    //{
+    //    public Task<ApiResponse<object>> 
+    //}
 }

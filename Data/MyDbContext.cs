@@ -2250,6 +2250,8 @@ namespace Project_LMS.Data
          .HasForeignKey(d => d.DepartmentId)
          .HasConstraintName("fk_test_exam_department");
  });
+
+            modelBuilder.Entity<TestExam>(entity =>
             {
                 entity.ToTable("test_exams");
 
@@ -2341,6 +2343,7 @@ namespace Project_LMS.Data
                     .HasForeignKey(d => d.DepartmentId)
                     .HasConstraintName("fk_test_exam_department");
             });
+
 
             modelBuilder.Entity<TestExamType>(entity =>
             {
