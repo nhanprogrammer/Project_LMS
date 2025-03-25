@@ -25,9 +25,11 @@ public class TopicService : ITopicService
     private readonly ApplicationDbContext _context;
     private readonly INotificationsService _notificationsService;
     private readonly IAuthService _authService;
+
     public TopicService(ITopicRepository topicRepository, IMapper mapper, ICloudinaryService cloudinary,
         IHubContext<RealtimeHub> hubContext, ITeachingAssignmentService teachingAssignmentService,
-        IUserRepository userRepository, ApplicationDbContext context, INotificationsService notificationsService, IAuthService authService)
+        IUserRepository userRepository, ApplicationDbContext context, INotificationsService notificationsService,
+        IAuthService authService)
     {
         _topicRepository = topicRepository;
         _mapper = mapper;
@@ -113,6 +115,7 @@ public class TopicService : ITopicService
         {
             var userid = await _authService.GetUserAsync();
             request.UserId = userid?.Id;
+
             // 1) Kiểm tra Title (bắt buộc khi tạo topic gốc)
             if (!request.TopicId.HasValue && string.IsNullOrWhiteSpace(request.Title))
             {
@@ -188,18 +191,28 @@ public class TopicService : ITopicService
             topicEntity.UserCreate = request.UserId;
             topicEntity.UserUpdate = request.UserId;
 
-            // 7) Kiểm tra thời gian closeAt (nếu có)
-            if (topicEntity.CloseAt.HasValue)
-            {
-                var currentTime = TimeHelper.NowUsingTimeZone; // Thời điểm hiện tại
-                var lowerBoundTime = currentTime.AddMinutes(-10); // Thời gian giới hạn dưới (hiện tại - 10 phút)
 
-                if (topicEntity.CloseAt.Value < lowerBoundTime)
+            // 7) Xử lý thời gian closeAt
+            if (!request.TopicId.HasValue) // Nếu là topic gốc (giáo viên tạo)
+            {
+                // Kiểm tra thời gian closeAt (nếu có)
+                if (topicEntity.CloseAt.HasValue)
                 {
-                    return new ApiResponse<TopicResponse>(1,
-                        $"Thời gian đóng (CloseAt) không hợp lệ: không được sớm hơn {lowerBoundTime:yyyy-MM-dd HH:mm:ss} (hiện tại - 10 phút)!",
-                        null);
+                    var currentTime = TimeHelper.NowUsingTimeZone; // Thời điểm hiện tại
+                    var lowerBoundTime = currentTime.AddMinutes(-10); // Thời gian giới hạn dưới (hiện tại - 10 phút)
+
+                    if (topicEntity.CloseAt.Value < lowerBoundTime)
+                    {
+                        return new ApiResponse<TopicResponse>(1,
+                            $"Thời gian đóng (CloseAt) không hợp lệ: không được sớm hơn {lowerBoundTime:yyyy-MM-dd HH:mm:ss} (hiện tại - 10 phút)!",
+                            null);
+                    }
                 }
+            }
+            else // Nếu là comment (TopicId có giá trị)
+            {
+                // Gán closeAt bằng thời gian hiện tại, bỏ qua giá trị closeAt từ request
+                topicEntity.CloseAt = TimeHelper.NowUsingTimeZone;
             }
 
             // 8) Upload file nếu có
@@ -224,7 +237,15 @@ public class TopicService : ITopicService
 
             // 10) Map Entity -> Response DTO
             var topicResponse = _mapper.Map<TopicResponse>(savedTopic);
-
+            topicResponse.Avatar = userid?.Image;
+            topicResponse.FullName = userid?.FullName;
+            topicResponse.RoleName = userid?.RoleId switch
+            {
+                1 => "Admin",
+                2 => "Teacher",
+                3 => "Student",
+                _ => "Unknown"
+            };
             // 11) Gửi thông báo
             if (!request.TopicId.HasValue) // Nếu là topic gốc
             {
@@ -298,6 +319,7 @@ public class TopicService : ITopicService
     {
         try
         {
+            var users = await _authService.GetUserAsync();
             // 1) Kiểm tra Id
             if (request.Id <= 0)
             {
@@ -372,18 +394,27 @@ public class TopicService : ITopicService
             // 7) Map DTO -> Entity
             var topicEntity = _mapper.Map<Topic>(request);
 
-            // 8) Kiểm tra thời gian closeAt (nếu có)
-            if (topicEntity.CloseAt.HasValue)
+            // 8) Xử lý thời gian closeAt
+            if (!existingTopic.TopicId.HasValue) // Nếu là topic gốc (giáo viên cập nhật)
             {
-                var currentTime = TimeHelper.NowUsingTimeZone; // Thời điểm hiện tại
-                var lowerBoundTime = currentTime.AddMinutes(-10); // Thời gian giới hạn dưới (hiện tại - 10 phút)
-
-                if (topicEntity.CloseAt.Value < lowerBoundTime)
+                // Kiểm tra thời gian closeAt (nếu có)
+                if (topicEntity.CloseAt.HasValue)
                 {
-                    return new ApiResponse<TopicResponse>(1,
-                        $"Thời gian đóng (CloseAt) không hợp lệ: không được sớm hơn {lowerBoundTime:yyyy-MM-dd HH:mm:ss} (hiện tại - 10 phút)!",
-                        null);
+                    var currentTime = TimeHelper.NowUsingTimeZone; // Thời điểm hiện tại
+                    var lowerBoundTime = currentTime.AddMinutes(-10); // Thời gian giới hạn dưới (hiện tại - 10 phút)
+
+                    if (topicEntity.CloseAt.Value < lowerBoundTime)
+                    {
+                        return new ApiResponse<TopicResponse>(1,
+                            $"Thời gian đóng (CloseAt) không hợp lệ: không được sớm hơn {lowerBoundTime:yyyy-MM-dd HH:mm:ss} (hiện tại - 10 phút)!",
+                            null);
+                    }
                 }
+            }
+            else // Nếu là comment (TopicId có giá trị)
+            {
+                // Gán closeAt bằng thời gian hiện tại, bỏ qua giá trị closeAt từ request
+                topicEntity.CloseAt = TimeHelper.NowUsingTimeZone;
             }
 
             // 9) Xử lý file: Xóa file cũ và upload file mới nếu có
@@ -419,7 +450,15 @@ public class TopicService : ITopicService
 
             // 11) Map Entity -> Response DTO
             var topicResponse = _mapper.Map<TopicResponse>(updatedTopic);
-
+            topicResponse.Avatar = users?.Image;
+            topicResponse.FullName = user?.FullName;
+            topicResponse.RoleName = users?.RoleId switch
+            {
+                1 => "Admin",
+                2 => "Teacher",
+                3 => "Student",
+                _ => "Unknown"
+            };
             // 12) Gửi thông báo
             if (!request.TopicId.HasValue) // Nếu là topic gốc
             {
@@ -487,7 +526,6 @@ public class TopicService : ITopicService
             return new ApiResponse<TopicResponse>(1, $"Có lỗi xảy ra: {ex.Message}", null);
         }
     }
-
 
     public async Task<ApiResponse<bool>> DeleteTopicAsync(int userId, int teachingAssignmentId, int id)
     {

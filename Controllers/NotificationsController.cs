@@ -11,10 +11,11 @@ namespace Project_LMS.Controllers;
 public class NotificationsController : ControllerBase
 {
     private readonly INotificationsService _notificationsService;
-
-    public NotificationsController(INotificationsService notificationsService)
+    private readonly IAuthService _authService;
+    public NotificationsController(INotificationsService notificationsService, IAuthService authService)
     {
         _notificationsService = notificationsService;
+        _authService = authService;
     }
 
     [HttpGet("{userId}")]
@@ -30,11 +31,12 @@ public class NotificationsController : ControllerBase
     }
 
     [HttpGet("by-teaching-assignment")]
-    public async Task<IActionResult> GetNotificationsByTeachingAssignment([FromQuery] int userId,
+    public async Task<IActionResult> GetNotificationsByTeachingAssignment(
         [FromQuery] int teachingAssignmentId)
     {
+        var user = await _authService.GetUserAsync();
         var notifications =
-            await _notificationsService.GetNotificationsByUserAndTeachingAssignmentAsync(userId,
+            await _notificationsService.GetNotificationsByUserAndTeachingAssignmentAsync(user.Id,
                 teachingAssignmentId);
         if (notifications.Status == 1)
         {
