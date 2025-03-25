@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Org.BouncyCastle.Asn1.Ocsp;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
@@ -28,6 +29,19 @@ namespace Project_LMS.Services
 
         public async Task<PaginatedResponse<AcademicYearResponse>> GetPagedAcademicYears(PaginationRequest request)
         {
+            if (request.PageNumber <= 0 || request.PageSize <= 0)
+            {
+                return new PaginatedResponse<AcademicYearResponse>
+                {
+                    Items = new List<AcademicYearResponse>(),
+                    PageNumber = 0,
+                    PageSize = 0,
+                    TotalItems = 0,
+                    TotalPages = 0,
+                    HasPreviousPage = false,
+                    HasNextPage = false
+                };
+            }
             var query = _academicYearRepository.GetQueryable();
 
             int totalItems = await query.CountAsync();
@@ -50,6 +64,31 @@ namespace Project_LMS.Services
                 HasNextPage = request.PageNumber * pageSize < totalItems
             };
         }
+
+        public async Task<PaginatedResponse<AcademicYearResponse>> SearchAcademicYear(int year, int pageNumber = 1, int pageSize = 10)
+        {
+            var query = _academicYearRepository.GetQueryable()
+                .Where(a => a.StartDate.Value.Year == year || a.EndDate.Value.Year == year);
+
+            int totalItems = await query.CountAsync();
+
+            var academicYearsList = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PaginatedResponse<AcademicYearResponse>
+            {
+                Items = _mapper.Map<List<AcademicYearResponse>>(academicYearsList),
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalItems = totalItems,
+                TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize),
+                HasPreviousPage = pageNumber > 1,
+                HasNextPage = pageNumber * pageSize < totalItems
+            };
+        }
+
 
         public async Task<AcademicYearResponse> GetByIdAcademicYear(int id)
         {
@@ -80,9 +119,27 @@ namespace Project_LMS.Services
                 return new ApiResponse<AcademicYearResponse>(1, $"Niên khóa có năm `{request.StartDate.Year}` bị chồng lấn với Niên khóa cũ.");
             }
 
-            var academicYear = _mapper.Map<AcademicYear>(request);
-            academicYear.UserCreate = userId;
-            academicYear.CreateAt = TimeHelper.Now;
+            var academicYear = new AcademicYear
+            {
+                UserCreate = userId,
+                CreateAt = TimeHelper.Now
+            };
+
+            // Kế thưa niên khóa
+            if (request.IsInherit.HasValue && request.IsInherit.Value && request.AcademicParent.HasValue)
+            {
+                bool isExist = await _academicYearRepository.IsAcademicYearExist(request.AcademicParent.Value);
+
+                if (!isExist)
+                {
+                    return new ApiResponse<AcademicYearResponse>(1, "Niên khóa kế thừa không tồn tại.");
+                }
+
+                academicYear.AcademicParent = request.AcademicParent.Value;
+            }
+
+            _mapper.Map(request, academicYear);
+
 
             if (request.StartDate > request.EndDate)
             {
@@ -184,6 +241,19 @@ namespace Project_LMS.Services
             if (request.StartDate > request.EndDate)
             {
                 return new ApiResponse<AcademicYearResponse>(1, "Ngày kết thúc của Niên Khóa không thể thấp hơn ngày bắt đầu.");
+            }
+
+            // Kế thưa niên khóa
+            if (request.IsInherit.HasValue && request.IsInherit.Value && request.AcademicParent.HasValue)
+            {
+                bool isExist = await _academicYearRepository.IsAcademicYearExist(request.AcademicParent.Value);
+
+                if (!isExist)
+                {
+                    return new ApiResponse<AcademicYearResponse>(1, "Niên khóa kế thừa không tồn tại.");
+                }
+
+                academicYear.AcademicParent = request.AcademicParent.Value;
             }
 
             _mapper.Map(request, academicYear);
@@ -310,11 +380,6 @@ namespace Project_LMS.Services
             {
                 return new ApiResponse<AcademicYearResponse>(1, "Xóa niên khóa thất bại.", null);
             }
-        }
-
-        public Task<AcademicYearResponse> SearchAcademicYear(DateOnly year)
-        {
-            throw new NotImplementedException();
         }
     }
 }
