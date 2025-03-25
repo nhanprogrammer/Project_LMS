@@ -20,6 +20,11 @@ using Project_LMS.Configurations;
 using Project_LMS.Authorization;
 using Project_LMS.DTOs.Response;
 using Microsoft.Extensions.Caching.Memory;
+using Aspose.Cells.Charts;
+using Project_LMS.DTOs.Request;
+using FluentValidation.AspNetCore;
+using FluentValidation;
+
 using Project_LMS.Hubs;
 using Project_LMS.Middleware;
 using Hangfire;
@@ -104,6 +109,15 @@ builder.Services.AddScoped<ISubjectGroupService, SubjectGroupService>();
 builder.Services.AddScoped<IDepartmentsService, DepartmentsService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IStudentStatusService, StudentStatusService>();
+builder.Services.AddScoped<IClassStudentService, ClassStudentService>();
+builder.Services.AddScoped<IClassService,ClassService>();
+builder.Services.AddScoped<IStudentService,StudentService>();
+builder.Services.AddScoped<IClassStudentService,ClassStudentService>();
+builder.Services.AddScoped<IExemptionService,ExemptionService>();
+builder.Services.AddScoped<IRewardService, RewardService>();
+builder.Services.AddScoped<IDisciplinesService, DisciplinesService>();
+builder.Services.AddScoped<ITeacherService, TeacherService>();
+builder.Services.AddScoped<ITeacherStatusHistoryService, TeacherStatusHistoryService>();
 builder.Services.AddScoped<IQuestionsAnswersService, QuestionsAnswersService>();
 builder.Services.AddScoped<ITopicService, TopicService>();
 builder.Services.AddScoped<INotificationsService, NotificationsService>();
@@ -140,6 +154,13 @@ builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
 builder.Services.AddScoped<ITestExamTypeRepository, TestExamTypeRepository>();
 builder.Services.AddScoped<ISubjectTypeRepository, SubjectTypeRepository>();
 builder.Services.AddScoped<IJwtReponsitory, JwtReponsitory>();
+builder.Services.AddScoped<IStudentRepository, StudentRepository>();
+builder.Services.AddScoped<IExemptionRepository, ExemptionRepository>();
+builder.Services.AddScoped<IDisciplineRepository, DisciplineRepository>();
+builder.Services.AddScoped<ITeacherRepository, TeacherRepository>();
+builder.Services.AddScoped<ITeacherClassSubjectRepository, TeacherClassSubjectRepository>();
+builder.Services.AddScoped<ITeacherStatusHistoryRepository, TeacherStatusHistoryRepository>();
+builder.Services.AddScoped<ITeachingAssignmentRepository, TeachingAssignmentRepository>();
 
 builder.Services.AddScoped<INotificationsRepository, NotificationsRepository>();
 builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
@@ -161,7 +182,9 @@ builder.Services.AddScoped<ITopicRepository, TopicRepository>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 // builder.Services.AddScoped<IDepartmentsService, Deparmen>();
-
+builder.Services.AddScoped <IClassRepository, ClassRepository>();
+builder.Services.AddScoped<IClassStudentRepository,ClassStudentRepository>();
+builder.Services.AddScoped<IClassSubjectRepository,ClassSubjectRepository>();
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 
@@ -172,6 +195,15 @@ builder.Services.AddAutoMapper(typeof(StudentStatusMapper));
 builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
 builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddAutoMapper(typeof(StudentMapper));
+builder.Services.AddAutoMapper(typeof(ExempferMapper));
+builder.Services.AddAutoMapper(typeof(RewardMapper));
+builder.Services.AddAutoMapper(typeof(DisciplineMapper));
+builder.Services.AddAutoMapper(typeof(TeacherMapper));
+builder.Services.AddAutoMapper(typeof(TeacherStatusHistoryMapper));
+
+//loging
+
 builder.Services.AddLogging(); // Đăng ký logging
 
 builder.Services.AddScoped<IPermissionService, PermissionService>();
@@ -267,7 +299,23 @@ builder.Services.AddPermissionAuthorization();
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddMemoryCache();
+//register validation
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<RewardRequestValidator>(); // 
+builder.Services.AddValidatorsFromAssemblyContaining<DisciplineRequestValidator>(); // 
+builder.Services.AddValidatorsFromAssemblyContaining<TeacherRequestValidator>(); // 
+builder.Services.AddValidatorsFromAssemblyContaining<TeacherStatusHistoryRequestValidator>(); // 
+
 builder.Services.AddLogging();
+
+// Cấu hình logging
+builder.Services.AddLogging(logging =>
+{
+    logging.ClearProviders(); // Xóa các provider mặc định (tùy chọn)
+    logging.AddConsole(); // Ghi log ra console
+    logging.AddDebug(); // Ghi log ra debug window
+    logging.SetMinimumLevel(LogLevel.Information); // Cấu hình mức log tối thiểu
+});
 
 var app = builder.Build();
 app.MapHub<MeetHubService>("/meetHub");

@@ -1,6 +1,7 @@
 ﻿
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
 using OfficeOpenXml;
 using Project_LMS.Data;
 using Project_LMS.DTOs.Request;
@@ -23,7 +24,8 @@ public class UserService : IUserService
     private readonly ICloudinaryService _cloudinaryService;
     private readonly IJwtReponsitory _jwtReponsitory;
     private readonly IEmailService _emailService;
-
+    public static  string otp = "";
+    public static string nameUser = "";
     public UserService(IUserRepository userRepository, IMapper mapper, ILogger<UserService> logger, ApplicationDbContext context, ICloudinaryService cloudinaryService, IJwtReponsitory jwtReponsitory, IEmailService emailService)
     {
         _userRepository = userRepository;
@@ -37,23 +39,20 @@ public class UserService : IUserService
 
     public async Task<ApiResponse<object>> CheckUser(string name)
     {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return new ApiResponse<object>(1, "Email hoặc username của bạn không tồn tại.");
+        }
+        nameUser = name;
         var user = await _context.Users
        .Include(user => user.Role)
-       .AsNoTracking() // Tăng hiệu suất nếu không cần cập nhật entity
+       .AsNoTracking()
        .SingleOrDefaultAsync(user => user.Username.Equals(name) || user.Email.Equals(name));
         if (user == null) return new ApiResponse<object>(1, "User does not existed.");
         Random random = new Random();
-        string otp = random.Next(100000, 999999).ToString();
-        var token = _jwtReponsitory.GenerateToken(user);
-        await _emailService.SendOtpAsync(user?.Email, otp);
-        return new ApiResponse<object>(0, "Send email success.")
-        {
-            Data = new
-            {
-                Token = token,
-                Otp = otp
-            }
-        };
+        otp = random.Next(100000, 999999).ToString();
+        await _emailService.SendMailAsync(user?.Email, "Quên mật khẩu","Mã OTP của bạn là "+otp);
+        return new ApiResponse<object>(0, "Send email success.");
     }
 
     public async Task<ApiResponse<UserResponse>> Create(UserRequest request)
@@ -175,17 +174,21 @@ public class UserService : IUserService
         }
     }
 
-    public async Task<ApiResponse<object>> ForgotPassword(ForgotPasswordRequest request)
+    public async Task<ApiResponse<object>> ChangePassword(ForgotPasswordRequest request)
     {
         var user = await _context.Users
             .AsNoTracking()
-            .SingleOrDefaultAsync(user => user.Username.Equals(request.Name) || user.Email.Equals(request.Name));
-        if (user == null) return new ApiResponse<object>(1, "User does not existed.");
-        if (request.Password  != request.Confirm) return new ApiResponse<object>(1, "Confirm password does not match");
+            .SingleOrDefaultAsync(user => user.Username.Equals(nameUser) || user.Email.Equals(nameUser));
+        if (string.IsNullOrWhiteSpace(request.Password)) return new ApiResponse<object>(1, "Mật khẩu không được null.");
+        if (string.IsNullOrWhiteSpace(request.Confirm)) return new ApiResponse<object>(1, "Xác nhận mật khẩu không được null.");
+     
+        if (user == null) return new ApiResponse<object>(1, "Tài khoản không tồn tại.");
+
+        if (request.Password != request.Confirm) return new ApiResponse<object>(1, "Xác nhận mật khẩu không đúng.");
         user.Password = BCrypt.Net.BCrypt.HashPassword(request.Password);
         _context.Users.Update(user);
         await _context.SaveChangesAsync();
-        return new ApiResponse<object>(0, "Forgot password success.");
+        return new ApiResponse<object>(0, "Thay đổi mật khẩu thành công");
     }
 
     public async Task<ApiResponse<PaginatedResponse<object>>> GetAll(int pageNumber, int pageSize)
@@ -203,7 +206,7 @@ public class UserService : IUserService
                 user.BirthDate,
                 Gender = (user.Gender != null && user.Gender.Length > 0) ? user.Gender[0] : false, // Ép kiểu từ BitArray sang bool
                 user.Ethnicity,
-                Status = user.StudentStatus?.StatusName ?? "Unknown"
+                status = user.StudentStatus?.StatusName ?? "Unknown"
             }).ToList();
 
             var paginatedResponse = new PaginatedResponse<object>
@@ -287,4 +290,21 @@ public class UserService : IUserService
         }
     }
 
+    public async Task<ApiResponse<object>> CheckOTP(string otpUser)
+    {
+        if (string.IsNullOrWhiteSpace(otpUser))
+        {
+            return new ApiResponse<object>(1, "Mã OTP không được null.");
+        }
+
+        if (!otpUser.Equals(otp)) 
+        {
+            return new ApiResponse<object>(2, "Mã OTP không hợp lệ.");
+        }
+        var user = _context.Users.Include(u=>u.Role).Where(u=>u.Username.Equals(nameUser) || u.Email.Equals(nameUser)).FirstOrDefault();
+        return new ApiResponse<object>(0, "Xác nhận mã OTP hợp lệ.")
+        {
+            Data = new { token  = _jwtReponsitory.GenerateToken(user) } 
+        };
+    }
 }

@@ -48,5 +48,10 @@ namespace Project_LMS.Repositories
             _context.TestExamTypes.Remove(testExamType);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<List<TestExamType>> GetAllByIds(List<int> ids)
+        {
+            return await _context.TestExamTypes.Where(te=>ids.Contains(te.Id)).OrderBy(te=>te.Id).ToListAsync();  
+        }
     }
 }

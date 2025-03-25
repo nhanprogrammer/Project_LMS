@@ -40,6 +40,7 @@ namespace Project_LMS.Repositories
             return await _context.Users
                 .Include(user =>user.Role)
                 .Include(user =>user.StudentStatus)
+                .Include(user=>user.ClassStudents).ThenInclude(cs=>cs.Class)
                 .Where(user => user.IsDelete == false && user.Role.Name.Equals("Student"))
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
