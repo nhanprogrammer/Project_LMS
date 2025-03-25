@@ -13,7 +13,7 @@ namespace Project_LMS.DTOs.Request
         public int? durationInMinutes { get; set; }
 
         [JsonConverter(typeof(DateOnlyJsonConverter))]
-        public DateTime? examDate { get; set; }
+        public DateOnly? examDate { get; set; }
 
         public List<int>? classIds { get; set; }
         public string? classOption { get; set; }
