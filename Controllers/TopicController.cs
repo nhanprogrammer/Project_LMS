@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs.Request;
 using Project_LMS.Interfaces.Services;
+using Project_LMS.DTOs.Response;
+using Project_LMS.Interfaces;
 
 namespace Project_LMS.Controllers
 {
@@ -9,92 +11,273 @@ namespace Project_LMS.Controllers
     public class TopicController : ControllerBase
     {
         private readonly ITopicService _topicService;
+        private readonly IAuthService _authService;
 
-        public TopicController(ITopicService topicService)
+        public TopicController(ITopicService topicService, IAuthService authenticationService)
         {
             _topicService = topicService;
+            _authService = authenticationService;
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllTopics()
+        public async Task<IActionResult> GetAllTopics([FromQuery] int teachingAssignmentId)
         {
-            var result = await _topicService.GetAllTopicsAsync();
-            return Ok(result);
+            try
+            {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+
+                // Kiểm tra teachingAssignmentId
+                if (teachingAssignmentId <= 0)
+                {
+                    return BadRequest(new { Status = 1, Message = "TeachingAssignmentId phải lớn hơn 0!" });
+                }
+
+                var result = await _topicService.GetAllTopicsAsync(user.Id, teachingAssignmentId);
+                if (result.Status == 1)
+                {
+                    return BadRequest(result);
+                }
+
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { Status = 1, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Status = 1, Message = $"Có lỗi xảy ra: {ex.Message}" });
+            }
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetTopicById(int id, [FromQuery] int? userId)
+        public async Task<IActionResult> GetTopicById(int id, [FromQuery] int teachingAssignmentId)
         {
-            var result = await _topicService.GetTopicByIdAsync(id, userId);
-            if (result.Status == 1)
+            try
             {
-                return BadRequest(result);
-            }
+                // Lấy userId từ token
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
 
-            return Ok(result);
+                var userId = user.Id;
+
+                // Kiểm tra id và teachingAssignmentId
+                if (id <= 0)
+                {
+                    return BadRequest(new { Status = 1, Message = "Id phải lớn hơn 0!" });
+                }
+
+                if (teachingAssignmentId <= 0)
+                {
+                    return BadRequest(new { Status = 1, Message = "TeachingAssignmentId phải lớn hơn 0!" });
+                }
+
+                var result = await _topicService.GetTopicByIdAsync(userId, teachingAssignmentId, id);
+                if (result.Status == 1)
+                {
+                    return BadRequest(result);
+                }
+
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { Status = 1, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Status = 1, Message = $"Có lỗi xảy ra: {ex.Message}" });
+            }
         }
 
         [HttpPost]
         public async Task<IActionResult> CreateTopic([FromBody] CreateTopicRequest request)
         {
-            if (!ModelState.IsValid)
+            try
             {
-                return BadRequest(ModelState);
-            }
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
 
-            var result = await _topicService.CreateTopicAsync(request);
-            if (result.Status == 1)
+                // Kiểm tra dữ liệu đầu vào
+                if (request.UserId == null || request.UserId <= 0)
+                {
+                    return BadRequest(new { Status = 1, Message = "UserId là bắt buộc và phải lớn hơn 0!" });
+                }
+
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+
+                // Lấy userId từ token và so sánh với request.UserId
+                var userId = user.Id;
+                if (userId != request.UserId)
+                {
+                    return Unauthorized(new { Status = 1, Message = "Bạn không có quyền thực hiện hành động này!" });
+                }
+
+                // Kiểm tra TeachingAssignmentId
+                if (!request.TopicId.HasValue && request.TeachingAssignmentId <= 0)
+                {
+                    return BadRequest(new { Status = 1, Message = "TeachingAssignmentId là bắt buộc khi tạo topic!" });
+                }
+
+                var result = await _topicService.CreateTopicAsync(request);
+                if (result.Status == 1)
+                {
+                    return BadRequest(result);
+                }
+
+                // Trả về 201 Created theo chuẩn REST
+                return CreatedAtAction(nameof(GetTopicById),
+                    new { id = result.Data?.Id, teachingAssignmentId = request.TeachingAssignmentId }, result);
+            }
+            catch (UnauthorizedAccessException ex)
             {
-                // Nếu topic không tồn tại
-                return NotFound(result);
+                return Unauthorized(new { Status = 1, Message = ex.Message });
             }
-
-            // 201 - Created nếu muốn chuẩn REST
-            return Ok(result);
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Status = 1, Message = $"Có lỗi xảy ra: {ex.Message}" });
+            }
         }
 
         [HttpPut]
         public async Task<IActionResult> UpdateTopic([FromBody] UpdateTopicRequest request)
         {
-            if (!ModelState.IsValid)
+            try
             {
-                return BadRequest(ModelState);
-            }
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
 
-            var result = await _topicService.UpdateTopicAsync(request);
-            if (result.Status == 1)
+                // Kiểm tra dữ liệu đầu vào
+                if (request.Id <= 0)
+                {
+                    return BadRequest(new { Status = 1, Message = "Id là bắt buộc và phải lớn hơn 0!" });
+                }
+
+                if (request.UserId == null || request.UserId <= 0)
+                {
+                    return BadRequest(new { Status = 1, Message = "UserId là bắt buộc và phải lớn hơn 0!" });
+                }
+
+                // Lấy userId từ token và so sánh với request.UserId
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+
+                var userId = user.Id;
+                if (userId != request.UserId)
+                {
+                    return Unauthorized(new { Status = 1, Message = "Bạn không có quyền thực hiện hành động này!" });
+                }
+
+                // Kiểm tra TeachingAssignmentId
+                if (!request.TopicId.HasValue && !request.TeachingAssignmentId.HasValue)
+                {
+                    return BadRequest(new
+                        { Status = 1, Message = "TeachingAssignmentId là bắt buộc khi cập nhật topic!" });
+                }
+
+                var result = await _topicService.UpdateTopicAsync(request);
+                if (result.Status == 1)
+                {
+                    return BadRequest(result);
+                }
+
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
             {
-                // Nếu topic không tồn tại
-                return NotFound(result);
+                return Unauthorized(new { Status = 1, Message = ex.Message });
             }
-
-            return Ok(result);
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Status = 1, Message = $"Có lỗi xảy ra: {ex.Message}" });
+            }
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteTopic(int id, [FromQuery] int userId)
+        public async Task<IActionResult> DeleteTopic(int id, [FromQuery] int teachingAssignmentId)
         {
-            var result = await _topicService.DeleteTopicAsync(id, userId);
-            if (result.Status == 1)
+            try
             {
-                // Nếu topic không tồn tại
-                return NotFound(result);
-            }
+                // Lấy userId từ token
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
 
-            return Ok(result);
+                var userId = user.Id;
+
+                // Kiểm tra id và teachingAssignmentId
+                if (id <= 0)
+                {
+                    return BadRequest(new { Status = 1, Message = "Id phải lớn hơn 0!" });
+                }
+
+                if (teachingAssignmentId <= 0)
+                {
+                    return BadRequest(new { Status = 1, Message = "TeachingAssignmentId phải lớn hơn 0!" });
+                }
+
+                var result = await _topicService.DeleteTopicAsync(userId, teachingAssignmentId, id);
+                if (result.Status == 1)
+                {
+                    return BadRequest(result);
+                }
+
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { Status = 1, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Status = 1, Message = $"Có lỗi xảy ra: {ex.Message}" });
+            }
         }
 
         [HttpGet("search")]
-        public async Task<IActionResult> SearchTopics([FromQuery] string? keyword)
+        public async Task<IActionResult> SearchTopics([FromQuery] int teachingAssignmentId, [FromQuery] string? keyword)
         {
-            var result = await _topicService.SearchTopicsAsync(keyword);
-            if (result.Status == 1)
+            try
             {
-                // Nếu không tìm thấy topic
-                return NotFound(result);
-            }
+                // Lấy userId từ token
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
 
-            return Ok(result);
+                var userId = user.Id;
+
+                // Kiểm tra teachingAssignmentId
+                if (teachingAssignmentId <= 0)
+                {
+                    return BadRequest(new { Status = 1, Message = "TeachingAssignmentId phải lớn hơn 0!" });
+                }
+
+                var result = await _topicService.SearchTopicsAsync(userId, teachingAssignmentId, keyword);
+                if (result.Status == 1)
+                {
+                    return BadRequest(result);
+                }
+
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { Status = 1, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Status = 1, Message = $"Có lỗi xảy ra: {ex.Message}" });
+            }
         }
     }
 }

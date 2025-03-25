@@ -12,6 +12,5 @@
         public int? MaxStudents { get; set; }
         public int? CurrentStudents { get; set; }
         public bool? ClassStatus { get; set; }
-        public string ClassLink { get; set; }
     }
 }

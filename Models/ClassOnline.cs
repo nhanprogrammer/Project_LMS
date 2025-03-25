@@ -15,7 +15,6 @@ namespace Project_LMS.Models
         public int? MaxStudents { get; set; }
         public int? CurrentStudents { get; set; }
         public bool? ClassStatus { get; set; }
-        public string? ClassLink { get; set; }
         public string? ClassPassword { get; set; }
         public DateTime? CreateAt { get; set; }
         public DateTime? UpdateAt { get; set; }

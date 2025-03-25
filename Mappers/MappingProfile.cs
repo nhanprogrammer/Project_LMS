@@ -95,8 +95,7 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.ClassDescription, opt => opt.MapFrom(src => src.ClassDescription))
             .ForMember(dest => dest.MaxStudents, opt => opt.MapFrom(src => src.MaxStudents))
             .ForMember(dest => dest.CurrentStudents, opt => opt.MapFrom(src => src.CurrentStudents))
-            .ForMember(dest => dest.ClassStatus, opt => opt.MapFrom(src => src.ClassStatus))
-            .ForMember(dest => dest.ClassLink, opt => opt.MapFrom(src => src.ClassLink));
+            .ForMember(dest => dest.ClassStatus, opt => opt.MapFrom(src => src.ClassStatus));
         CreateMap<CreateClassOnlineRequest, ClassOnline>();
         CreateMap<UpdateClassOnlineRequest, ClassOnline>();
 
@@ -416,7 +415,9 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.Message, opt => opt.MapFrom(src => src.Message))
             .ForMember(dest => dest.FileName, opt => opt.MapFrom(src => src.FileName))
             .ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => src.CreateAt))
-            .ForMember(dest => dest.UpdateAt, opt => opt.MapFrom(src => src.UpdateAt));
+            .ForMember(dest => dest.UpdateAt, opt => opt.MapFrom(src => src.UpdateAt))
+            .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.User != null ? src.User.FullName : "Unknown"))
+            .ForMember(dest => dest.Avatar, opt => opt.MapFrom(src => src.User != null ? src.User.Image : null));
 
         CreateMap(typeof(PaginatedResponse<>), typeof(PaginatedResponse<>));
 

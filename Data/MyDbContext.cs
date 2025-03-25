@@ -383,10 +383,6 @@ namespace Project_LMS.Data
                     .HasMaxLength(255)
                     .HasColumnName("class_code");
 
-                entity.Property(e => e.ClassLink)
-                    .HasColumnType("character varying")
-                    .HasColumnName("class_link");
-
                 entity.Property(e => e.ClassTypeId).HasColumnName("class_type_id");
 
                 entity.Property(e => e.CreateAt)
@@ -465,10 +461,6 @@ namespace Project_LMS.Data
                     .HasColumnName("class_code");
 
                 entity.Property(e => e.ClassDescription).HasColumnName("class_description");
-
-                entity.Property(e => e.ClassLink)
-                    .HasMaxLength(255)
-                    .HasColumnName("class_link");
 
                 entity.Property(e => e.ClassPassword)
                     .HasMaxLength(100)

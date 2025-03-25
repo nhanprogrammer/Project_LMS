@@ -51,7 +51,6 @@ namespace Project_LMS.Services
                 StartDate = DateTime.SpecifyKind(createClassStudentRequest.StartDate, DateTimeKind.Unspecified),
                 EndDate = DateTime.SpecifyKind((DateTime)createClassStudentRequest.EndDate, DateTimeKind.Unspecified),
                 ClassStatus = createClassStudentRequest.ClassStatus,
-                ClassLink = createClassStudentRequest.ClassLink,
                 ClassPassword = createClassStudentRequest.ClassPassword,
                 UserId = createClassStudentRequest.TeacherId,
                 CreateAt = DateTime.Now,
@@ -64,7 +63,6 @@ namespace Project_LMS.Services
                 // TeacherName = classOnline.Teacher.FullName, Sửa code chỗ này
                 ClassCode = classOnline.ClassCode,
                 ClassDescription = classOnline.ClassDescription,
-                ClassLink = classOnline.ClassLink,
                 ClassStatus = classOnline.ClassStatus,
                 ClassTitle = classOnline.ClassTitle,
                 MaxStudents = classOnline.MaxStudents,
@@ -88,7 +86,6 @@ namespace Project_LMS.Services
             classOnline.StartDate = DateTime.SpecifyKind(updateClassStudentRequest.StartDate, DateTimeKind.Unspecified);
             classOnline.EndDate = DateTime.SpecifyKind(updateClassStudentRequest.EndDate, DateTimeKind.Unspecified);
             classOnline.ClassStatus = updateClassStudentRequest.ClassStatus;
-            classOnline.ClassLink = updateClassStudentRequest.ClassLink;
             classOnline.ClassPassword = updateClassStudentRequest.ClassPassword;
             // classOnline.TeacherId = updateClassStudentRequest.TeacherId; Sửa code chỗ này
             await _classOnlineRepository.UpdateAsync(classOnline);
@@ -98,7 +95,6 @@ namespace Project_LMS.Services
                 // TeacherName = classOnline.Teacher.FullName, Sửa code chỗ này
                 ClassCode = classOnline.ClassCode,
                 ClassDescription = classOnline.ClassDescription,
-                ClassLink = classOnline.ClassLink,
                 ClassStatus = classOnline.ClassStatus,
                 ClassTitle = classOnline.ClassTitle,
                 MaxStudents = classOnline.MaxStudents,
