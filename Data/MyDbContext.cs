@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Project_LMS.Helpers;
 using Project_LMS.Models;
 
 namespace Project_LMS.Data
@@ -331,7 +332,7 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.Id).HasColumnName("id");
 
-                entity.Property(e => e.ClassId).HasColumnName("class_id");
+                entity.Property(e => e.ClassOnlineId).HasColumnName("class_online_id");
 
                 entity.Property(e => e.CreateAt)
                     .HasColumnType("timestamp without time zone")
@@ -380,10 +381,10 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.UserUpdate).HasColumnName("user_update");
 
-                entity.HasOne(d => d.Class)
+                entity.HasOne(d => d.ClassOnline)
                     .WithMany(p => p.ChatMessages)
-                    .HasForeignKey(d => d.ClassId)
-                    .HasConstraintName("fk_chat_messages_class");
+                    .HasForeignKey(d => d.ClassOnlineId)
+                    .HasConstraintName("fk_chat_messages_class_online");
 
                 entity.HasOne(d => d.User)
                     .WithMany(p => p.ChatMessages)
@@ -402,6 +403,7 @@ namespace Project_LMS.Data
                 entity.Property(e => e.ClassCode)
                     .HasMaxLength(255)
                     .HasColumnName("class_code");
+
 
                 entity.Property(e => e.ClassTypeId).HasColumnName("class_type_id");
 
@@ -476,9 +478,11 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.Id).HasColumnName("id");
 
-                entity.Property(e => e.ClassCode)
+                entity.Property(e => e.ChatCode).HasColumnName("chat_code");
+
+                entity.Property(e => e.ClassOnlineCode)
                     .HasMaxLength(50)
-                    .HasColumnName("class_code");
+                    .HasColumnName("class_online_code");
 
                 entity.Property(e => e.ClassDescription).HasColumnName("class_description");
 
@@ -533,6 +537,20 @@ namespace Project_LMS.Data
                 entity.Property(e => e.UserId).HasColumnName("user_id");
 
                 entity.Property(e => e.UserUpdate).HasColumnName("user_update");
+
+                entity.HasOne(d => d.User)
+                 .WithMany(p => p.ClassOnlines)
+                 .HasForeignKey(d => d.UserId)
+                 .HasConstraintName("fk_class_online_user");
+
+                entity.Property(e => e.LessonId).HasColumnName("lesson_id");
+
+                entity.HasOne(d => d.Lesson)
+                .WithMany(p => p.ClassOnlines)
+                .HasForeignKey(d => d.LessonId)
+                .HasConstraintName("fk_class_online_lesson");
+
+
             });
 
             modelBuilder.Entity<ClassStudent>(entity =>
@@ -584,7 +602,7 @@ namespace Project_LMS.Data
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("added_at");
 
-                entity.Property(e => e.ClassId).HasColumnName("class_id");
+                entity.Property(e => e.ClassOnlineId).HasColumnName("class_online_id");
 
                 entity.Property(e => e.CreateAt)
                     .HasColumnType("timestamp without time zone")
@@ -630,9 +648,9 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.UserUpdate).HasColumnName("user_update");
 
-                entity.HasOne(d => d.Class)
+                entity.HasOne(d => d.ClassOnline)
                     .WithMany(p => p.ClassStudentOnlines)
-                    .HasForeignKey(d => d.ClassId)
+                    .HasForeignKey(d => d.ClassOnlineId)
                     .HasConstraintName("fk_class_students_online_class");
 
                 entity.HasOne(d => d.User)
@@ -1053,7 +1071,7 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.Id).HasColumnName("id");
 
-                entity.Property(e => e.ClassId).HasColumnName("class_id");
+                entity.Property(e => e.TeachingAssignmentId).HasColumnName("teaching_assignment_id");
 
                 entity.Property(e => e.ClassLessonCode)
                     .HasMaxLength(255)
@@ -1069,6 +1087,10 @@ namespace Project_LMS.Data
                 entity.Property(e => e.Duration)
                     .HasMaxLength(50)
                     .HasColumnName("duration");
+
+                entity.Property(e => e.LessonLink)
+                    .HasColumnType("character varying")
+                    .HasColumnName("lesson_link");
 
                 entity.Property(e => e.EndDate)
                     .HasColumnType("timestamp without time zone")
@@ -1111,10 +1133,10 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.UserUpdate).HasColumnName("user_update");
 
-                entity.HasOne(d => d.Class)
+                entity.HasOne(d => d.TeachingAssignment)
                     .WithMany(p => p.Lessons)
-                    .HasForeignKey(d => d.ClassId)
-                    .HasConstraintName("fk_lessons_class");
+                    .HasForeignKey(d => d.TeachingAssignmentId)
+                    .HasConstraintName("fk_lessons_teachingassignment");
 
                 entity.HasOne(d => d.User)
                     .WithMany(p => p.Lessons)
@@ -1364,6 +1386,24 @@ namespace Project_LMS.Data
                 entity.Property(e => e.UserId).HasColumnName("user_id");
 
                 entity.Property(e => e.UserUpdate).HasColumnName("user_update");
+
+                entity.HasOne(d => d.Topic)
+                    .WithMany(t => t.QuestionAnswerTopicViews)
+                    .HasForeignKey(d => d.TopicId)
+                    .HasConstraintName("fk_topic_question_answer_topic_views")
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(d => d.User)
+                    .WithMany(u => u.QuestionAnswerTopicViews)
+                    .HasForeignKey(d => d.UserId)
+                    .HasConstraintName("fk_User_question_answer_topic_views")
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(d => d.QuestionAnswer)
+                    .WithMany(q => q.QuestionAnswerTopicViews)
+                    .HasForeignKey(d => d.QuestionsAnswerId)
+                    .HasConstraintName("fk_question_answer_topic_views_questions_answers")
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<Reward>(entity =>
@@ -1553,11 +1593,15 @@ namespace Project_LMS.Data
                 entity.Property(e => e.Address)
                     .HasMaxLength(255)
                     .HasColumnName("address");
+                      entity.Property(e => e.SchoolPhone)
+                    .HasMaxLength(10)
+                    .HasColumnName("school_phone");
 
                 entity.Property(e => e.BranchName)
                     .HasMaxLength(255)
                     .HasColumnName("branch_name");
-
+                entity.Property(e => e.Image)
+                                    .HasColumnName("image");
                 entity.Property(e => e.CreateAt)
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("create_at")
@@ -1578,6 +1622,7 @@ namespace Project_LMS.Data
                 entity.Property(e => e.Phone)
                     .HasMaxLength(10)
                     .HasColumnName("phone");
+
 
                 entity.Property(e => e.SchoolId).HasColumnName("school_id");
 
@@ -1638,11 +1683,6 @@ namespace Project_LMS.Data
                 entity.Property(e => e.UserId).HasColumnName("user_id");
 
                 entity.Property(e => e.UserUpdate).HasColumnName("user_update");
-
-                entity.HasOne(d => d.SchoolBranches)
-                    .WithMany(p => p.SchoolTransfers)
-                    .HasForeignKey(d => d.SchoolBranchesId)
-                    .HasConstraintName("fk_school_transfers_branch");
 
                 entity.HasOne(d => d.User)
                     .WithMany(p => p.SchoolTransfers)
@@ -2107,7 +2147,7 @@ namespace Project_LMS.Data
                     .WithMany(p => p.TeachingAssignments)
                     .HasForeignKey(d => d.ClassId)
                     .HasConstraintName("fk_teaching_assignments_class");
-
+                entity.Property(e => e.Description).HasColumnName("description");
                 entity.HasOne(d => d.Subject)
                     .WithMany(p => p.TeachingAssignments)
                     .HasForeignKey(d => d.SubjectId)
@@ -2210,6 +2250,97 @@ namespace Project_LMS.Data
          .HasForeignKey(d => d.DepartmentId)
          .HasConstraintName("fk_test_exam_department");
  });
+            {
+                entity.ToTable("test_exams");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+
+                entity.Property(e => e.Attachment).HasColumnName("attachment");
+
+                entity.Property(e => e.ClassId).HasColumnName("class_id");
+
+                entity.Property(e => e.CreateAt)
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("create_at")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'");
+
+                entity.Property(e => e.Description).HasColumnName("description");
+
+                entity.Property(e => e.Duration).HasColumnName("duration");
+
+                entity.Property(e => e.EndDate)
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("end_date");
+
+                entity.Property(e => e.Form)
+                    .HasMaxLength(30)
+                    .HasColumnName("form");
+
+                entity.Property(e => e.IsExam)
+                    .HasColumnName("is_exam")
+                    .HasDefaultValueSql("false");
+
+                entity.Property(e => e.IsDelete)
+                    .HasColumnName("is_delete")
+                    .HasDefaultValueSql("false");
+
+                entity.Property(e => e.SemestersId).HasColumnName("semesters_id");
+
+                entity.Property(e => e.StartDate)
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("start_date");
+
+                entity.Property(e => e.TestExamTypeId).HasColumnName("test_exam_type_id");
+                entity.Property(e => e.SubjectId).HasColumnName("subject_id");
+                entity.Property(e => e.DepartmentId).HasColumnName("department_id");
+                entity.Property(e => e.ScheduleStatusId).HasColumnName("schedule_status_id");
+                entity.Property(e => e.Topic)
+                    .HasMaxLength(50)
+                    .HasColumnName("topic");
+
+                entity.Property(e => e.UpdateAt)
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("update_at")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'");
+
+                entity.Property(e => e.UserId).HasColumnName("user_id");
+                entity.Property(e => e.IsAttachmentRequired).HasColumnName("is_attachment_required");
+
+                entity.HasOne(d => d.Class)
+                    .WithMany(p => p.TestExams)
+                    .HasForeignKey(d => d.ClassId)
+                    .HasConstraintName("fk_test_exams_class");
+
+                entity.HasOne(d => d.Semesters)
+                    .WithMany(p => p.TestExams)
+                    .HasForeignKey(d => d.SemestersId)
+                    .HasConstraintName("fk_test_exams_semester");
+
+                entity.HasOne(d => d.TestExamType)
+                    .WithMany(p => p.TestExams)
+                    .HasForeignKey(d => d.TestExamTypeId)
+                    .HasConstraintName("fk_test_exams_test_exam_type");
+
+                entity.HasOne(d => d.User)
+                    .WithMany(p => p.TestExams)
+                    .HasForeignKey(d => d.UserId)
+                    .HasConstraintName("fk_test_exams_user");
+
+                entity.HasOne(d => d.Subject)
+                    .WithMany(p => p.TestExams)
+                    .HasForeignKey(d => d.SubjectId)
+                    .HasConstraintName("fk_test_exams_subjects");
+
+                entity.HasOne(e => e.ExamScheduleStatus)
+                    .WithMany(e => e.TestExams)
+                    .HasForeignKey(e => e.ScheduleStatusId)
+                    .HasConstraintName("fk_test_exams_exam_schedule_status");
+
+                entity.HasOne(d => d.Department)
+                    .WithMany(p => p.TestExams)
+                    .HasForeignKey(d => d.DepartmentId)
+                    .HasConstraintName("fk_test_exam_department");
+            });
 
             modelBuilder.Entity<TestExamType>(entity =>
             {
@@ -2253,7 +2384,7 @@ namespace Project_LMS.Data
                 entity.Property(e => e.Id).HasColumnName("id");
 
                 entity.Property(e => e.CloseAt)
-                    .HasColumnType("timestamp without time zone")
+                    .HasColumnType("timestamp with time zone")
                     .HasColumnName("close_at");
 
                 entity.Property(e => e.CreateAt)

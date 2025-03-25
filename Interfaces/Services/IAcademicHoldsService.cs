@@ -8,14 +8,12 @@ namespace Project_LMS.Interfaces
     {
         //Task<IEnumerable<AcademicHoldResponse>> GetAllAcademicHold();
         Task<User_AcademicHoldResponse> GetById(int id);
-        Task AddAcademicHold(CreateAcademicHoldRequest academicHold);
-        Task UpdateAcademicHold(UpdateAcademicHoldRequest academicHold);
+        Task<AcademicHoldResponse> AddAcademicHold(CreateAcademicHoldRequest academicHold, int userId);
+        Task<AcademicHoldResponse> UpdateAcademicHold(UpdateAcademicHoldRequest academicHold, int userId);
         Task<bool> DeleteAcademicHold(int id);
         Task<PaginatedResponse<AcademicHoldResponse>> GetPagedAcademicHolds(PaginationRequest request);
-        Task<List<Class_UserResponse>> GetAllUser_Class();
         Task<List<User_AcademicHoldsResponse>> GetAllUserName();
-
-
-
+        Task<SemesterResponse?> GetSemesterByDateAsync(string dateString);
+        Task<List<User_AcademicHoldsResponse>> SearchUsersByCriteriaAsync(int classId, string keyword);
     }
 }

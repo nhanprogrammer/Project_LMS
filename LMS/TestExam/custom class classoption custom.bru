@@ -1,0 +1,61 @@
+meta {
+  name: custom class classoption custom
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}api/TestExam
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+      "subjectId": 2,
+      "topic": "Thi giữa học kỳ Lý",
+      "semestersId": 2,
+      "durationInMinutes": 60,
+      "examDate": "2025-03-12",
+      "classIds": [
+          2,
+          3
+      ],
+      "classOption": "CUSTOM",
+      "selectedClassTypeId": null,
+      "applyExaminerForAllClasses": false,
+      "examinerIds": [],
+      "examinersForClass": [
+          {
+              "classId": 2,
+              "examinerIds": [
+                  3
+              ]
+          },
+          {
+              "classId": 3,
+              "examinerIds": [
+                  2
+              ]
+          }
+      ],
+      "description": "Bài thi giữa học kỳ với hình thức tự luận",
+      "testExamTypeId": 2,
+      "isExam": false,
+      "form": "Tự luận",
+      "departmentId": 2
+  }
+}
+
+tests {
+  test("Successful PUT request", function () {
+      expect(res.getStatus()).to.be.oneOf([200, 201, 204]);
+  });
+  
+}
+
+docs {
+  This is a PUT request and it is used to overwrite an existing piece of data. For instance, after you create an entity with a POST request, you may want to modify that later. You can do that using a PUT request. You typically identify the entity being updated by including an identifier in the URL (eg. `id=1`).
+  
+  A successful PUT request typically returns a `200 OK`, `201 Created`, or `204 No Content` response code.
+}

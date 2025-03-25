@@ -13,6 +13,7 @@ namespace Project_LMS.Models
             Assignments = new HashSet<Assignment>();
             ChatMessages = new HashSet<ChatMessage>();
             ClassStudentOnlines = new HashSet<ClassStudentOnline>();
+            ClassOnlines = new HashSet<ClassOnline>();
             ClassStudents = new HashSet<ClassStudent>();
             Classes = new HashSet<Class>();
             Disciplines = new HashSet<Discipline>();
@@ -102,6 +103,7 @@ namespace Project_LMS.Models
         public virtual ICollection<Assignment> Assignments { get; set; }
         public virtual ICollection<ChatMessage> ChatMessages { get; set; }
         public virtual ICollection<ClassStudentOnline> ClassStudentOnlines { get; set; }
+        public virtual ICollection<ClassOnline> ClassOnlines { get; set; }
         public virtual ICollection<ClassStudent> ClassStudents { get; set; }
         public virtual ICollection<Class> Classes { get; set; }
         public virtual ICollection<Discipline> Disciplines { get; set; }
@@ -123,7 +125,9 @@ namespace Project_LMS.Models
         public virtual ICollection<Department> Departments { get; set; }
         public virtual ICollection<Exemption> Exemptions { get; set; }
         public virtual ICollection<TeacherStatusHistory> TeacherStatusHistories { get; set; }
+        public virtual ICollection<QuestionAnswerTopicView> QuestionAnswerTopicViews { get; set; }
     }
+
     public class Jwt
     {
         public string Key { get; set; }
@@ -137,9 +141,11 @@ namespace Project_LMS.Models
         public string Username { get; set; }
         public string Password { get; set; }
     }
+
     public class RegisterModel
     {
         public string Username { get; set; }
+
         public string Password { get; set; }
         //public string Email { get; set; }
     }

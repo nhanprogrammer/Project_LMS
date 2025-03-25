@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Exceptions;
 using Project_LMS.Interfaces;
 using Project_LMS.Models;
 using Project_LMS.Services;
@@ -12,71 +13,63 @@ namespace Project_LMS.Controllers
     public class AcademicHoldsController : ControllerBase
     {
         private readonly IAcademicHoldsService _academicHoldsService;
-
-        public AcademicHoldsController(IAcademicHoldsService academicHoldsService)
+        private readonly IAuthService _authService;
+        public AcademicHoldsController(IAcademicHoldsService academicHoldsService, IAuthService authService)
         {
             _academicHoldsService = academicHoldsService;
+            _authService = authService;
         }
+
 
         [HttpGet]
         public async Task<ActionResult<ApiResponse<PaginatedResponse<AcademicHoldResponse>>>> GetAll([FromQuery] PaginationRequest request)
         {
-            var result = await _academicHoldsService.GetPagedAcademicHolds(request);
-            return Ok(new ApiResponse<PaginatedResponse<AcademicHoldResponse>>(
-                0,
-                "Thành công",
-                result));
+
+            try
+            {
+                var result = await _academicHoldsService.GetPagedAcademicHolds(request);
+                return Ok(new ApiResponse<PaginatedResponse<AcademicHoldResponse>>(0, "Lấy danh sách bảo lưu thành công", result));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<PaginatedResponse<AcademicHoldResponse>>(1, "Lấy danh sách bảo lưu thất bại", null));
+            }
         }
 
-        //[HttpGet("{id}")]
-        //public async Task<IActionResult> GetById(int id)
-        //{
-        //    try
-        //    {
-        //        var hold = await _academicHoldsService.GetById(id);
-        //        if (hold == null) return NotFound();
-        //        return Ok(new ApiResponse<User_AcademicHoldResponse>(0, "Thành công", hold));
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return BadRequest(new ApiResponse<AcademicHoldResponse>(1, ex.Message, new AcademicHoldResponse()));
-        //    }
-        //}
-
-        [HttpGet("classesById")]
-        public async Task<IActionResult> GetAllClasses()
+        [HttpGet("search-users")]
+        public async Task<IActionResult> SearchUsers([FromQuery] int classId, [FromQuery] string keyword)
         {
-            var classes = await _academicHoldsService.GetAllUser_Class();
-            return Ok(new ApiResponse<List<Class_UserResponse>>(
-                0,
-                "Thành công",
-                classes));
+            try
+            {
+                var users = await _academicHoldsService.SearchUsersByCriteriaAsync(classId, keyword);
+                return Ok(new ApiResponse<List<User_AcademicHoldsResponse>>(
+                    0,
+                    "Tìm kiếm người dùng thành công!",
+                    users));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<string>(1, ex.Message, null));
+            }
         }
-
-
-        [HttpGet("UserById")]
-        public async Task<IActionResult> GetAllUser()
-        {
-            var classes = await _academicHoldsService.GetAllUserName();
-            return Ok(new ApiResponse<List<User_AcademicHoldsResponse>>(
-                0,
-                "Thành công",
-                classes));
-        }
-
         [HttpPost]
         public async Task<IActionResult> Add([FromBody] CreateAcademicHoldRequest academicHoldRequest)
         {
             try
             {
-                var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "1");
-                academicHoldRequest.UserCreate = userId;
-                await _academicHoldsService.AddAcademicHold(academicHoldRequest);
-                return Ok(new ApiResponse<CreateAcademicHoldRequest>(0, "Thêm mới thành công", academicHoldRequest));
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+                var academicHold = await _academicHoldsService.AddAcademicHold(academicHoldRequest, user.Id);
+                return Ok(new ApiResponse<AcademicHoldResponse>(0, "Thêm mới bảo lưu thành công", academicHold));
+            }
+            catch (BadRequestException ex)
+            {
+                return BadRequest(new ApiResponse<List<ValidationError>>(1, "Validation failed.", ex.Errors));
             }
             catch (Exception ex)
             {
-                return BadRequest(new ApiResponse<CreateAcademicHoldRequest>(1, ex.Message, new CreateAcademicHoldRequest()));
+                return BadRequest(new ApiResponse<CreateAcademicHoldRequest>(1, ex.Message, null));
             }
         }
 
@@ -85,31 +78,44 @@ namespace Project_LMS.Controllers
         {
             try
             {
-                await _academicHoldsService.UpdateAcademicHold(academicHoldRequest);
-                return Ok(new ApiResponse<UpdateAcademicHoldRequest>(0, "Cập nhật thành công", academicHoldRequest));
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+                var academicHold = await _academicHoldsService.UpdateAcademicHold(academicHoldRequest, user.Id);
+                return Ok(new ApiResponse<AcademicHoldResponse>(0, "Cập nhật bảo lưu thành công", academicHold));
+            }
+            catch (BadRequestException ex)
+            {
+                return BadRequest(new ApiResponse<List<ValidationError>>(1, "Validation failed.", ex.Errors));
             }
             catch (Exception ex)
             {
-                return BadRequest(new ApiResponse<UpdateAcademicHoldRequest>(1, ex.Message, new UpdateAcademicHoldRequest()));
+                return BadRequest(new ApiResponse<UpdateAcademicHoldRequest>(1, ex.Message, null));
             }
         }
 
-        //[HttpDelete("{id}")]
-        //public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
-        //{
-        //    var result = await _academicHoldsService.DeleteAcademicHold(id);
-        //    if (!result)
-        //    {
-        //        return NotFound(new ApiResponse<bool>(
-        //            1,
-        //            "Academic Year not found",
-        //            false));
-        //    }
+        [HttpGet("semester-by-date")]
+        public async Task<IActionResult> GetSemesterByDate([FromQuery] string date)
+        {
+            try
+            {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
 
-        //    return Ok(new ApiResponse<bool>(
-        //        0,
-        //        "Delete success",
-        //        true));
-        //}
+                var semester = await _academicHoldsService.GetSemesterByDateAsync(date);
+
+                return Ok(new ApiResponse<SemesterResponse>(0, "Lấy thông tin học kỳ thành công!", semester));
+            }
+            catch (BadRequestException ex)
+            {
+                return BadRequest(new ApiResponse<string>(1, ex.Message, null));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<string>(1, ex.Message, null));
+            }
+        }
+
     }
 }

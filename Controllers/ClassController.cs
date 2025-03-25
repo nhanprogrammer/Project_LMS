@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Exceptions;
 using Project_LMS.Interfaces;
 using System.Collections.Generic;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace Project_LMS.Controllers
@@ -14,10 +16,12 @@ namespace Project_LMS.Controllers
     public class ClassController : ControllerBase
     {
         private readonly IClassService _classService;
+        private readonly IAuthService _authService;
 
-        public ClassController(IClassService classService)
+        public ClassController(IClassService classService, IAuthService authService)
         {
             _classService = classService;
+            _authService = authService;
         }
 
         [HttpGet("list")]
@@ -192,6 +196,125 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "TEACHER-CLASS-FUTURE-VIEW")]
+        [HttpGet("future")]
+        public async Task<ActionResult<ApiResponse<PaginatedResponse<ClassFutureResponse>>>> GetClassFuture(
+    [FromQuery] string? keyword,
+    [FromQuery] int? subjectId,
+    [FromQuery] bool future,
+    [FromQuery] int pageNumber = 1,
+    [FromQuery] int pageSize = 10)
+        {
+            try
+            {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+
+                var result = await _classService.GetClassFuture(user.Id, keyword, subjectId, future, pageNumber, pageSize);
+                if (result.Status != 0)
+                {
+                    return BadRequest(result);
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, $"Lỗi server: {ex.Message}", null));
+            }
+        }
+
+        [Authorize(Policy = "TEACHER-CLASS-FUTURE-DETAIL-VIEW")]
+        [HttpGet("future/{teachingAssignmentId}")]
+        public async Task<ActionResult<ApiResponse<TeachingAssignmentDetailResponse>>> GetClassFutureDetail(int teachingAssignmentId)
+        {
+            try
+            {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+
+                var result = await _classService.GetClassFutureDetail(teachingAssignmentId);
+                if (result.Status != 0)
+                {
+                    return BadRequest(result);
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, $"Lỗi server: {ex.Message}", null));
+            }
+        }
+
+        [Authorize(Policy = "STUDENT-CLASS-FUTURE-VIEW")]
+        [HttpGet("futurestudent")]
+        public async Task<ActionResult<ApiResponse<PaginatedResponse<ClassFutureResponse>>>> GetClassLessonStudent(
+[FromQuery] string? keyword,
+[FromQuery] int? subjectId,
+[FromQuery] int status = 0,
+[FromQuery] int pageNumber = 1,
+[FromQuery] int pageSize = 10)
+        {
+            try
+            {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+
+                var result = await _classService.GetClassLessonStudent(user.Id, keyword, subjectId, status, pageNumber, pageSize);
+                if (result.Status != 0)
+                {
+                    return BadRequest(result);
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, $"Lỗi server: {ex.Message}", null));
+            }
+        }
+
+        [Authorize(Policy = "STUDENT-CLASS-FUTURE-DETAIL-VIEW")]
+        [HttpGet("futurestudent/{teachingAssignmentId}")]
+        public async Task<ActionResult<ApiResponse<TeachingAssignmentDetailResponse>>> GetClassLessonStudentDetail(int teachingAssignmentId)
+        {
+            try
+            {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+
+                var result = await _classService.GetClassLessonStudentDetail(teachingAssignmentId);
+                if (result.Status != 0)
+                {
+                    return BadRequest(result);
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, $"Lỗi server: {ex.Message}", null));
+            }
+        }
+
+
+        [HttpGet("search-classes")]
+        public async Task<IActionResult> GetClassesByAcademicYearAndKeyword([FromQuery] int academicYearId, [FromQuery] string keyword)
+        {
+            try
+            {
+                var classes = await _classService.GetClassesByAcademicYearAndKeyword(academicYearId, keyword);
+                return Ok(new ApiResponse<List<Class_UserResponse>>(
+                    0,
+                    "Tìm kiếm lớp học thành công!",
+                    classes));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<string>(1, ex.Message, null));
+            }
+        }
 
 
     }

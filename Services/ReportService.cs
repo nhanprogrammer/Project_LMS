@@ -88,85 +88,85 @@ namespace Project_LMS.Services
             };
         }
 
-        public async Task<List<TeacherSemesterStatisticsResponse>> GetTeacherSemesterStatisticsAsync(int teacherId)
-        {
-            // Bước 1: Lấy danh sách phân công giảng dạy của giáo viên
-            var teachingAssignments = await _reportRepository.GetTeachingAssignmentsByTeacherAsync(teacherId);
+        // public async Task<List<TeacherSemesterStatisticsResponse>> GetTeacherSemesterStatisticsAsync(int teacherId)
+        // {
+        //     // Bước 1: Lấy danh sách phân công giảng dạy của giáo viên
+        //     var teachingAssignments = await _reportRepository.GetTeachingAssignmentsByTeacherAsync(teacherId);
 
-            // Bước 2: Lấy danh sách các ID của năm học
-            var academicYearIds = teachingAssignments
-                .Where(ta => ta.Class?.AcademicYearId.HasValue == true)
-                .Select(ta => ta.Class.AcademicYearId.Value)
-                .Distinct()
-                .ToList();
+        //     // Bước 2: Lấy danh sách các ID của năm học
+        //     var academicYearIds = teachingAssignments
+        //         .Where(ta => ta.Class?.AcademicYearId.HasValue == true)
+        //         .Select(ta => ta.Class.AcademicYearId.Value)
+        //         .Distinct()
+        //         .ToList();
 
-            // Bước 3: Lấy danh sách các học kỳ
-            var semesters = await _reportRepository.GetSemestersByAcademicYearIdsAsync(academicYearIds);
+        //     // Bước 3: Lấy danh sách các học kỳ
+        //     var semesters = await _reportRepository.GetSemestersByAcademicYearIdsAsync(academicYearIds);
 
-            // Bước 4: Lấy buổi học đầu tiên cho các lớp và môn học
-            var classTeachingDetailsWithLesson = new List<(TeachingAssignment Ta, Lesson? FirstLesson)>();
-            foreach (var ta in teachingAssignments)
-            {
-                var firstLesson = await _reportRepository.GetFirstLessonByClassAndSubjectAsync(ta.ClassId ?? 0, ta.SubjectId ?? 0, teacherId);
-                classTeachingDetailsWithLesson.Add((ta, firstLesson));
-            }
+        //     // Bước 4: Lấy buổi học đầu tiên cho các lớp và môn học
+        //     var classTeachingDetailsWithLesson = new List<(TeachingAssignment Ta, Lesson? FirstLesson)>();
+        //     foreach (var ta in teachingAssignments)
+        //     {
+        //         var firstLesson = await _reportRepository.GetFirstLessonByClassAndSubjectAsync(ta.ClassId ?? 0, ta.SubjectId ?? 0, teacherId);
+        //         classTeachingDetailsWithLesson.Add((ta, firstLesson));
+        //     }
 
-            // Bước 5: Nhóm theo học kỳ và tạo response
-            var groupedBySemester = semesters
-                .GroupBy(s => new
-                {
-                    SemesterId = s.Id,
-                    SemesterName = s.Name,
-                    AcademicYear = s.AcademicYear,
-                    StartDate = s.StartDate,
-                    EndDate = s.EndDate
-                })
+        //     // Bước 5: Nhóm theo học kỳ và tạo response
+        //     var groupedBySemester = semesters
+        //         .GroupBy(s => new
+        //         {
+        //             SemesterId = s.Id,
+        //             SemesterName = s.Name,
+        //             AcademicYear = s.AcademicYear,
+        //             StartDate = s.StartDate,
+        //             EndDate = s.EndDate
+        //         })
 
-                .Select(g => new TeacherSemesterStatisticsResponse
-                {
-                    SemesterName = (g.Key.SemesterName ?? "Unknown Semester") + " - " +
-                        (g.Key.StartDate.HasValue && g.Key.EndDate.HasValue && g.Key.StartDate <= g.Key.EndDate
-                            ? (g.Key.StartDate.Value.Year == g.Key.EndDate.Value.Year
-                                ? g.Key.StartDate.Value.ToString("yyyy")
-                                : g.Key.StartDate.Value.ToString("yyyy") + "-" + g.Key.EndDate.Value.ToString("yyyy"))
-                            : "Unknown Year"),
-                    AcademicYear = g.Key.AcademicYear != null
-                        ? $"{g.Key.AcademicYear.StartDate:yyyy} - {g.Key.AcademicYear.EndDate:yyyy}"
-                        : "Unknown Year",
-                    ClassTeachingDetails = classTeachingDetailsWithLesson
-                        .Where(ta => ta.Ta.Class?.AcademicYearId == g.Key.AcademicYear?.Id &&
-                                    ta.Ta.StartDate.HasValue &&
-                                    g.Key.StartDate.HasValue &&
-                                    g.Key.EndDate.HasValue &&
-                                    ta.Ta.StartDate.Value >= g.Key.StartDate.Value &&
-                                    ta.Ta.StartDate.Value <= g.Key.EndDate.Value)
-                        //Thời gian bắt đầu và kết thúc của phân công giảng dạy phải nằm trong thời gian học kỳ
-                        // thì mới thêm vào response của ClassTeachingDetail được
-                        .Select(ta => new ClassTeachingDetail
-                        {
-                            ClassId = ta.Ta.ClassId ?? 0,
-                            ClassName = ta.Ta.Class?.Name ?? "Unknown Class",
-                            SubjectName = ta.Ta.Subject?.SubjectName ?? "Unknown Subject",
-                            StartDate = ta.Ta.StartDate,
-                            EndDate = ta.Ta.EndDate,
-                            ClassStatus = ta.Ta.EndDate.HasValue && DateTime.Now > ta.Ta.EndDate.Value
-                            ? "Đã hoàn thành"
-                            : (ta.Ta.StartDate.HasValue && DateTime.Now < ta.Ta.StartDate.Value
-                                ? "Chưa bắt đầu"
-                                : "Chưa hoàn thành"),
-                            FirstSchedule = ta.FirstLesson != null
-                                ? new ClassScheduleDetail
-                                {
-                                    StartTime = ta.FirstLesson.StartDate ?? DateTime.MinValue,
-                                    EndTime = ta.FirstLesson.EndDate ?? DateTime.MinValue
-                                }
-                                : null // Gán buổi học đầu tiên (nếu có)
-                        }).ToList()
-                })
-                .ToList();
+        //         .Select(g => new TeacherSemesterStatisticsResponse
+        //         {
+        //             SemesterName = (g.Key.SemesterName ?? "Unknown Semester") + " - " +
+        //                 (g.Key.StartDate.HasValue && g.Key.EndDate.HasValue && g.Key.StartDate <= g.Key.EndDate
+        //                     ? (g.Key.StartDate.Value.Year == g.Key.EndDate.Value.Year
+        //                         ? g.Key.StartDate.Value.ToString("yyyy")
+        //                         : g.Key.StartDate.Value.ToString("yyyy") + "-" + g.Key.EndDate.Value.ToString("yyyy"))
+        //                     : "Unknown Year"),
+        //             AcademicYear = g.Key.AcademicYear != null
+        //                 ? $"{g.Key.AcademicYear.StartDate:yyyy} - {g.Key.AcademicYear.EndDate:yyyy}"
+        //                 : "Unknown Year",
+        //             ClassTeachingDetails = classTeachingDetailsWithLesson
+        //                 .Where(ta => ta.Ta.Class?.AcademicYearId == g.Key.AcademicYear?.Id &&
+        //                             ta.Ta.StartDate.HasValue &&
+        //                             g.Key.StartDate.HasValue &&
+        //                             g.Key.EndDate.HasValue &&
+        //                             ta.Ta.StartDate.Value >= g.Key.StartDate.Value &&
+        //                             ta.Ta.StartDate.Value <= g.Key.EndDate.Value)
+        //                 //Thời gian bắt đầu và kết thúc của phân công giảng dạy phải nằm trong thời gian học kỳ
+        //                 // thì mới thêm vào response của ClassTeachingDetail được
+        //                 .Select(ta => new ClassTeachingDetail
+        //                 {
+        //                     ClassId = ta.Ta.ClassId ?? 0,
+        //                     ClassName = ta.Ta.Class?.Name ?? "Unknown Class",
+        //                     SubjectName = ta.Ta.Subject?.SubjectName ?? "Unknown Subject",
+        //                     StartDate = ta.Ta.StartDate,
+        //                     EndDate = ta.Ta.EndDate,
+        //                     ClassStatus = ta.Ta.EndDate.HasValue && DateTime.Now > ta.Ta.EndDate.Value
+        //                     ? "Đã hoàn thành"
+        //                     : (ta.Ta.StartDate.HasValue && DateTime.Now < ta.Ta.StartDate.Value
+        //                         ? "Chưa bắt đầu"
+        //                         : "Chưa hoàn thành"),
+        //                     FirstSchedule = ta.FirstLesson != null
+        //                         ? new ClassScheduleDetail
+        //                         {
+        //                             StartTime = ta.FirstLesson.StartDate ?? DateTime.MinValue,
+        //                             EndTime = ta.FirstLesson.EndDate ?? DateTime.MinValue
+        //                         }
+        //                         : null // Gán buổi học đầu tiên (nếu có)
+        //                 }).ToList()
+        //         })
+        //         .ToList();
 
-            return groupedBySemester;
-        }
+        //     return groupedBySemester;
+        // }
 
         public async Task<StudentClassStatisticsResponse> GetStudentClassStatisticsAsync(int studentId)
         {
@@ -256,85 +256,85 @@ namespace Project_LMS.Services
             };
         }
 
-        public async Task<List<StudentSemesterStatisticsResponse>> GetStudentSemesterStatisticsAsync(int studentId)
-        {
-            var classStudents = await _reportRepository.GetClassStudentsByStudentIdAsync(studentId);
+        // public async Task<List<StudentSemesterStatisticsResponse>> GetStudentSemesterStatisticsAsync(int studentId)
+        // {
+        //     var classStudents = await _reportRepository.GetClassStudentsByStudentIdAsync(studentId);
 
-            var academicYearIds = classStudents
-                .Where(cs => cs.Class?.AcademicYearId.HasValue == true)
-                .Select(cs => cs.Class.AcademicYearId.Value)
-                .Distinct()
-                .ToList();
+        //     var academicYearIds = classStudents
+        //         .Where(cs => cs.Class?.AcademicYearId.HasValue == true)
+        //         .Select(cs => cs.Class.AcademicYearId.Value)
+        //         .Distinct()
+        //         .ToList();
 
-            var semesters = await _reportRepository.GetSemestersByAcademicYearIdsAsync(academicYearIds);
+        //     var semesters = await _reportRepository.GetSemestersByAcademicYearIdsAsync(academicYearIds);
             
 
-            var classSubjectDetails = new List<(ClassStudent Cs, ClassSubject Subject, Lesson? FirstLesson)>();
+        //     var classSubjectDetails = new List<(ClassStudent Cs, ClassSubject Subject, Lesson? FirstLesson)>();
 
-            foreach (var cs in classStudents)
-            {
-               var subjects = await _reportRepository.GetClassSubjectsWithSubjectsByClassIdAsync(cs.ClassId ?? 0);
-                
-                foreach (var subject in subjects)
-                {
-                    var firstLesson = await _reportRepository.GetFirstLessonByClassAndSubjectAsync(cs.ClassId ?? 0, subject.SubjectId ?? 0);
-                    classSubjectDetails.Add((cs, subject, firstLesson));
-                }
-            }
+        //     foreach (var cs in classStudents)
+        //     {
+        //        var subjects = await _reportRepository.GetClassSubjectsWithSubjectsByClassIdAsync(cs.ClassId ?? 0);
 
-            var groupedBySemester = semesters
-                .GroupBy(s => new
-                {
-                    SemesterId = s.Id,
-                    SemesterName = s.Name,
-                    AcademicYear = s.AcademicYear,
-                    StartDate = s.StartDate,
-                    EndDate = s.EndDate
-                })
-                .Select(g => new StudentSemesterStatisticsResponse
-                {
-                    SemesterName = (g.Key.SemesterName ?? "Unknown Semester") + " - " +
-                        (g.Key.StartDate.HasValue && g.Key.EndDate.HasValue && g.Key.StartDate <= g.Key.EndDate
-                            ? (g.Key.StartDate.Value.Year == g.Key.EndDate.Value.Year
-                                ? g.Key.StartDate.Value.ToString("yyyy")
-                                : g.Key.StartDate.Value.ToString("yyyy") + "-" + g.Key.EndDate.Value.ToString("yyyy"))
-                            : "Unknown Year"),
-                    AcademicYear = g.Key.AcademicYear != null
-                        ? $"{g.Key.AcademicYear.StartDate:yyyy} - {g.Key.AcademicYear.EndDate:yyyy}"
-                        : "Unknown Year",
-                    ClassDetails = classSubjectDetails
-                        .Where(cs => cs.Cs.Class?.AcademicYearId == g.Key.AcademicYear?.Id &&
-                                    cs.Cs.Class?.StartDate.HasValue == true &&
-                                    g.Key.StartDate.HasValue &&
-                                    g.Key.EndDate.HasValue &&
-                                    cs.Cs.Class.StartDate.Value >= g.Key.StartDate.Value &&
-                                    cs.Cs.Class.StartDate.Value <= g.Key.EndDate.Value)
-                        .Distinct()
-                        .Select(cs => new StudentClassDetail
-                        {
-                            ClassId = cs.Cs.ClassId ?? 0,
-                            ClassName = cs.Cs.Class?.Name ?? "Unknown Class",
-                            SubjectName = cs.Subject.Subject?.SubjectName ?? "Unknown Subject",
-                            StartDate = cs.Cs.Class?.StartDate,
-                            EndDate = cs.Cs.Class?.EndDate,
-                            Status = cs.Cs.Class != null && cs.Cs.Class.EndDate.HasValue && DateTime.Now > cs.Cs.Class.EndDate.Value
-                                ? "Đã hoàn thành"
-                                : (cs.Cs.Class?.StartDate.HasValue == true && DateTime.Now < cs.Cs.Class.StartDate.GetValueOrDefault()
-                                    ? "Chưa bắt đầu"
-                                    : "Chưa hoàn thành"),
-                            FirstSchedule = cs.FirstLesson != null
-                                ? new ClassScheduleDetail
-                                {
-                                    StartTime = cs.FirstLesson.StartDate ?? DateTime.MinValue,
-                                    EndTime = cs.FirstLesson.EndDate ?? DateTime.MinValue,
-                                }
-                                : null
-                        }).Distinct()
-                        .ToList()
-                })
-                .Distinct()
-                .ToList();
-            return groupedBySemester;
-        }
+        //         foreach (var subject in subjects)
+        //         {
+        //             var firstLesson = await _reportRepository.GetFirstLessonByClassAndSubjectAsync(cs.ClassId ?? 0, subject.SubjectId ?? 0);
+        //             classSubjectDetails.Add((cs, subject, firstLesson));
+        //         }
+        //     }
+
+        //     var groupedBySemester = semesters
+        //         .GroupBy(s => new
+        //         {
+        //             SemesterId = s.Id,
+        //             SemesterName = s.Name,
+        //             AcademicYear = s.AcademicYear,
+        //             StartDate = s.StartDate,
+        //             EndDate = s.EndDate
+        //         })
+        //         .Select(g => new StudentSemesterStatisticsResponse
+        //         {
+        //             SemesterName = (g.Key.SemesterName ?? "Unknown Semester") + " - " +
+        //                 (g.Key.StartDate.HasValue && g.Key.EndDate.HasValue && g.Key.StartDate <= g.Key.EndDate
+        //                     ? (g.Key.StartDate.Value.Year == g.Key.EndDate.Value.Year
+        //                         ? g.Key.StartDate.Value.ToString("yyyy")
+        //                         : g.Key.StartDate.Value.ToString("yyyy") + "-" + g.Key.EndDate.Value.ToString("yyyy"))
+        //                     : "Unknown Year"),
+        //             AcademicYear = g.Key.AcademicYear != null
+        //                 ? $"{g.Key.AcademicYear.StartDate:yyyy} - {g.Key.AcademicYear.EndDate:yyyy}"
+        //                 : "Unknown Year",
+        //             ClassDetails = classSubjectDetails
+        //                 .Where(cs => cs.Cs.Class?.AcademicYearId == g.Key.AcademicYear?.Id &&
+        //                             cs.Cs.Class?.StartDate.HasValue == true &&
+        //                             g.Key.StartDate.HasValue &&
+        //                             g.Key.EndDate.HasValue &&
+        //                             cs.Cs.Class.StartDate.Value >= g.Key.StartDate.Value &&
+        //                             cs.Cs.Class.StartDate.Value <= g.Key.EndDate.Value)
+        //                 .Distinct()
+        //                 .Select(cs => new StudentClassDetail
+        //                 {
+        //                     ClassId = cs.Cs.ClassId ?? 0,
+        //                     ClassName = cs.Cs.Class?.Name ?? "Unknown Class",
+        //                     SubjectName = cs.Subject.Subject?.SubjectName ?? "Unknown Subject",
+        //                     StartDate = cs.Cs.Class?.StartDate,
+        //                     EndDate = cs.Cs.Class?.EndDate,
+        //                     Status = cs.Cs.Class != null && cs.Cs.Class.EndDate.HasValue && DateTime.Now > cs.Cs.Class.EndDate.Value
+        //                         ? "Đã hoàn thành"
+        //                         : (cs.Cs.Class?.StartDate.HasValue == true && DateTime.Now < cs.Cs.Class.StartDate.GetValueOrDefault()
+        //                             ? "Chưa bắt đầu"
+        //                             : "Chưa hoàn thành"),
+        //                     FirstSchedule = cs.FirstLesson != null
+        //                         ? new ClassScheduleDetail
+        //                         {
+        //                             StartTime = cs.FirstLesson.StartDate ?? DateTime.MinValue,
+        //                             EndTime = cs.FirstLesson.EndDate ?? DateTime.MinValue,
+        //                         }
+        //                         : null
+        //                 }).Distinct()
+        //                 .ToList()
+        //         })
+        //         .Distinct()
+        //         .ToList();
+        //     return groupedBySemester;
+        // }
     }
 }

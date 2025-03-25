@@ -5,7 +5,29 @@ meta {
 }
 
 put {
+<<<<<<< HEAD
   url: {{base_url}}api/Lesson/1
+=======
+  url: {{base_url}}api/Lesson
+>>>>>>> truonghieu
   body: json
   auth: none
+}
+
+body:json {
+  {
+          "id": 3,
+          "classId": 3,
+          "teacherId": 0,
+          "classLessonCode": "LESSON03",
+          "description": "Buổi học Văn",
+          "topic": "Chiếc Thuyền Ngoài Xa",
+          "duration": "60 phút",
+          "startDate": "2024-10-02T09:00:00",
+          "endDate": "2024-10-02T10:00:00",
+          "password": null,
+          "isResearchable": true,
+          "isAutoStart": false,
+          "isSave": true
+  }
 }
