@@ -2,7 +2,10 @@
 
 namespace Project_LMS.Interfaces.Responsitories;
 
-public interface IDisciplineRepository : IRepository<Discipline>
+public interface IDisciplineRepository 
 {
-    
+    Task<Discipline?> GetByIdAsync(int id);
+    Task<Discipline?> AddAsync(Discipline discipline);
+    Task<Discipline> UpdateAsync(Discipline discipline);
+    Task DeleteAsync(Discipline discipline);
 }

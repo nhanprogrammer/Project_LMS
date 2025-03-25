@@ -16,34 +16,27 @@ public class DisciplineRepository : IDisciplineRepository
 
     public async Task<Discipline> GetByIdAsync(int id)
     {
-        return await _context.Disciplines.FindAsync(id);
+        return await _context.Disciplines.Where(d => d.Id == id && d.IsDelete == false && d.User.IsDelete == false).FirstOrDefaultAsync();
     }
 
-    public async Task<IEnumerable<Discipline>> GetAllAsync()
-    {
-        return await _context.Disciplines.Where(ah => (bool)!ah.IsDelete).ToListAsync();
-    }
-
-    public async Task AddAsync(Discipline entity)
+    public async Task<Discipline> AddAsync(Discipline entity)
     {
         await _context.Disciplines.AddAsync(entity);
         await _context.SaveChangesAsync();
+        return entity;
     }
 
-    public async Task UpdateAsync(Discipline entity)
+    public async Task<Discipline> UpdateAsync(Discipline entity)
     {
         _context.Disciplines.Update(entity);
         await _context.SaveChangesAsync();
+        return entity;
     }
 
-    public async Task DeleteAsync(int id)
+    public async Task DeleteAsync(Discipline discipline)
     {
-        var entity = await _context.Disciplines.FindAsync(id);
-        if (entity != null)
-        {
-            entity.IsDelete = true;
-            _context.Disciplines.Update(entity);
-            await _context.SaveChangesAsync();
-        }
+        discipline.IsDelete = true;
+        _context.Disciplines.Update(discipline);
+        await _context.SaveChangesAsync();
     }
 }

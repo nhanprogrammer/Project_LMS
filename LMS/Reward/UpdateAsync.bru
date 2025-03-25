@@ -1,0 +1,20 @@
+meta {
+  name: UpdateAsync
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{base_url}}api/Reward/1
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "userCode": "SV002",
+    "semesterId": 2,
+    "rewardContent": "Quá giỏi nè",
+    "id": 6
+  }
+}
