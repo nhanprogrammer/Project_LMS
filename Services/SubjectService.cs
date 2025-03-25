@@ -244,6 +244,52 @@ namespace Project_LMS.Services
                 return new ApiResponse<bool>(1, $"Lỗi khi xóa môn học: {ex.Message}", false);
             }
         }
+        public async Task<List<SubjectResponseSearch>> getSubjectByUserId(int userId)
+        {
+            // Lấy danh sách SubjectsId từ TeacherClassSubject dựa trên userId
+            var subjectIds = await _context.TeacherClassSubjects
+                .Where(tcs => tcs.UserId == userId && (tcs.IsDelete == null || tcs.IsDelete == false))
+                .Select(tcs => tcs.SubjectsId)
+                .ToListAsync();
+
+            // Nếu không tìm thấy môn học nào được phân công cho userId
+            if (!subjectIds.Any())
+            {
+                return new List<SubjectResponseSearch>();
+            }
+
+            // Lấy danh sách môn học từ Subjects dựa trên subjectIds
+            var query = _context.Subjects.AsQueryable();
+
+            query = query.Where(x => subjectIds.Contains(x.Id) && (x.IsDelete == null || x.IsDelete == false));
+
+            var subjects = await query
+                .Select(x => new SubjectResponseSearch { Id = x.Id, SubjectName = x.SubjectName })
+                .ToListAsync();
+
+            return subjects;
+        }
+
+        public async Task<List<SubjectDropdownResponse>> GetSubjectsBySubjectGroupIdAsync(int subjectGroupId)
+        {
+            if (subjectGroupId <= 0)
+            {
+                return new List<SubjectDropdownResponse>();
+            }
+
+            var subjects = await _context.SubjectGroupSubjects
+                .Where(sgs => sgs.SubjectGroupId == subjectGroupId &&
+                             (sgs.IsDelete == null || sgs.IsDelete == false) &&
+                             sgs.Subject != null)
+                .Select(sgs => new SubjectDropdownResponse
+                {
+                    Id = sgs.Subject!.Id, 
+                    Name = sgs.Subject!.SubjectName ?? string.Empty
+                })
+                .ToListAsync();
+
+            return subjects;
+        }
 
         public async Task<List<SubjectResponseSearch>> SearchSubjectByKeywordAsync(string? keyword)
         {

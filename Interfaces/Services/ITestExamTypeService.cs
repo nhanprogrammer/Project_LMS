@@ -12,4 +12,5 @@ public interface ITestExamTypeService
     Task<ApiResponse<TestExamTypeResponse>> Delete(int id);
     Task<ApiResponse<TestExamTypeResponse>> Search(int id);
     Task<ApiResponse<List<int>>> GetCoefficients();
+    Task<ApiResponse<TestExamTypeResponse>> GetById(int id);
 }
