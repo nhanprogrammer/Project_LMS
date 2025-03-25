@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Interfaces;
 using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers
@@ -10,12 +12,15 @@ namespace Project_LMS.Controllers
     public class SubjectController : ControllerBase
     {
         private readonly ISubjectService _subjectService;
+        private readonly IAuthService _authService;
 
-        public SubjectController(ISubjectService subjectService)
+        public SubjectController(ISubjectService subjectService, IAuthService authService)
         {
             _subjectService = subjectService;
+            _authService = authService;
         }
 
+        [Authorize(Policy = "SUBJECT-VIEW")]
         [HttpGet]
         public async Task<ActionResult<ApiResponse<PaginatedResponse<SubjectResponse>>>> GetAll(
             [FromQuery] string? keyword = null,
@@ -24,45 +29,58 @@ namespace Project_LMS.Controllers
         {
             try
             {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+
                 var response = await _subjectService.GetAllSubjectsAsync(keyword, pageNumber, pageSize);
                 return Ok(response);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<string>(1, $"Internal server error: {ex.Message}", null));
+                return StatusCode(500, new ApiResponse<string>(1, $"Lỗi hệ thống: {ex.Message}", null));
             }
         }
 
+        [Authorize(Policy = "SUBJECT-VIEW")]
         [HttpGet("{id}")]
         public async Task<ActionResult<ApiResponse<SubjectResponse>>> GetById(int id)
         {
             try
             {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+
                 var result = await _subjectService.GetSubjectByIdAsync(id);
                 if (result.Data == null)
                 {
-                    return NotFound(new ApiResponse<SubjectResponse>(1, "Subject not found", null));
+                    return NotFound(new ApiResponse<SubjectResponse>(1, "Không tìm thấy môn học", null));
                 }
-                return Ok(result); // Return the ApiResponse directly
+                return Ok(result);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<string>(1, $"Internal server error: {ex.Message}", null));
+                return StatusCode(500, new ApiResponse<string>(1, $"Lỗi hệ thống: {ex.Message}", null));
             }
         }
 
+        [Authorize(Policy = "SUBJECT-INSERT")]
         [HttpPost]
         public async Task<ActionResult<ApiResponse<SubjectResponse>>> Create([FromBody] SubjectRequest request)
         {
             try
             {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+
                 if (!ModelState.IsValid)
                 {
-                    return BadRequest(new ApiResponse<SubjectResponse>(1, "Invalid request data", null));
+                    return BadRequest(new ApiResponse<SubjectResponse>(1, "Dữ liệu không hợp lệ", null));
                 }
 
                 var result = await _subjectService.CreateSubjectAsync(request);
-
                 if (result.Status != 0)
                 {
                     return BadRequest(result);
@@ -72,35 +90,38 @@ namespace Project_LMS.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<SubjectResponse>(1, $"Internal server error: {ex.Message}", null));
+                return StatusCode(500, new ApiResponse<SubjectResponse>(1, $"Lỗi hệ thống: {ex.Message}", null));
             }
         }
 
+        [Authorize(Policy = "SUBJECT-UPDATE")]
         [HttpPut]
         public async Task<ActionResult<ApiResponse<SubjectResponse>>> Update([FromBody] SubjectRequest request)
         {
             try
             {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+
                 if (!ModelState.IsValid)
                 {
-                    return BadRequest(new ApiResponse<SubjectResponse>(1, "Invalid request data", null));
+                    return BadRequest(new ApiResponse<SubjectResponse>(1, "Dữ liệu không hợp lệ", null));
                 }
 
                 if (request == null)
                 {
-                    return BadRequest(new ApiResponse<SubjectResponse>(1, "Request body cannot be null", null));
+                    return BadRequest(new ApiResponse<SubjectResponse>(1, "Dữ liệu không được để trống", null));
                 }
 
                 if (string.IsNullOrEmpty(request.SubjectCode))
                 {
-                    return BadRequest(new ApiResponse<SubjectResponse>(1, "Subject code is required", null));
+                    return BadRequest(new ApiResponse<SubjectResponse>(1, "Mã môn học không được để trống", null));
                 }
 
                 var result = await _subjectService.UpdateSubjectAsync(request);
-
                 if (result.Status != 0)
                 {
-                    // Handle specific error cases
                     if (result.Message.Contains("not found"))
                     {
                         return NotFound(result);
@@ -116,18 +137,23 @@ namespace Project_LMS.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<SubjectResponse>(1, $"Internal server error: {ex.Message}", null));
+                return StatusCode(500, new ApiResponse<SubjectResponse>(1, $"Lỗi hệ thống: {ex.Message}", null));
             }
         }
 
+        [Authorize(Policy = "SUBJECT-DELETE")]
         [HttpDelete]
         public async Task<ActionResult<ApiResponse<bool>>> DeleteMultiple([FromBody] DeleteMultipleRequest request)
         {
             try
             {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+
                 if (request?.Ids == null || !request.Ids.Any())
                 {
-                    return BadRequest(new ApiResponse<bool>(1, "No IDs provided", false));
+                    return BadRequest(new ApiResponse<bool>(1, "Chưa chọn môn học để xóa", false));
                 }
 
                 var result = await _subjectService.DeleteMultipleSubjectsAsync(request.Ids);
@@ -139,17 +165,8 @@ namespace Project_LMS.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<bool>(1, $"Error deleting subjects: {ex.Message}", false));
+                return StatusCode(500, new ApiResponse<bool>(1, $"Lỗi khi xóa môn học: {ex.Message}", false));
             }
-        }
-
-        [HttpGet("search-subject")]
-        public async Task<IActionResult> SearchSubject([FromQuery] string? keyword)
-        {
-            var result = await _subjectService.SearchSubjectByKeywordAsync(keyword);
-            if (!result.Any() || result == null)
-                return Ok(new ApiResponse<object>(1, "Không tìm thấy môn học"));
-            return Ok(new ApiResponse<object>(0, "Tìm thành công môn học", result));
         }
     }
 }

@@ -2,7 +2,7 @@ namespace Project_LMS.DTOs.Response
 {
     public class ClassFutureResponse
     {
-        public int Id { get; set; }
+        public int TeachingAssignmentId { get; set; }
         public string? ClassCode { get; set; }
         public string SubjectName { get; set; }
         public DateTime? StartDate { get; set; }
