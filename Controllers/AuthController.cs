@@ -25,13 +25,13 @@ namespace Project_LMS.Controllers
         {
             try
             {
-                var userResponse = await _authService.LoginAsync(request.Email, request.Password);
+                var userResponse = await _authService.LoginAsync(request.UserName, request.Password);
 
                 Response.Cookies.Append("AuthToken", userResponse.Token, new CookieOptions
                 {
                     HttpOnly = true,
-                    Secure = true,
-                    Expires = DateTime.UtcNow.AddHours(24)
+                    Secure = false, // Tạm tắt Secure Cookie nếu frontend không có HTTPS
+                    Expires = DateTime.Now.AddHours(24)
                 });
                 return Ok(new ApiResponse<AuthUserLoginResponse>(0,
                     "Đăng nhập thành công! ", userResponse));
@@ -84,7 +84,7 @@ namespace Project_LMS.Controllers
         {
             try
             {
-                await _authService.ResetPasswordWithCodeAsync(request.Email, request.VerificationCode, request.NewPassword, request.ConfirmPassword);
+                await _authService.ResetPasswordWithCodeAsync(request.UserName, request.VerificationCode, request.NewPassword, request.ConfirmPassword);
                 return Ok(new ApiResponse<string>(0, "Mật khẩu đã được đặt lại thành công!", null));
             }
             catch (Exception ex)

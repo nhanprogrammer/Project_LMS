@@ -5,7 +5,11 @@ meta {
 }
 
 delete {
-  url: {{base_url}}api/AcademicYear/1
-  body: none
+  url: {{base_url}}api/AcademicYear
+  body: json
   auth: none
+}
+
+body:json {
+  {"ids": [1]}
 }

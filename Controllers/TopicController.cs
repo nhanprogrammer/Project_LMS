@@ -98,28 +98,13 @@ namespace Project_LMS.Controllers
         {
             try
             {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-                // Kiểm tra dữ liệu đầu vào
-                if (request.UserId == null || request.UserId <= 0)
-                {
-                    return BadRequest(new { Status = 1, Message = "UserId là bắt buộc và phải lớn hơn 0!" });
-                }
-
                 var user = await _authService.GetUserAsync();
                 if (user == null)
                     return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
 
                 // Lấy userId từ token và so sánh với request.UserId
                 var userId = user.Id;
-                if (userId != request.UserId)
-                {
-                    return Unauthorized(new { Status = 1, Message = "Bạn không có quyền thực hiện hành động này!" });
-                }
-
+                request.UserId = userId;
                 // Kiểm tra TeachingAssignmentId
                 if (!request.TopicId.HasValue && request.TeachingAssignmentId <= 0)
                 {
@@ -151,32 +136,15 @@ namespace Project_LMS.Controllers
         {
             try
             {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-                // Kiểm tra dữ liệu đầu vào
-                if (request.Id <= 0)
-                {
-                    return BadRequest(new { Status = 1, Message = "Id là bắt buộc và phải lớn hơn 0!" });
-                }
-
-                if (request.UserId == null || request.UserId <= 0)
-                {
-                    return BadRequest(new { Status = 1, Message = "UserId là bắt buộc và phải lớn hơn 0!" });
-                }
-
                 // Lấy userId từ token và so sánh với request.UserId
                 var user = await _authService.GetUserAsync();
                 if (user == null)
                     return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
 
                 var userId = user.Id;
-                if (userId != request.UserId)
-                {
-                    return Unauthorized(new { Status = 1, Message = "Bạn không có quyền thực hiện hành động này!" });
-                }
+                Console.WriteLine("Update topic userId: " + userId);
+
+                request.UserId = userId;
 
                 // Kiểm tra TeachingAssignmentId
                 if (!request.TopicId.HasValue && !request.TeachingAssignmentId.HasValue)

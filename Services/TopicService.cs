@@ -24,10 +24,10 @@ public class TopicService : ITopicService
     private readonly ITeachingAssignmentService _teachingAssignmentRepository;
     private readonly ApplicationDbContext _context;
     private readonly INotificationsService _notificationsService;
-
+    private readonly IAuthService _authService;
     public TopicService(ITopicRepository topicRepository, IMapper mapper, ICloudinaryService cloudinary,
         IHubContext<RealtimeHub> hubContext, ITeachingAssignmentService teachingAssignmentService,
-        IUserRepository userRepository, ApplicationDbContext context, INotificationsService notificationsService)
+        IUserRepository userRepository, ApplicationDbContext context, INotificationsService notificationsService, IAuthService authService)
     {
         _topicRepository = topicRepository;
         _mapper = mapper;
@@ -37,6 +37,7 @@ public class TopicService : ITopicService
         _userRepository = userRepository;
         _context = context;
         _notificationsService = notificationsService;
+        _authService = authService;
     }
 
     public async Task<ApiResponse<IEnumerable<TopicResponse>>> GetAllTopicsAsync(int userId, int teachingAssignmentId)
@@ -110,6 +111,8 @@ public class TopicService : ITopicService
     {
         try
         {
+            var userid = await _authService.GetUserAsync();
+            request.UserId = userid?.Id;
             // 1) Kiểm tra Title (bắt buộc khi tạo topic gốc)
             if (!request.TopicId.HasValue && string.IsNullOrWhiteSpace(request.Title))
             {

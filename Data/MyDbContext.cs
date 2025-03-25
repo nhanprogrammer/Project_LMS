@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Project_LMS.Helpers;
 using Project_LMS.Models;
 
 namespace Project_LMS.Data
@@ -311,7 +312,7 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.Id).HasColumnName("id");
 
-                entity.Property(e => e.ClassId).HasColumnName("class_id");
+                entity.Property(e => e.ClassOnlineId).HasColumnName("class_online_id");
 
                 entity.Property(e => e.CreateAt)
                     .HasColumnType("timestamp without time zone")
@@ -360,10 +361,10 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.UserUpdate).HasColumnName("user_update");
 
-                entity.HasOne(d => d.Class)
+                entity.HasOne(d => d.ClassOnline)
                     .WithMany(p => p.ChatMessages)
-                    .HasForeignKey(d => d.ClassId)
-                    .HasConstraintName("fk_chat_messages_class");
+                    .HasForeignKey(d => d.ClassOnlineId)
+                    .HasConstraintName("fk_chat_messages_class_online");
 
                 entity.HasOne(d => d.User)
                     .WithMany(p => p.ChatMessages)
@@ -382,6 +383,7 @@ namespace Project_LMS.Data
                 entity.Property(e => e.ClassCode)
                     .HasMaxLength(255)
                     .HasColumnName("class_code");
+
 
                 entity.Property(e => e.ClassTypeId).HasColumnName("class_type_id");
 
@@ -456,11 +458,17 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.Id).HasColumnName("id");
 
-                entity.Property(e => e.ClassCode)
+                entity.Property(e => e.ChatCode).HasColumnName("chat_code");
+
+                entity.Property(e => e.ClassOnlineCode)
                     .HasMaxLength(50)
-                    .HasColumnName("class_code");
+                    .HasColumnName("class_online_code");
 
                 entity.Property(e => e.ClassDescription).HasColumnName("class_description");
+
+                entity.Property(e => e.ClassLink)
+                    .HasMaxLength(255)
+                    .HasColumnName("class_link");
 
                 entity.Property(e => e.ClassPassword)
                     .HasMaxLength(100)
@@ -509,6 +517,20 @@ namespace Project_LMS.Data
                 entity.Property(e => e.UserId).HasColumnName("user_id");
 
                 entity.Property(e => e.UserUpdate).HasColumnName("user_update");
+
+                entity.HasOne(d => d.User)
+                 .WithMany(p => p.ClassOnlines)
+                 .HasForeignKey(d => d.UserId)
+                 .HasConstraintName("fk_class_online_user");
+
+                entity.Property(e => e.LessonId).HasColumnName("lesson_id");
+
+                entity.HasOne(d => d.Lesson)
+                .WithMany(p => p.ClassOnlines)
+                .HasForeignKey(d => d.LessonId)
+                .HasConstraintName("fk_class_online_lesson");
+
+
             });
 
             modelBuilder.Entity<ClassStudent>(entity =>
@@ -560,7 +582,7 @@ namespace Project_LMS.Data
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("added_at");
 
-                entity.Property(e => e.ClassId).HasColumnName("class_id");
+                entity.Property(e => e.ClassOnlineId).HasColumnName("class_online_id");
 
                 entity.Property(e => e.CreateAt)
                     .HasColumnType("timestamp without time zone")
@@ -606,9 +628,9 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.UserUpdate).HasColumnName("user_update");
 
-                entity.HasOne(d => d.Class)
+                entity.HasOne(d => d.ClassOnline)
                     .WithMany(p => p.ClassStudentOnlines)
-                    .HasForeignKey(d => d.ClassId)
+                    .HasForeignKey(d => d.ClassOnlineId)
                     .HasConstraintName("fk_class_students_online_class");
 
                 entity.HasOne(d => d.User)
@@ -1031,7 +1053,7 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.Id).HasColumnName("id");
 
-                entity.Property(e => e.ClassId).HasColumnName("class_id");
+                entity.Property(e => e.TeachingAssignmentId).HasColumnName("teaching_assignment_id");
 
                 entity.Property(e => e.ClassLessonCode)
                     .HasMaxLength(255)
@@ -1047,6 +1069,10 @@ namespace Project_LMS.Data
                 entity.Property(e => e.Duration)
                     .HasMaxLength(50)
                     .HasColumnName("duration");
+
+                entity.Property(e => e.LessonLink)
+                    .HasColumnType("character varying")
+                    .HasColumnName("lesson_link");
 
                 entity.Property(e => e.EndDate)
                     .HasColumnType("timestamp without time zone")
@@ -1089,10 +1115,10 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.UserUpdate).HasColumnName("user_update");
 
-                entity.HasOne(d => d.Class)
+                entity.HasOne(d => d.TeachingAssignment)
                     .WithMany(p => p.Lessons)
-                    .HasForeignKey(d => d.ClassId)
-                    .HasConstraintName("fk_lessons_class");
+                    .HasForeignKey(d => d.TeachingAssignmentId)
+                    .HasConstraintName("fk_lessons_teachingassignment");
 
                 entity.HasOne(d => d.User)
                     .WithMany(p => p.Lessons)
@@ -1549,11 +1575,15 @@ namespace Project_LMS.Data
                 entity.Property(e => e.Address)
                     .HasMaxLength(255)
                     .HasColumnName("address");
+                      entity.Property(e => e.SchoolPhone)
+                    .HasMaxLength(10)
+                    .HasColumnName("school_phone");
 
                 entity.Property(e => e.BranchName)
                     .HasMaxLength(255)
                     .HasColumnName("branch_name");
-
+                entity.Property(e => e.Image)
+                                    .HasColumnName("image");
                 entity.Property(e => e.CreateAt)
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("create_at")
@@ -1574,6 +1604,7 @@ namespace Project_LMS.Data
                 entity.Property(e => e.Phone)
                     .HasMaxLength(10)
                     .HasColumnName("phone");
+
 
                 entity.Property(e => e.SchoolId).HasColumnName("school_id");
 
@@ -1634,11 +1665,6 @@ namespace Project_LMS.Data
                 entity.Property(e => e.UserId).HasColumnName("user_id");
 
                 entity.Property(e => e.UserUpdate).HasColumnName("user_update");
-
-                entity.HasOne(d => d.SchoolBranches)
-                    .WithMany(p => p.SchoolTransfers)
-                    .HasForeignKey(d => d.SchoolBranchesId)
-                    .HasConstraintName("fk_school_transfers_branch");
 
                 entity.HasOne(d => d.User)
                     .WithMany(p => p.SchoolTransfers)
@@ -2103,7 +2129,7 @@ namespace Project_LMS.Data
                     .WithMany(p => p.TeachingAssignments)
                     .HasForeignKey(d => d.ClassId)
                     .HasConstraintName("fk_teaching_assignments_class");
-
+                entity.Property(e => e.Description).HasColumnName("description");
                 entity.HasOne(d => d.Subject)
                     .WithMany(p => p.TeachingAssignments)
                     .HasForeignKey(d => d.SubjectId)

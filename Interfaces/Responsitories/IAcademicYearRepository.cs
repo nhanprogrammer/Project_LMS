@@ -5,4 +5,12 @@ namespace Project_LMS.Interfaces.Responsitories;
 public interface IAcademicYearRepository :IRepository<AcademicYear>
 {
     IQueryable<AcademicYear> GetQueryable();
+
+    Task<List<AcademicYear>> GetByIdsAsync(List<int> ids);
+
+    Task UpdateRangeAsync(List<AcademicYear> lessons);
+
+    Task<List<AcademicYear>> SearchAcademicYear(int year);
+
+    Task<bool> IsAcademicYearExist(int academicYearId);
 }
