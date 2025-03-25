@@ -8,7 +8,7 @@ namespace Project_LMS.Models
         public int Id { get; set; }
         public int? UserId { get; set; }
         public int? SemesterId { get; set; }
-        public int? RewardCode { get; set; }
+        //public int? RewardCode { get; set; }
         public string? RewardName { get; set; }
         public DateTime? RewardDate { get; set; }
         public string? RewardContent { get; set; }

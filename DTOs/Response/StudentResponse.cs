@@ -5,6 +5,7 @@ namespace Project_LMS.DTOs.Response
     public class StudentResponse
     {
         public int? StudentStatusId { get; set; }
+        public int ClassId { get; set; }
         public string? UserCode { get; set; }
         public string? FullName { get; set; }
         public string? Email { get; set; }

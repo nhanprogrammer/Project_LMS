@@ -1,9 +1,11 @@
-
+﻿
 using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Exceptions;
 using Project_LMS.Interfaces;
 using Project_LMS.Interfaces.Services;
+using Project_LMS.Services;
 
 namespace Project_LMS.Controllers;
 [ApiController]
@@ -18,57 +20,75 @@ public class DisciplineController : ControllerBase
         _disciplinesService = disciplinesService;
         _studentService = studentService;
     }
-
-    [HttpGet]
-    public async Task<IActionResult> GetAllDisciplinesAsync()
+    [HttpGet("{id}")]
+    public async Task<ActionResult<ApiResponse<RewardResponse>>> GetById(int id)
     {
-        var response = await _disciplinesService.GetAllDisciplineAsync();
-
-        if (response.Status == 1)
-        {
-            return BadRequest(new ApiResponse<List<DisciplineResponse>>(response.Status, response.Message, response.Data));
-        }
-
-        return Ok(new ApiResponse<List<DisciplineResponse>>(response.Status, response.Message, response.Data));
+        var result = _disciplinesService.GetByIdAsync(id);
+        return Ok(result);
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateDisciplinesAsync([FromBody] CreateDisciplineRequest request)
+    public async Task<ActionResult<ApiResponse<RewardResponse>>> Create(DisciplineRequest request)
     {
-        var response = await _disciplinesService.CreateDisciplineAsync(request);
-
-        if (response.Status == 1)
+        try
         {
-            return BadRequest(new ApiResponse<DisciplineResponse>(response.Status, response.Message, response.Data));
+            var ressult = await _disciplinesService.AddAsync(request);
+            return Ok(ressult);
         }
-
-        return Ok(new ApiResponse<DisciplineResponse>(response.Status, response.Message, response.Data));
+        catch (NotFoundException ex)
+        {
+            return NotFound(new ApiResponse<string>(1, ex.Message));
+        }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new ApiResponse<List<ValidationError>>(1, "Validation failed.", ex.Errors));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi khi tạo kỷ luật", ex.Message));
+        }
     }
 
-    [HttpPut("{id?}")]
-    public async Task<IActionResult> UpdateDiscipline(String id, [FromBody] UpdateDisciplineRequest request)
+    [HttpPut]
+    public async Task<ActionResult<ApiResponse<RewardResponse>>> Update(UpdateDisciplineRequest request)
     {
-        var response = await _disciplinesService.UpdateDisciplineAsync(id, request);
-        if (response.Status == 1)
+        try
         {
-            return BadRequest(new ApiResponse<DisciplineResponse>(response.Status, response.Message, response.Data));
+            var ressult = await _disciplinesService.UpdateAsync(request);
+            return Ok(ressult);
         }
-
-        return Ok(new ApiResponse<DisciplineResponse>(response.Status, response.Message, response.Data));
+        catch (NotFoundException ex)
+        {
+            return NotFound(new ApiResponse<string>(1, ex.Message));
+        }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new ApiResponse<List<ValidationError>>(1, "Validation failed.", ex.Errors));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi khi cập nhật kỷ luật", ex.Message));
+        }
     }
 
-    [HttpDelete("{id?}")]
-    public async Task<IActionResult> DeleteDepartment(String id)
+    [HttpDelete("{id}")]
+    public async Task<ActionResult<ApiResponse<RewardResponse>>> Delete(int id)
     {
-        var response = await _disciplinesService.DeleteDisciplineAsync(id);
-        if (response.Status == 1)
+        try
         {
-            return BadRequest(
-                new ApiResponse<DisciplineResponse>(response.Status, response.Message, response.Data));
+            var result = await _disciplinesService.DeleteAsync(id);
+            return Ok(result);
         }
-
-        return Ok(new ApiResponse<DisciplineResponse>(response.Status, response.Message, response.Data));
+        catch (NotFoundException ex)
+        {
+            return NotFound(new ApiResponse<string>(1, ex.Message, null));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi khi xóa kỷ luật", ex.Message));
+        }
     }
+
     [HttpGet("getallstudentdiscipline")]
     public async Task<IActionResult> GetAllStudentOfReward([FromQuery] int academicId, [FromQuery] int departmentId, [FromQuery] PaginationRequest request, [FromQuery] string column, [FromQuery] bool orderBy)
     {

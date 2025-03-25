@@ -1,13 +1,10 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.IO;
-using System.Linq;
 using System.Reflection;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Xml.Schema;
 using Aspose.Cells;
 using AutoMapper;
+using CloudinaryDotNet.Actions;
+using CloudinaryDotNet.Core;
 using Microsoft.EntityFrameworkCore;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
@@ -59,12 +56,23 @@ public class StudentService : IStudentService
     public async Task<ApiResponse<object>> AddAsync(StudentRequest request)
     {
         var student = _mapper.Map<User>(request);
-        student.Username = await GeneratedUsername(request.Email);
+
         student.IsDelete = false;
         student.CreateAt = DateTime.Now;
-        string password = await GenerateSecurePassword(8);
+        student.Username = await GeneratedUsername(request.Email);
+        string password = await GenerateSecurePassword(10);
         student.Password = BCrypt.Net.BCrypt.HashPassword(password);
         var valids = await ValidateStudentRequest(request);
+        if (request.UserCode == null)
+        {
+            valids.Add("Usercode không được để trống.");
+        }
+        {
+            if (await _studentRepository.FindStudentByUserCode(request.UserCode) != null)
+            {
+                valids.Add($"UserCode đã tồn tại.");
+            }
+        }
         if (valids.Count > 0) return new ApiResponse<object>(1, "Thêm học viên thất bại.")
         {
             Data = valids
@@ -79,7 +87,10 @@ public class StudentService : IStudentService
             }
 
             var user = await _studentRepository.AddAsync(student);
-            await ExecuteEmailThreads(user.Email, user.FullName, user.Username, password);
+            Task.Run(async () =>
+            {
+                await ExecuteEmail(user.Email, user.FullName, user.Username, password);
+            });
             await _classStudentRepository.AddAsync(new ClassStudentRequest()
             {
                 UserId = user.Id,
@@ -105,6 +116,7 @@ public class StudentService : IStudentService
 
     public async Task<ApiResponse<object>> DeleteAsync(List<string> userCodes)
     {
+        if (userCodes.Count <= 0) return new ApiResponse<object>(1, "UserCodes phải có ít nhất 1 phần tử.");
         List<string> userCodeDeleteSuccess = new List<string>();
         List<string> userCodeDeleteError = new List<string>();
         foreach (var userCode in userCodes)
@@ -150,7 +162,7 @@ public class StudentService : IStudentService
 
     }
 
-    public async Task ExecuteEmailThreads(string email, string fullname, string username, string password)
+    public async Task ExecuteEmail(string email, string fullname, string username, string password)
     {
         var content = $@"
                             <html>
@@ -192,18 +204,15 @@ public class StudentService : IStudentService
                                 </div>
                             </body>
                             </html>";
-        Task.Run(async () =>
+        try
         {
-            try
-            {
-                await _emailService.SendMailAsync(email, "Thông báo tạo tài khoản sinh viên", content);
-                _logger.LogInformation($"Email sent to {email}");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error sending email to {email}: {ex.Message}");
-            }
-        });
+            await _emailService.SendMailAsync(email, "Thông báo tạo tài khoản sinh viên", content);
+            _logger.LogInformation($"Email sent to {email}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error sending email to {email}: {ex.Message}");
+        }
     }
 
     public async Task<ApiResponse<object>> ExportExcelLearningProcess(int studentId, int classId)
@@ -302,7 +311,7 @@ public class StudentService : IStudentService
                 sheet2.AutoFitColumns();
             }));
 
-         
+
             tasks.Add(Task.Run(() =>
             {
                 string[] subHeaders = { "Học lực", "Hạnh kiểm", "Điểm trung bình" };
@@ -563,7 +572,7 @@ public class StudentService : IStudentService
                     sheet6.Cells[row + 2, 0].PutValue(row + 1);
                     sheet6.Cells[row + 2, 1].PutValue(disciplines[row].DisciplineContent);
                     sheet6.Cells[row + 2, 2].PutValue(disciplines[row].Name);
-                    sheet6.Cells[row + 2, 3].PutValue(disciplines[row].DisciplineDate?.ToString("dd/MM/yyyy")??"N/A");
+                    sheet6.Cells[row + 2, 3].PutValue(disciplines[row].DisciplineDate?.ToString("dd/MM/yyyy") ?? "N/A");
                 }
                 sheet6.AutoFitColumns();
             }));
@@ -594,9 +603,21 @@ public class StudentService : IStudentService
         }
     }
 
+    public async Task<ApiResponse<StudentResponse>> FindStudentByUserCodeAsync(string userCode)
+    {
+        if (userCode == null) return new ApiResponse<StudentResponse>(1, "UserCode không được null.");
+        var student = await _studentRepository.FindStudentByUserCode(userCode);
+        if (student == null) return new ApiResponse<StudentResponse>(1, "Học viên không tồn tại.");
+        var studentResponse = _mapper.Map<StudentResponse>(student);
+        var classStudent = await _classStudentRepository.FindStudentByIdIsActive(student.Id);
+        studentResponse.ClassId = classStudent.ClassId ?? 0;
+        return new ApiResponse<StudentResponse>(0, "Đã tìm thấy học viên.")
+        {
+            Data = studentResponse
+        };
+    }
 
-
-    public async Task<string> GeneratedUserCode()
+    public async Task<string> GeneratedUserCode(string code)
     {
         int number = 1; // Bắt đầu từ 1 (SV001)
         int digitLength = 3; // Độ dài số ban đầu là 3 chữ số (SV001 → SV999)
@@ -604,7 +625,7 @@ public class StudentService : IStudentService
         int index = 1;
         do
         {
-            userCode = $"SV{number.ToString($"D{digitLength}")}"; // SV001, SV002, ..., SV999
+            userCode = $"{code}{number.ToString($"D{digitLength}")}"; // SV001, SV002, ..., SV999
             number++;
 
             // Nếu đã vượt quá số lớn nhất có thể (999, 9999, 99999...), tăng số chữ số
@@ -683,15 +704,30 @@ public class StudentService : IStudentService
         var classStudents = await _classStudentRepository.getAllStudentByClasses(classesId);
         var studentsId = classStudents.Select(c => (int)c.UserId).ToList();
         var students = await _studentRepository.GetAllOfRewardByIds(isReward, studentsId, request, columnm, orderBy, searchItem);
-        var studentResponse = students.Select(st => (object)new
+        var studentResponse = new List<object>();
+        if (isReward)
         {
-            st.UserCode,
-            st.FullName,
-            st.BirthDate,
-            gender = (st.Gender != null && st.Gender.Length > 0) ? st.Gender[0] : false,
-            st.Rewards.Count
+            studentResponse = students.Select(st => (object)new
+            {
+                st.UserCode,
+                st.FullName,
+                st.BirthDate,
+                gender = (st.Gender != null && st.Gender.Length > 0) ? st.Gender[0] : false,
+                st.Rewards.Count
 
-        }).ToList();
+            }).ToList();
+        }
+        else
+        {
+            studentResponse = students.Select(st => (object)new
+            {
+                st.UserCode,
+                st.FullName,
+                st.BirthDate,
+                gender = (st.Gender != null && st.Gender.Length > 0) ? st.Gender[0] : false,
+                st.Disciplines.Count
+            }).ToList();
+        }
         var totalItems = await _studentRepository.CountStudentOfRewardByIds(isReward, studentsId, searchItem);
         var paginatedResponse = new PaginatedResponse<object>
         {
@@ -708,11 +744,27 @@ public class StudentService : IStudentService
 
     public async Task<ApiResponse<object>> LearningOutcomesOfStudent(int studentId, int classId)
     {
+        if (studentId == null || classId == null) return new ApiResponse<object>(1, "ClassId và StudentId không được bỏ trống.");
         var student = await _studentRepository.FindStudentById(studentId);
-        if (student?.Assignments == null)
+        if (student?.Assignments == null) return new ApiResponse<object>(1, "Học viên không tồn tại.");
+        var cls = await _classRepository.FindClassById(classId);
+        if (cls == null) return new ApiResponse<object>(1, "Lớp học không tồn tại.");
+
+        var cs = await _classStudentRepository.FindStudentByClassAndStudent(classId, studentId);
+        if (cs == null) return new ApiResponse<object>(1, "Học viên không tồn tại trong lớp học.");
+        var informaionOfStudent = (object)new
         {
-            return new ApiResponse<object>(1, "Học viên không tồn tại.");
-        }
+            academic = cs.Class?.AcademicYear?.StartDate?.ToString("yyyy") + " - " + cs.Class?.AcademicYear?.EndDate?.ToString("yyyy"),
+            department = cs.Class?.Department?.Name,
+            ClassCode = cs.Class?.ClassCode,
+            ClassName = cs.Class?.Name,
+            homeroomteacher = cs.Class?.User?.FullName,
+            countstudent = cs.Class?.ClassStudents.Count,
+            classtype = cs.Class?.ClassType?.Name,
+            countsubject = cs.Class?.ClassSubjects.Count,
+            description = cs.Class?.Description
+
+        };
 
         var assignments = student.Assignments.Where(a => a.TestExam.ClassId == classId).ToList();
         double CalculateSemesterScore(string semesterName)
@@ -824,6 +876,7 @@ public class StudentService : IStudentService
 
         var studentResponse = new
         {
+            information = informaionOfStudent,
             semestertranscript = new
             {
                 semsester1 = new { academicPerformance = perf1, conduct = cond1, averagescore = avg1 },
@@ -950,9 +1003,11 @@ public class StudentService : IStudentService
                     student.Image = url;
                     Console.WriteLine("Url : " + request.Image);
                 }
-
                 var user = await _studentRepository.AddAsync(student);
-                await ExecuteEmailThreads(user.Email, user.FullName, user.Username, password);
+                Task.Run(async () =>
+                {
+                    await ExecuteEmail(user.Email, user.FullName, user.Username, password);
+                });
                 await _classStudentRepository.AddAsync(new ClassStudentRequest()
                 {
                     UserId = user.Id,
@@ -987,9 +1042,10 @@ public class StudentService : IStudentService
         var studentFind = await _studentRepository.FindStudentByUserCode(request.UserCode);
         if (studentFind == null)
             return new ApiResponse<object>(1, "Học viên không tồn tại.");
+        request.UserCode = studentFind.UserCode;
 
-        var student = _mapper.Map(request, studentFind);
-        student.UpdateAt = DateTime.Now;
+        string url = studentFind.Image;
+
 
         var valids = await ValidateStudentRequest(request);
         if (valids.Count > 0)
@@ -1000,14 +1056,32 @@ public class StudentService : IStudentService
 
         try
         {
+            var student = _mapper.Map(request, studentFind);
             if (request.Image != null)
             {
-                string url = await _cloudinaryService.UploadImageAsync(request.Image);
-                student.Image = url;
+                //await _cloudinaryService.DeleteFileByUrlAsync(student.Image);
+                url = await _cloudinaryService.UploadImageAsync(request.Image);
+            }
+            student.Image = url;
+            if (request.ClassId != 0 || request.ClassId != null)
+            {
+                await _classStudentRepository.UpdateClassIdAsync(student.Id, request.ClassId);
             }
 
+            student.UpdateAt = DateTime.Now;
             var user = await _studentRepository.UpdateAsync(student);
             _logger.LogInformation("Cập nhật học viên thành công.");
+            if (request.Email != studentFind.Email)
+            {
+                student.Username = await GeneratedUsername(request.Email);
+                string password = await GenerateSecurePassword(10);
+                student.Password = BCrypt.Net.BCrypt.HashPassword(password);
+                Task.Run(async () => {
+                    await ExecuteEmail(user.Email, user.FullName, user.Username, password);
+
+                });
+            }
+
             return new ApiResponse<object>(0, "Cập nhật học viên thành công.");
         }
         catch (DbUpdateException ex)
@@ -1017,7 +1091,7 @@ public class StudentService : IStudentService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Lỗi không xác định khi cập nhật học viên. Dữ liệu: {@Student}", student);
+            _logger.LogError(ex, "Lỗi không xác định khi cập nhật học viên.");
             return new ApiResponse<object>(5, "Đã xảy ra lỗi không xác định khi cập nhật học viên. Vui lòng thử lại sau.");
         }
     }
@@ -1134,13 +1208,7 @@ public class StudentService : IStudentService
                     errors.Add($"{propertyName} không tồn tại.");
                 }
             }
-            if (propertyName.ToLower().Contains("usercode") && value is string userCode)
-            {
-                if (await _studentRepository.FindStudentByUserCode(userCode) != null)
-                {
-                    errors.Add($"{propertyName} đã tồn tại.");
-                }
-            }
+
             if (propertyName.ToLower().Contains("username") && value is string username)
             {
                 if (await _studentRepository.FindStudentByUsername(username) != null)

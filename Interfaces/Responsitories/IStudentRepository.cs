@@ -7,6 +7,7 @@ namespace Project_LMS.Interfaces.Responsitories
     {
         public Task<List<User>> GetAll();
         public Task<User> AddAsync(User user);
+        public Task AddAllAsync(List<User> users);  
         public Task<User> UpdateAsync(User user);
         public Task DeleteAsync(User user);
         public Task<List<User>> GetAllOfRewardByIds(bool isReward,List<int> ids,PaginationRequest request, string columnm, bool orderBy, string searchItem);

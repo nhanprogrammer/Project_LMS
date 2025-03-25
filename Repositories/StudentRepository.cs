@@ -56,7 +56,7 @@ namespace Project_LMS.Repositories
 
         public async Task<User> FindStudentByEmailOrderUserCode(string email, string userCode)
         {
-            return await _context.Users.FirstOrDefaultAsync(u => u.Email == email && u.UserCode != userCode);
+            return await _context.Users.FirstOrDefaultAsync(u => u.Email == email && u.UserCode != userCode && u.IsDelete ==false &&  u.Role.Name.ToLower().Contains("student"));
         }
 
         public async Task<User> FindStudentById(int studentId)
@@ -67,18 +67,18 @@ namespace Project_LMS.Repositories
                     .Include(u => u.Assignments).ThenInclude(asm => asm.TestExam).ThenInclude(te => te.Subject)
                     .Include(u => u.Rewards)
                     .Include(u => u.Disciplines)
-                    .Where(u => u.Id == studentId)
+                    .Where(u => u.Id == studentId && u.IsDelete ==false  && u.Role.Name.ToLower().Contains("student"))
                     .FirstOrDefaultAsync();
         }
 
         public async Task<User> FindStudentByEmail(string email)
         {
-            return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            return await _context.Users.FirstOrDefaultAsync(u => u.Email == email && u.IsDelete == false && u.Role.Name.ToLower().Contains("student"));
         }
 
         public async Task<User> FindStudentByUserCode(string userCode)
         {
-            return await _context.Users.FirstOrDefaultAsync(u => u.UserCode == userCode);
+            return await _context.Users.FirstOrDefaultAsync(u => u.UserCode == userCode && u.IsDelete == false && u.Role.Name.ToLower().Contains("student"));
         }
 
         public async Task<List<User>> GetAll()
@@ -90,6 +90,7 @@ namespace Project_LMS.Repositories
         {
             var query = _context.Users
                 .Include(u => u.Rewards)
+                .Include(u=>u.Disciplines)
                 .Where(u => isReward ? (u.Rewards.Count > 0) : (u.Disciplines.Count > 0) && u.IsDelete == false && u.Role.Name.Equals("Student"));
             if (!string.IsNullOrWhiteSpace(searchItem))
             {
@@ -143,12 +144,18 @@ namespace Project_LMS.Repositories
 
         public async Task<User> FindStudentByUsername(string username)
         {
-            return await _context.Users.FirstAsync(u => u.Username == username);
+            return await _context.Users.FirstAsync(u => u.Username == username && u.IsDelete == false && u.Role.Name.ToLower().Contains("student"));
         }
 
         public async Task DeleteAsync(User user)
         {
             _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task AddAllAsync(List<User> users)
+        {
+           _context.Users.AddRange(users);
             await _context.SaveChangesAsync();
         }
     }

@@ -36,6 +36,8 @@ namespace Project_LMS.Models
 
         public int Id { get; set; }
         public int? GroupModulePermissonId { get; set; }
+        [Column("subject_group_id")]
+        public int? SubjectGroupId { get; set; }
         public bool? Disable { get; set; }
         public string? ResetCode { get; set; }
         public DateTime? ResetCodeExpiry { get; set; }
@@ -93,6 +95,9 @@ namespace Project_LMS.Models
         public virtual Role? Role { get; set; }
         public virtual StudentStatus? StudentStatus { get; set; }
         public virtual TeacherStatus? TeacherStatus { get; set; }
+        [ForeignKey("SubjectGroupId")]
+        public virtual SubjectGroup? SubjectGroup { get; set; }
+
         public virtual ICollection<AcademicHold> AcademicHolds { get; set; }
         public virtual ICollection<Assignment> Assignments { get; set; }
         public virtual ICollection<ChatMessage> ChatMessages { get; set; }
@@ -116,6 +121,8 @@ namespace Project_LMS.Models
         public virtual ICollection<Topic> Topics { get; set; }
         public virtual ICollection<UserTrainingRank> UserTrainingRanks { get; set; }
         public virtual ICollection<Department> Departments { get; set; }
+        public virtual ICollection<Exemption> Exemptions { get; set; }
+        public virtual ICollection<TeacherStatusHistory> TeacherStatusHistories { get; set; }
     }
     public class Jwt
     {

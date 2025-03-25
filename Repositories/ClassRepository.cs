@@ -55,6 +55,11 @@ public class ClassRepository : IClassRepository
     {
         return await _context.Classes
             .Include(c=>c.TestExams).ThenInclude(te=>te.TestExamType)
-            .FirstOrDefaultAsync(c => c.Id == id);
+            .FirstOrDefaultAsync(c => c.Id == id && c.IsDelete ==false);
+    }
+
+    public async Task<List<Class>> GetAllClassByAcademic(int academicId)
+    {
+        return await _context.Classes.Where(c => c.AcademicYearId == academicId && c.IsDelete == false).ToListAsync();
     }
 }

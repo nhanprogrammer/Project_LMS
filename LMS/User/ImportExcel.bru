@@ -6,6 +6,10 @@ meta {
 
 post {
   url: {{base_url}}api/Student/importexcel
-  body: none
+  body: multipartForm
   auth: inherit
+}
+
+body:multipart-form {
+  fileExcel: @file(C:\Users\Computer\Downloads\student_data_new.xlsx)
 }

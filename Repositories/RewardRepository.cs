@@ -16,36 +16,34 @@ namespace Project_LMS.Repositories
             _context = context;
         }
 
-        public async Task<List<Reward>> GetAllAsync()
-        {
-            return await _context.Rewards.ToListAsync();
-        }
 
         public async Task<Reward?> GetByIdAsync(int id)
         {
-            return await _context.Rewards.FindAsync(id);
+            return await _context.Rewards
+                .Include(r=>r.User)
+                .Include(r=>r.Semester)
+                .Where(r=>r.Id == id && r.IsDelete == false && r.User.IsDelete == false)
+                .FirstOrDefaultAsync();
         }
 
-        public async Task AddAsync(Reward reward)
+        public async Task<Reward> AddAsync(Reward reward)
         {
             await _context.Rewards.AddAsync(reward);
             await _context.SaveChangesAsync();
+            return reward;
         }
 
-        public async Task UpdateAsync(Reward reward)
+        public async Task<Reward> UpdateAsync(Reward reward)
         {
             _context.Rewards.Update(reward);
             await _context.SaveChangesAsync();
+            return reward;
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task DeleteAsync(Reward reward)
         {
-            var reward = await _context.Rewards.FindAsync(id);
-            if (reward != null)
-            {
-                _context.Rewards.Remove(reward);
-                await _context.SaveChangesAsync();
-            }
+            _context.Rewards.Remove(reward);
+            await _context.SaveChangesAsync();
         }
     }
 }

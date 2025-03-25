@@ -20,6 +20,10 @@ using Project_LMS.Configurations;
 using Project_LMS.Authorization;
 using Project_LMS.DTOs.Response;
 using Microsoft.Extensions.Caching.Memory;
+using Aspose.Cells.Charts;
+using Project_LMS.DTOs.Request;
+using FluentValidation.AspNetCore;
+using FluentValidation;
 
 
 
@@ -95,6 +99,12 @@ builder.Services.AddScoped<IStudentStatusService, StudentStatusService>();
 builder.Services.AddScoped<IClassStudentService, ClassStudentService>();
 builder.Services.AddScoped<IClassService,ClassService>();
 builder.Services.AddScoped<IStudentService,StudentService>();
+builder.Services.AddScoped<IClassStudentService,ClassStudentService>();
+builder.Services.AddScoped<IExemptionService,ExemptionService>();
+builder.Services.AddScoped<IRewardService, RewardService>();
+builder.Services.AddScoped<IDisciplinesService, DisciplinesService>();
+builder.Services.AddScoped<ITeacherService, TeacherService>();
+builder.Services.AddScoped<ITeacherStatusHistoryService, TeacherStatusHistoryService>();
 // Repositories
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<ISchoolRepository, SchoolRepository>();
@@ -124,6 +134,12 @@ builder.Services.AddScoped<ITestExamTypeRepository, TestExamTypeRepository>();
 builder.Services.AddScoped<ISubjectTypeRepository, SubjectTypeRepository>();
 builder.Services.AddScoped<IJwtReponsitory, JwtReponsitory>();
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();
+builder.Services.AddScoped<IExemptionRepository, ExemptionRepository>();
+builder.Services.AddScoped<IDisciplineRepository, DisciplineRepository>();
+builder.Services.AddScoped<ITeacherRepository, TeacherRepository>();
+builder.Services.AddScoped<ITeacherClassSubjectRepository, TeacherClassSubjectRepository>();
+builder.Services.AddScoped<ITeacherStatusHistoryRepository, TeacherStatusHistoryRepository>();
+builder.Services.AddScoped<ITeachingAssignmentRepository, TeachingAssignmentRepository>();
 
 builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
 builder.Services.AddScoped<ITeachingAssignmentService, TeachingAssignmentService>();
@@ -151,6 +167,12 @@ builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection(
 builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddAutoMapper(typeof(StudentMapper));
+builder.Services.AddAutoMapper(typeof(ExempferMapper));
+builder.Services.AddAutoMapper(typeof(RewardMapper));
+builder.Services.AddAutoMapper(typeof(DisciplineMapper));
+builder.Services.AddAutoMapper(typeof(TeacherMapper));
+builder.Services.AddAutoMapper(typeof(TeacherStatusHistoryMapper));
+
 //loging
 
 builder.Services.AddLogging(); // Đăng ký logging
@@ -239,7 +261,12 @@ builder.Services.AddPermissionAuthorization();
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddMemoryCache();
-
+//register validation
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<RewardRequestValidator>(); // 
+builder.Services.AddValidatorsFromAssemblyContaining<DisciplineRequestValidator>(); // 
+builder.Services.AddValidatorsFromAssemblyContaining<TeacherRequestValidator>(); // 
+builder.Services.AddValidatorsFromAssemblyContaining<TeacherStatusHistoryRequestValidator>(); // 
 
 
 // Cấu hình logging

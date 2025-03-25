@@ -41,7 +41,7 @@ public class UserService : IUserService
     {
         if (string.IsNullOrWhiteSpace(name))
         {
-            return new ApiResponse<object>(1, "Email or Username cannot be null or empty.");
+            return new ApiResponse<object>(1, "Email hoặc username của bạn không tồn tại.");
         }
         nameUser = name;
         var user = await _context.Users
@@ -51,7 +51,7 @@ public class UserService : IUserService
         if (user == null) return new ApiResponse<object>(1, "User does not existed.");
         Random random = new Random();
         otp = random.Next(100000, 999999).ToString();
-        //await _emailService.SendOtpAsync(user?.Email, otp);
+        await _emailService.SendMailAsync(user?.Email, "Quên mật khẩu","Mã OTP của bạn là "+otp);
         return new ApiResponse<object>(0, "Send email success.");
     }
 
@@ -179,16 +179,16 @@ public class UserService : IUserService
         var user = await _context.Users
             .AsNoTracking()
             .SingleOrDefaultAsync(user => user.Username.Equals(nameUser) || user.Email.Equals(nameUser));
-        if (string.IsNullOrWhiteSpace(request.Password)) return new ApiResponse<object>(1, "Password cannot be null or empty.");
-        if (string.IsNullOrWhiteSpace(request.Confirm)) return new ApiResponse<object>(1, "Confirm cannot be null or empty.");
+        if (string.IsNullOrWhiteSpace(request.Password)) return new ApiResponse<object>(1, "Mật khẩu không được null.");
+        if (string.IsNullOrWhiteSpace(request.Confirm)) return new ApiResponse<object>(1, "Xác nhận mật khẩu không được null.");
      
-        if (user == null) return new ApiResponse<object>(1, "User does not existed.");
+        if (user == null) return new ApiResponse<object>(1, "Tài khoản không tồn tại.");
 
-        if (request.Password != request.Confirm) return new ApiResponse<object>(1, "Confirm password does not match");
+        if (request.Password != request.Confirm) return new ApiResponse<object>(1, "Xác nhận mật khẩu không đúng.");
         user.Password = BCrypt.Net.BCrypt.HashPassword(request.Password);
         _context.Users.Update(user);
         await _context.SaveChangesAsync();
-        return new ApiResponse<object>(0, "Forgot password success.");
+        return new ApiResponse<object>(0, "Thay đổi mật khẩu thành công");
     }
 
     public async Task<ApiResponse<PaginatedResponse<object>>> GetAll(int pageNumber, int pageSize)
@@ -294,15 +294,15 @@ public class UserService : IUserService
     {
         if (string.IsNullOrWhiteSpace(otpUser))
         {
-            return new ApiResponse<object>(1, "OTP cannot be null or empty.");
+            return new ApiResponse<object>(1, "Mã OTP không được null.");
         }
 
         if (!otpUser.Equals(otp)) 
         {
-            return new ApiResponse<object>(2, "Invalid OTP.");
+            return new ApiResponse<object>(2, "Mã OTP không hợp lệ.");
         }
         var user = _context.Users.Include(u=>u.Role).Where(u=>u.Username.Equals(nameUser) || u.Email.Equals(nameUser)).FirstOrDefault();
-        return new ApiResponse<object>(0, "OTP verified successfully.")
+        return new ApiResponse<object>(0, "Xác nhận mã OTP hợp lệ.")
         {
             Data = new { token  = _jwtReponsitory.GenerateToken(user) } 
         };

@@ -12,11 +12,13 @@ namespace Project_LMS.Services
     {
         private readonly IClassRepository _classRepository;
         private readonly IClassStudentRepository _classStudentRepository;
+        private readonly IStudentRepository _studentRepository;
         private readonly ICloudinaryService _cloudinaryService;
-        public ClassStudentService(IClassRepository classRepository, IClassStudentRepository classStudentRepository, ICloudinaryService cloudinaryService)
+        public ClassStudentService(IClassRepository classRepository, IClassStudentRepository classStudentRepository,IStudentRepository studentRepository, ICloudinaryService cloudinaryService)
         {
             _classRepository = classRepository;
             _classStudentRepository = classStudentRepository;
+            _studentRepository = studentRepository;
             _cloudinaryService = cloudinaryService;
         }
 
@@ -71,28 +73,7 @@ namespace Project_LMS.Services
 
         }
 
-        public async Task<ApiResponse<object>> GetClassStudentByClass(int classId, int studentId)
-        {
-            var cs = await _classStudentRepository.FindStudentByClassAndStudent(classId, studentId);
-            if (cs == null) return new ApiResponse<object>(1, "Class not found");
-            var studentResponse = (object)new
-            {
-                academic = cs.Class?.AcademicYear?.StartDate?.ToString("yyyy") + " - " + cs.Class?.AcademicYear?.EndDate?.ToString("yyyy"),
-                department = cs.Class?.Department?.Name,
-                ClassCode = cs.Class?.ClassCode,
-                ClassName = cs.Class?.Name,
-                homeroomteacher = cs.Class?.User?.FullName,
-                countstudent = cs.Class?.ClassStudents.Count,
-                classtype = cs.Class?.ClassType?.Name,
-                countsubject = cs.Class?.ClassSubjects.Count,
-                description = cs.Class?.Description
 
-            };
-            return new ApiResponse<object>(0, "Get Studet sucesss.")
-            {
-                Data = studentResponse
-            };
-        }
 
         public async Task<ApiResponse<PaginatedResponse<object>>> GetAllByAcademicAndDepartment(int academicId, int departmentId, PaginationRequest request, string column, bool orderBy, string searchItem)
         {
@@ -147,6 +128,16 @@ namespace Project_LMS.Services
                 HasNextPage = request.PageNumber < (int)Math.Ceiling(totalItems / (double)request.PageSize)
             };
             return new ApiResponse<PaginatedResponse<object>>(0, "GetAll User success.") { Data = paginatedResponse };
+        }
+
+        public async Task<ApiResponse<object>> ChangeClassOfStudent(ClassStudentRequest request)
+        {
+            var clas = await _classRepository.FindClassById(request.ClassId??0);
+            if (clas == null) return new ApiResponse<object>(1, "Lớp học không tồn tại.");
+            var student = await _studentRepository.FindStudentById(request.UserId??0);
+            if (student == null) return new ApiResponse<object>(1, "Học viên không tồn tại.");
+            await _classStudentRepository.AddAsync(request);
+            return new ApiResponse<object>(0, "Chuyển lớp thành công.");
         }
     }
 }

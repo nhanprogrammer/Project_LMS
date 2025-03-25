@@ -20,10 +20,10 @@ namespace Project_LMS.Controllers
             _userService = userService;
             _studentService = studentService;
         }
-        [HttpGet("genneratestudentinformation")]
-        public async Task<IActionResult> GennerateStudentInformation([FromQuery]int classId, [FromQuery] int studentId)
+        [HttpGet("findstudentbyusercode")]
+        public async Task<IActionResult> FindStudenByUserCode([FromQuery] string userCode)
         {
-            var result = await _classStudentService.GetClassStudentByClass(classId,studentId);
+            var result = await _studentService.FindStudentByUserCodeAsync(userCode);
             return Ok(result);
         }
 
@@ -64,7 +64,6 @@ namespace Project_LMS.Controllers
         }
         [HttpPost("changepassword")]
         [Authorize]
-
         public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request)
         {
             var result = await _userService.ChangePassword(request);
@@ -85,9 +84,9 @@ namespace Project_LMS.Controllers
             return Ok(result);
         }        
         [HttpDelete("delete")]
-        public async Task<IActionResult> DeleteAsync([FromBody] List<string> userCodes)
+        public async Task<IActionResult> DeleteAsync([FromBody] DeleteStudentRequest request)
         {
-            var result = await _studentService.DeleteAsync(userCodes);
+            var result = await _studentService.DeleteAsync(request.UserCode);
             return Ok(result);
         }
         [HttpGet("learningoutcomes")]
@@ -108,9 +107,17 @@ namespace Project_LMS.Controllers
             var result = await _studentService.ExportExcelLearningProcess(studentId,classId);
             return Ok(result);
         }
-        public async Task<IActionResult> GenerateUserCode()
+        [HttpGet("generateusercode")]
+        public async Task<IActionResult> GenerateUserCode([FromQuery] bool isStudent)
         {
-            var result = _studentService.GeneratedUserCode();
+            string code;
+            if(isStudent){
+                code = "SV";
+            }else
+            {
+                code = "GV";
+            }
+            var result = await _studentService.GeneratedUserCode(code);
             return Ok(result);  
         }
     }

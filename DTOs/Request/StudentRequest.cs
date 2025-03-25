@@ -41,8 +41,8 @@ namespace Project_LMS.DTOs.Request
 
 
     }
-    //public class UpdateStudentRequest : StudentRequest
-    //{
-    //    public int Id { get; set; }
-    //}
+    public class DeleteStudentRequest 
+    {
+        public List<string> UserCode { get; set; }
+    }
 }
