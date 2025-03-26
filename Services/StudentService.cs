@@ -451,8 +451,8 @@ public class StudentService : IStudentService
             {
                 for (int row = 0; row < subjects.Count; row++)
                 {
-                    int totalScore = 0;
-                    double totalCoefficient = 0;
+                    double totalScore = 0;
+                    int totalCoefficient = 0;
                     for (int col = 0; col < testExamTypes.Count; col++)
                     {
                         int index = 0;
@@ -481,8 +481,8 @@ public class StudentService : IStudentService
             {
                 for (int row = 0; row < subjects.Count; row++)
                 {
-                    int totalScore = 0;
-                    double totalCoefficient = 0;
+                    double totalScore = 0;
+                    int totalCoefficient = 0;
                     for (int col = 0; col < testExamTypes.Count; col++)
                     {
                         int index = 0;
@@ -587,12 +587,12 @@ public class StudentService : IStudentService
             byte[] bytes = stream.ToArray();
             string base64String = Convert.ToBase64String(bytes);
 
-            string url = await _cloudinaryService.UploadExcelAsync(base64String);
+            //string url = await _cloudinaryService.UploadExcelAsync(base64String);
             //string url ="";
 
             return new ApiResponse<object>(0, "Xuất Excel thành công")
             {
-                Data = url
+                Data =base64String
             };
         }
         catch (Exception ex)
@@ -784,7 +784,7 @@ public class StudentService : IStudentService
                         return 0;
                     }
                 });
-            return (double)count > 0 ? score / count : score;
+            return (double)count > 0 ? score / count : 0;
         }
 
         (string academicPerformance, string conduct, double score) EvaluatePerformance(double score) =>
@@ -828,7 +828,7 @@ public class StudentService : IStudentService
                     .ToList();
 
                 var typeScores = new List<Dictionary<string, object>>();
-                int totalScore = 0;
+                double totalScore = 0;
                 int totalCoefficient = 0;
                 foreach (var item2 in assignmentOfSubject)
                 {

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Project_LMS.Models
 {
@@ -7,7 +8,10 @@ namespace Project_LMS.Models
     {
         public int Id { get; set; }
         public int? UserId { get; set; }
-        public int? DependentCode { get; set; }
+        [ForeignKey("UserId")]
+        public User User { get; set; }
+        [Column("fullname")]
+        public string? FullName { get; set; }
         public string? Address { get; set; }
         public string? Phone { get; set; }
         public DateTime? CreateAt { get; set; }
