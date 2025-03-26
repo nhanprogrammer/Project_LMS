@@ -8,7 +8,7 @@ namespace Project_LMS.Models
         public int Id { get; set; }
         public int? UserId { get; set; }
         public int? SemesterId { get; set; }
-        public int? DisciplineCode { get; set; }
+        //public int? DisciplineCode { get; set; }
         public string? Name { get; set; }
         public DateTime? DisciplineDate { get; set; }
         public string? DisciplineContent { get; set; }

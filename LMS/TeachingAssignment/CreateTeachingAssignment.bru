@@ -1,0 +1,22 @@
+meta {
+  name: CreateTeachingAssignment
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}api/TeachingAssignment
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "userId": 2,
+    "classId": 3,
+    "subjectId": 3,
+    "startDate": "2025-03-17T13:55:18.308Z",
+    "endDate": "2025-03-17T13:55:18.308Z"
+  }
+  
+}

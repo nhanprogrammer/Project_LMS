@@ -1,0 +1,19 @@
+meta {
+  name: GetAllTeachingAssignment
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}api/TeachingAssignment/get-all?academicYearId&subjectGroupId&userId=3&pageNumber=1&pageSize=10
+  body: json
+  auth: none
+}
+
+params:query {
+  academicYearId: 
+  subjectGroupId: 
+  userId: 3
+  pageNumber: 1
+  pageSize: 10
+}

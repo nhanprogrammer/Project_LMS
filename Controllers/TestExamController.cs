@@ -18,34 +18,44 @@ namespace Project_LMS.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<PaginatedResponse<TestExamResponse>>>> GetAll(
-            [FromQuery] string? keyword = null,
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 10)
+        public async Task<IActionResult> GetAllDisciplinesAsync(string? keyword, int? pageNumber, int? pageSize,
+            string? sortDirection)
         {
             try
             {
-                var response = await _testExamService.GetAllTestExamsAsync(keyword, pageNumber, pageSize);
-                return Ok(response);
+                var response =
+                    await _testExamService.GetAllTestExamsAsync(keyword, pageNumber, pageSize, sortDirection);
+
+                if (response.Status == 1)
+                {
+                    return BadRequest(new ApiResponse<PaginatedResponse<TestExamResponse>>(response.Status,
+                        response.Message, response.Data));
+                }
+
+                return Ok(new ApiResponse<PaginatedResponse<TestExamResponse>>(response.Status, response.Message,
+                    response.Data));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<string>(1, $"Internal server error: {ex.Message}", null));
+                // Log the exception (use a logging framework)
+                return StatusCode(500, new ApiResponse<string>(1, "An unexpected error occurred.", ex.Message));
             }
         }
+
 
         [HttpGet("{id}")]
         public async Task<ActionResult<ApiResponse<TestExamResponse>>> GetById(int id)
         {
             try
             {
-                var result = await _testExamService.GetTestExamByIdAsync(id);
-                if (result.Data == null)
+                var response = await _testExamService.GetTestExamByIdAsync(id);
+                if (response.Status == 1)
                 {
-                    return NotFound(new ApiResponse<TestExamResponse>(1, "TestExam not found", null));
+                    return BadRequest(
+                        new ApiResponse<TestExamResponse>(response.Status, response.Message, response.Data));
                 }
 
-                return Ok(result);
+                return Ok(new ApiResponse<TestExamResponse>(response.Status, response.Message, response.Data));
             }
             catch (Exception ex)
             {
@@ -73,16 +83,15 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [HttpPut("{id}")]
+        [HttpPut]
         public async Task<ActionResult<ApiResponse<TestExamResponse>>> Update
         (
-            int id,
             [FromBody] UpdateTestExamRequest request
         )
         {
             try
             {
-                var result = await _testExamService.UpdateTestExamAsync(id, request);
+                var result = await _testExamService.UpdateTestExamAsync(request);
                 if (result.Status == 1)
                 {
                     return BadRequest(request);
@@ -96,7 +105,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [HttpDelete("{id}")]
+        [HttpDelete("{id:int}")]
         public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
         {
             try
@@ -156,6 +165,18 @@ namespace Project_LMS.Controllers
         public async Task<ActionResult<IEnumerable<object>>> GetAllAssignmentOfMarking()
         {
             var response = await _testExamService.GetAllAssignmentOfMarking();
+            if (response.Status == 1)
+            {
+                return BadRequest(response);
+            }
+
+            return Ok(response);
+        }
+        
+        [HttpGet("academic-year/{academicYearId}")]
+        public async Task<ActionResult<IEnumerable<object>>> GetAcademicYearById(int academicYearId)
+        {
+            var response = await _testExamService.GetAlSemestersforAcademicYears(academicYearId);
             if (response.Status == 1)
             {
                 return BadRequest(response);

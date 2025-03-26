@@ -1,0 +1,17 @@
+meta {
+  name: SendVerificationCode
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}api/auth/send-verification-code
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "Email":"nhutnmpc06411@fpt.edu.vn"
+  }
+}

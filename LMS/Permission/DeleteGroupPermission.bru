@@ -1,0 +1,17 @@
+meta {
+  name: DeleteGroupPermission
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{base_url}}api/permission
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+      "Id":1
+  }
+}

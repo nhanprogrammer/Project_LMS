@@ -1,0 +1,15 @@
+meta {
+  name: ImportExcel
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{base_url}}api/Student/importexcel
+  body: multipartForm
+  auth: inherit
+}
+
+body:multipart-form {
+  fileExcel: @file(C:\Users\Computer\Downloads\student_data_new.xlsx)
+}

@@ -1,0 +1,11 @@
+meta {
+  name: GetIdSystemSetting
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}api/SystemSetting/user-setting
+  body: json
+  auth: none
+}

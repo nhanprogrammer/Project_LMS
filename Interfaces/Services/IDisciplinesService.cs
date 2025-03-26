@@ -5,9 +5,9 @@ namespace Project_LMS.Interfaces
 {
     public interface IDisciplinesService
     {
-        Task<ApiResponse<List<DisciplineResponse>>> GetAllDisciplineAsync();
-        Task<ApiResponse<DisciplineResponse>> CreateDisciplineAsync(CreateDisciplineRequest createDisciplineRequest);
-        Task<ApiResponse<DisciplineResponse>> UpdateDisciplineAsync(string id, UpdateDisciplineRequest updateDisciplineRequest);
-        Task<ApiResponse<DisciplineResponse>> DeleteDisciplineAsync(string id);
+        Task<ApiResponse<object>> GetByIdAsync(int id);
+        Task<ApiResponse<object>> AddAsync(DisciplineRequest request);
+        Task<ApiResponse<object>> UpdateAsync(UpdateDisciplineRequest request);
+        Task<ApiResponse<object>> DeleteAsync(int id);
     }
 }

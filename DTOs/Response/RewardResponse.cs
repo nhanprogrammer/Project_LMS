@@ -3,7 +3,7 @@ namespace Project_LMS.DTOs.Response
     public class RewardResponse
     {
         public int Id { get; set; }
-        public int StudentId { get; set; }
+        public int? StudentId { get; set; }
         public int SemesterId { get; set; }
         public int RewardCode { get; set; }
         public string Name { get; set; } = null!;

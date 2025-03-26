@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Project_LMS.Data;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Interfaces;
 using Project_LMS.Interfaces.Services;
 using Project_LMS.Models;
 
@@ -12,21 +13,26 @@ namespace Project_LMS.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly IMapper _mapper;
+        private readonly IAuthService _authService;
 
-        public SubjectService(ApplicationDbContext context, IMapper mapper)
+        public SubjectService(ApplicationDbContext context, IMapper mapper, IAuthService authService)
         {
             _context = context;
             _mapper = mapper;
+            _authService = authService;
         }
 
         public async Task<ApiResponse<PaginatedResponse<SubjectResponse>>> GetAllSubjectsAsync(string? keyword, int pageNumber, int pageSize)
         {
             try
             {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return new ApiResponse<PaginatedResponse<SubjectResponse>>(1, "Không có quyền truy cập", null);
+
                 var query = _context.Subjects
                     .Where(s => !s.IsDelete.HasValue || !s.IsDelete.Value);
 
-                // Add search condition if keyword is provided
                 if (!string.IsNullOrWhiteSpace(keyword))
                 {
                     keyword = keyword.Trim().ToLower();
@@ -36,7 +42,6 @@ namespace Project_LMS.Services
                     );
                 }
 
-                // Include related entities
                 query = query
                     .Include(s => s.SubjectType)
                     .OrderByDescending(s => s.Id);
@@ -62,67 +67,63 @@ namespace Project_LMS.Services
                     HasNextPage = pageNumber < totalPages
                 };
 
-                return new ApiResponse<PaginatedResponse<SubjectResponse>>(0, "Success", paginatedResponse);
+                return new ApiResponse<PaginatedResponse<SubjectResponse>>(0, "Lấy danh sách môn học thành công", paginatedResponse);
             }
             catch (Exception ex)
             {
-                return new ApiResponse<PaginatedResponse<SubjectResponse>>(1, $"Error getting subjects: {ex.Message}", null);
+                return new ApiResponse<PaginatedResponse<SubjectResponse>>(1, $"Lỗi khi lấy danh sách môn học: {ex.Message}", null);
             }
         }
 
         public async Task<ApiResponse<SubjectResponse>> GetSubjectByIdAsync(int id)
         {
-            var subject = await _context.Subjects
-                .Include(s => s.SubjectType)
-                .FirstOrDefaultAsync(s => s.Id == id && (!s.IsDelete.HasValue || !s.IsDelete.Value));
+            try
+            {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return new ApiResponse<SubjectResponse>(1, "Không có quyền truy cập", null);
 
-            if (subject == null)
-                return new ApiResponse<SubjectResponse>(1, "Subject not found", null);
+                var subject = await _context.Subjects
+                    .Include(s => s.SubjectType)
+                    .FirstOrDefaultAsync(s => s.Id == id && (!s.IsDelete.HasValue || !s.IsDelete.Value));
 
-            var response = _mapper.Map<SubjectResponse>(subject);
-            return new ApiResponse<SubjectResponse>(0, "Success", response);
+                if (subject == null)
+                    return new ApiResponse<SubjectResponse>(1, "Không tìm thấy môn học", null);
+
+                var response = _mapper.Map<SubjectResponse>(subject);
+                return new ApiResponse<SubjectResponse>(0, "Lấy thông tin môn học thành công", response);
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<SubjectResponse>(1, $"Lỗi khi lấy thông tin môn học: {ex.Message}", null);
+            }
         }
 
         public async Task<ApiResponse<SubjectResponse>> CreateSubjectAsync(SubjectRequest request)
         {
             try
             {
-                // Validate request
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return new ApiResponse<SubjectResponse>(1, "Không có quyền truy cập", null);
+
                 if (request == null)
-                {
-                    return new ApiResponse<SubjectResponse>(1, "Invalid request data", null);
-                }
+                    return new ApiResponse<SubjectResponse>(1, "Dữ liệu không hợp lệ", null);
 
                 if (string.IsNullOrEmpty(request.SubjectCode))
-                {
-                    return new ApiResponse<SubjectResponse>(1, "Subject code is required", null);
-                }
+                    return new ApiResponse<SubjectResponse>(1, "Mã môn học không được để trống", null);
 
-                // Check for duplicate SubjectCode
-                if (await _context.Subjects
-                    .AnyAsync(s => s.SubjectCode == request.SubjectCode 
-                        && (!s.IsDelete.HasValue || !s.IsDelete.Value)))
-                {
-                    return new ApiResponse<SubjectResponse>(1, "Subject code already exists", null);
-                }
+                if (await _context.Subjects.AnyAsync(s => s.SubjectCode == request.SubjectCode && (!s.IsDelete.HasValue || !s.IsDelete.Value)))
+                    return new ApiResponse<SubjectResponse>(1, "Mã môn học đã tồn tại", null);
 
-                // Validate foreign keys
                 var subjectType = await _context.SubjectTypes.FindAsync(request.SubjectTypeId);
                 if (subjectType == null)
-                {
-                    return new ApiResponse<SubjectResponse>(1, "Subject type not found", null);
-                }
-
-                var subjectGroup = await _context.SubjectGroups.FindAsync(request.SubjectGroupId);
-                if (subjectGroup == null)
-                {
-                    return new ApiResponse<SubjectResponse>(1, "Subject group not found", null);
-                }
+                    return new ApiResponse<SubjectResponse>(1, "Không tìm thấy loại môn học", null);
 
                 var subject = _mapper.Map<Subject>(request);
                 subject.CreateAt = DateTime.UtcNow.ToLocalTime();
                 subject.IsDelete = false;
-                subject.Id = 0;
+                subject.UserCreate = user.Id;
 
                 _context.Subjects.Add(subject);
                 await _context.SaveChangesAsync();
@@ -132,73 +133,59 @@ namespace Project_LMS.Services
                     .LoadAsync();
 
                 var response = _mapper.Map<SubjectResponse>(subject);
-                return new ApiResponse<SubjectResponse>(0, "Subject created successfully", response);
+                return new ApiResponse<SubjectResponse>(0, "Tạo môn học thành công", response);
             }
             catch (Exception ex)
             {
-                return new ApiResponse<SubjectResponse>(1, $"Error creating subject: {ex.Message}", null);
+                return new ApiResponse<SubjectResponse>(1, $"Lỗi khi tạo môn học: {ex.Message}", null);
             }
         }
 
-        public async Task<ApiResponse<SubjectResponse>> UpdateSubjectAsync(int id, SubjectRequest request)
+        public async Task<ApiResponse<SubjectResponse>> UpdateSubjectAsync(SubjectRequest request)
         {
             try
             {
-                // Validate request
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return new ApiResponse<SubjectResponse>(1, "Không có quyền truy cập", null);
+
                 if (request == null)
-                {
-                    return new ApiResponse<SubjectResponse>(1, "Invalid request data", null);
-                }
+                    return new ApiResponse<SubjectResponse>(1, "Dữ liệu không hợp lệ", null);
 
                 if (string.IsNullOrEmpty(request.SubjectCode))
-                {
-                    return new ApiResponse<SubjectResponse>(1, "Subject code is required", null);
-                }
+                    return new ApiResponse<SubjectResponse>(1, "Mã môn học không được để trống", null);
 
-                // Check if subject exists
                 var existingSubject = await _context.Subjects
                     .Include(s => s.SubjectType)
-                    .FirstOrDefaultAsync(s => s.Id == id && (!s.IsDelete.HasValue || !s.IsDelete.Value));
+                    .FirstOrDefaultAsync(s => s.Id == request.Id && (!s.IsDelete.HasValue || !s.IsDelete.Value));
 
                 if (existingSubject == null)
-                    return new ApiResponse<SubjectResponse>(1, "Subject not found", null);
+                    return new ApiResponse<SubjectResponse>(1, "Không tìm thấy môn học", null);
 
-                // Check for duplicate SubjectCode, excluding current subject
-                var duplicateExists = await _context.Subjects
-                    .AnyAsync(s => s.SubjectCode == request.SubjectCode 
-                        && s.Id != id 
-                        && (!s.IsDelete.HasValue || !s.IsDelete.Value));
-
-                if (duplicateExists)
+                if (await _context.Subjects.AnyAsync(s =>
+                    s.SubjectCode == request.SubjectCode &&
+                    s.Id != request.Id &&
+                    (!s.IsDelete.HasValue || !s.IsDelete.Value)))
                 {
-                    return new ApiResponse<SubjectResponse>(1, $"Subject code '{request.SubjectCode}' already exists", null);
+                    return new ApiResponse<SubjectResponse>(1, "Mã môn học đã tồn tại", null);
                 }
 
-                // Validate foreign keys
                 var subjectType = await _context.SubjectTypes.FindAsync(request.SubjectTypeId);
                 if (subjectType == null)
-                {
-                    return new ApiResponse<SubjectResponse>(1, "Subject type not found", null);
-                }
+                    return new ApiResponse<SubjectResponse>(1, "Không tìm thấy loại môn học", null);
 
-                var subjectGroup = await _context.SubjectGroups.FindAsync(request.SubjectGroupId);
-                if (subjectGroup == null)
-                {
-                    return new ApiResponse<SubjectResponse>(1, "Subject group not found", null);
-                }
-
-                // Update subject
                 _mapper.Map(request, existingSubject);
                 existingSubject.UpdateAt = DateTime.UtcNow.ToLocalTime();
+                existingSubject.UserUpdate = user.Id;
 
                 await _context.SaveChangesAsync();
 
                 var response = _mapper.Map<SubjectResponse>(existingSubject);
-                return new ApiResponse<SubjectResponse>(0, "Subject updated successfully", response);
+                return new ApiResponse<SubjectResponse>(0, "Cập nhật môn học thành công", response);
             }
             catch (Exception ex)
             {
-                return new ApiResponse<SubjectResponse>(1, $"Error updating subject: {ex.Message}", null);
+                return new ApiResponse<SubjectResponse>(1, $"Lỗi khi cập nhật môn học: {ex.Message}", null);
             }
         }
 
@@ -206,20 +193,24 @@ namespace Project_LMS.Services
         {
             try
             {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return new ApiResponse<bool>(1, "Không có quyền truy cập", false);
+
                 var subject = await _context.Subjects.FindAsync(id);
                 if (subject == null || subject.IsDelete == true)
-                    return new ApiResponse<bool>(1, "Subject not found", false);
+                    return new ApiResponse<bool>(1, "Không tìm thấy môn học", false);
 
                 subject.IsDelete = true;
-                // Convert UTC to local time for PostgreSQL timestamp without time zone
                 subject.UpdateAt = DateTime.UtcNow.ToLocalTime();
+                subject.UserUpdate = user.Id;
 
                 await _context.SaveChangesAsync();
-                return new ApiResponse<bool>(0, "Subject deleted successfully", true);
+                return new ApiResponse<bool>(0, "Xóa môn học thành công", true);
             }
             catch (Exception ex)
             {
-                return new ApiResponse<bool>(1, $"Error deleting subject: {ex.Message}", false);
+                return new ApiResponse<bool>(1, $"Lỗi khi xóa môn học: {ex.Message}", false);
             }
         }
 
@@ -227,27 +218,112 @@ namespace Project_LMS.Services
         {
             try
             {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return new ApiResponse<bool>(1, "Không có quyền truy cập", false);
+
                 var subjects = await _context.Subjects
                     .Where(s => ids.Contains(s.Id) && (!s.IsDelete.HasValue || !s.IsDelete.Value))
                     .ToListAsync();
 
                 if (!subjects.Any())
-                {
-                    return new ApiResponse<bool>(1, "No subjects found to delete", false);
-                }
+                    return new ApiResponse<bool>(1, "Không tìm thấy môn học để xóa", false);
 
                 foreach (var subject in subjects)
                 {
                     subject.IsDelete = true;
                     subject.UpdateAt = DateTime.UtcNow.ToLocalTime();
+                    subject.UserUpdate = user.Id;
                 }
 
                 await _context.SaveChangesAsync();
-                return new ApiResponse<bool>(0, $"Successfully deleted {subjects.Count} subjects", true);
+                return new ApiResponse<bool>(0, $"Đã xóa thành công {subjects.Count} môn học", true);
             }
             catch (Exception ex)
             {
-                return new ApiResponse<bool>(1, $"Error deleting subjects: {ex.Message}", false);
+                return new ApiResponse<bool>(1, $"Lỗi khi xóa môn học: {ex.Message}", false);
+            }
+        }
+        public async Task<List<SubjectResponseSearch>> getSubjectByUserId(int userId)
+        {
+            // Lấy danh sách SubjectsId từ TeacherClassSubject dựa trên userId
+            var subjectIds = await _context.TeacherClassSubjects
+                .Where(tcs => tcs.UserId == userId && (tcs.IsDelete == null || tcs.IsDelete == false))
+                .Select(tcs => tcs.SubjectsId)
+                .ToListAsync();
+
+            // Nếu không tìm thấy môn học nào được phân công cho userId
+            if (!subjectIds.Any())
+            {
+                return new List<SubjectResponseSearch>();
+            }
+
+            // Lấy danh sách môn học từ Subjects dựa trên subjectIds
+            var query = _context.Subjects.AsQueryable();
+
+            query = query.Where(x => subjectIds.Contains(x.Id) && (x.IsDelete == null || x.IsDelete == false));
+
+            var subjects = await query
+                .Select(x => new SubjectResponseSearch { Id = x.Id, SubjectName = x.SubjectName })
+                .ToListAsync();
+
+            return subjects;
+        }
+
+        public async Task<List<SubjectDropdownResponse>> GetSubjectsBySubjectGroupIdAsync(int subjectGroupId)
+        {
+            if (subjectGroupId <= 0)
+            {
+                return new List<SubjectDropdownResponse>();
+            }
+
+            var subjects = await _context.SubjectGroupSubjects
+                .Where(sgs => sgs.SubjectGroupId == subjectGroupId &&
+                             (sgs.IsDelete == null || sgs.IsDelete == false) &&
+                             sgs.Subject != null)
+                .Select(sgs => new SubjectDropdownResponse
+                {
+                    Id = sgs.Subject!.Id, 
+                    Name = sgs.Subject!.SubjectName ?? string.Empty
+                })
+                .ToListAsync();
+
+            return subjects;
+        }
+
+        public async Task<List<SubjectResponseSearch>> SearchSubjectByKeywordAsync(string? keyword)
+        {
+            try
+            {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return new List<SubjectResponseSearch>();
+
+                var query = _context.Subjects.AsQueryable();
+                if (!string.IsNullOrEmpty(keyword))
+                {
+                    keyword = keyword.ToLower().Trim();
+                    query = query.Where(x =>
+                        (x.SubjectName != null && x.SubjectName.ToLower().Contains(keyword)) ||
+                        (x.SubjectCode != null && x.SubjectCode.ToLower().Contains(keyword)) &&
+                        (x.IsDelete == null || x.IsDelete == false));
+                }
+                else
+                {
+                    query = query.Where(x => x.IsDelete == null || x.IsDelete == false);
+                }
+
+                return await query
+                    .Select(x => new SubjectResponseSearch
+                    {
+                        Id = x.Id,
+                        SubjectName = x.SubjectName
+                    })
+                    .ToListAsync();
+            }
+            catch (Exception)
+            {
+                return new List<SubjectResponseSearch>();
             }
         }
     }

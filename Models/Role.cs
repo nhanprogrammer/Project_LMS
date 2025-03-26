@@ -12,6 +12,7 @@ namespace Project_LMS.Models
 
         public int Id { get; set; }
         public string? Name { get; set; }
+        //public string? DisplayName { get; set; }
         public DateTime? CreateAt { get; set; }
         public DateTime? UpdateAt { get; set; }
         public int? UserCreate { get; set; }

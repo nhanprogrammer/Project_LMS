@@ -1,0 +1,22 @@
+meta {
+  name: AddAcademicHold
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}api/AcademicHolds
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "classId": 1,
+    "userId": 1,
+    "holdDate": "2025-04-21T03:49:25.807Z",
+    "holdDuration": 1,
+    "reason": "string",
+    "fileName": ""
+  }
+}

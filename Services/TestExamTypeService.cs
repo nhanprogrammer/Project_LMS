@@ -1,3 +1,4 @@
+using System.Text;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Project_LMS.Data;
@@ -18,8 +19,7 @@ namespace Project_LMS.Services
             _context = context;
             _mapper = mapper;
         }
-
-        public async Task<ApiResponse<PaginatedResponse<TestExamTypeResponse>>> GetAll(int pageNumber = 1, int pageSize = 10,string? keyword = null)
+        public async Task<ApiResponse<PaginatedResponse<TestExamTypeResponse>>> GetAll(int pageNumber = 1, int pageSize = 10, string? keyword = null)
         {
             if (pageNumber < 1)
             {
@@ -30,15 +30,26 @@ namespace Project_LMS.Services
             {
                 pageSize = 10;
             }
-            Console.WriteLine(keyword + "Keyword");
-           IQueryable<TestExamType> query = _context.TestExamTypes;
 
+            // Lấy tất cả bản ghi chưa bị xóa mềm từ database
+            IQueryable<TestExamType> query = _context.TestExamTypes
+                .Where(t => t.IsDelete == null || t.IsDelete == false);
+
+            // Chuyển sang client-side evaluation
+            var testExamTypes = await query.ToListAsync();
+
+            // Nếu có keyword, lọc trên client
             if (!string.IsNullOrWhiteSpace(keyword))
             {
-                query = query.Where(t => t.PointTypeName.Contains(keyword));
+                var normalizedKeyword = keyword.Trim().ToLower().Normalize(NormalizationForm.FormD);
+                testExamTypes = testExamTypes
+                    .Where(t => t.PointTypeName != null &&
+                                t.PointTypeName.ToLower().Normalize(NormalizationForm.FormD).Contains(normalizedKeyword))
+                    .ToList();
             }
 
-            var totalItems = await query.CountAsync();
+            // Tính toán phân trang trên client
+            var totalItems = testExamTypes.Count;
             var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
 
             if (pageNumber > totalPages && totalPages > 0)
@@ -46,12 +57,13 @@ namespace Project_LMS.Services
                 pageNumber = totalPages;
             }
 
-            var testExamTypes = await query
+            // Phân trang trên client
+            var pagedTestExamTypes = testExamTypes
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .ToListAsync();
+                .ToList();
 
-            var testExamTypeResponses = _mapper.Map<List<TestExamTypeResponse>>(testExamTypes);
+            var testExamTypeResponses = _mapper.Map<List<TestExamTypeResponse>>(pagedTestExamTypes);
 
             var paginatedResponse = new PaginatedResponse<TestExamTypeResponse>
             {
@@ -69,7 +81,6 @@ namespace Project_LMS.Services
                 Data = paginatedResponse
             };
         }
-
         public async Task<ApiResponse<List<int>>> GetCoefficients()
         {
             var coefficients = new List<int> { 1, 2, 3 };
@@ -115,15 +126,11 @@ namespace Project_LMS.Services
             {
                 return new ApiResponse<TestExamTypeResponse>(1, "Loại bài kiểm tra không tồn tại.");
             }
-            var isUsedInTestExams = await _context.TestExams
-                .AnyAsync(te => te.TestExamTypeId == id);
-
-            if (isUsedInTestExams)
+            if (testExamType.IsDelete == true)
             {
-                return new ApiResponse<TestExamTypeResponse>(1, "Không thể xóa loại bài kiểm tra vì đang được sử dụng trong các bài kiểm tra.");
+                return new ApiResponse<TestExamTypeResponse>(1, "Loại bài kiểm tra đã bị xóa.");
             }
-
-            _context.TestExamTypes.Remove(testExamType);
+            testExamType.IsDelete = true;
             await _context.SaveChangesAsync();
             return new ApiResponse<TestExamTypeResponse>(0, "Xóa loại bài kiểm tra thành công.");
         }
@@ -141,6 +148,20 @@ namespace Project_LMS.Services
             {
                 Data = response
             };
+        }
+
+        public async Task<ApiResponse<TestExamTypeResponse>> GetById(int id)
+        {
+            var testExamType = await _context.TestExamTypes
+                .FirstOrDefaultAsync(t => t.Id == id && t.IsDelete == false);
+
+            if (testExamType == null)
+            {
+                return new ApiResponse<TestExamTypeResponse>(1, "Không tìm thấy loại điểm với Id được cung cấp.", null);
+            }
+
+            var response = _mapper.Map<TestExamTypeResponse>(testExamType);
+            return new ApiResponse<TestExamTypeResponse>(0, "Lấy loại điểm thành công!", response);
         }
     }
 }

@@ -19,7 +19,7 @@ public class SubjectGroupController : ControllerBase
 
 
     [HttpGet]
-    public async Task<IActionResult> GetAllDisciplinesAsync(    int? pageNumber,
+    public async Task<IActionResult> GetAllDisciplinesAsync(int? pageNumber,
         int? pageSize,
         string? sortDirection)
     {
@@ -61,11 +61,10 @@ public class SubjectGroupController : ControllerBase
         return Ok(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
     }
 
-    [HttpPut("{id?}")]
-    public async Task<IActionResult> UpdateDepartment(int id,
-        [FromBody] UpdateSubjectGroupRequest updateSubjectGroupRequest)
+    [HttpPut]
+    public async Task<IActionResult> UpdateDepartment([FromBody] UpdateSubjectGroupRequest updateSubjectGroupRequest)
     {
-        var response = await _subjectGroupService.UpdateSubjectGroupAsync(id, updateSubjectGroupRequest);
+        var response = await _subjectGroupService.UpdateSubjectGroupAsync(updateSubjectGroupRequest);
         if (response.Status == 1)
         {
             return BadRequest(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
@@ -86,10 +85,14 @@ public class SubjectGroupController : ControllerBase
         return Ok(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
     }
 
-    [HttpDelete ("/SubjectList")]
-    public async Task<IActionResult> DeleteListSubject([FromBody] List<int> ids)
+    [HttpDelete]
+    public async Task<IActionResult> DeleteListSubject([FromBody] DeleteRequest deleteRequest)
     {
-        var response = await _subjectGroupService.DeleteSubjectGroupSubject(ids);
+        Console.WriteLine($"Received IDs: {string.Join(", ", deleteRequest)}");
+
+
+        var response = await _subjectGroupService.DeleteSubjectGroupSubject(deleteRequest);
+
         if (response.Status == 1)
         {
             return BadRequest(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
@@ -97,4 +100,18 @@ public class SubjectGroupController : ControllerBase
 
         return Ok(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
     }
+
+    [HttpGet("names")]
+    public async Task<IActionResult> GetSubjectGroupDropdown()
+    {
+        var response = await _subjectGroupService.GetSubjectGroupDropdownAsync();
+
+        if (response.Status == 1)
+        {
+            return BadRequest(new ApiResponse<List<SubjectGroupDropdownResponse>>(response.Status, response.Message, response.Data));
+        }
+
+        return Ok(new ApiResponse<List<SubjectGroupDropdownResponse>>(response.Status, response.Message, response.Data));
+    }
+
 }

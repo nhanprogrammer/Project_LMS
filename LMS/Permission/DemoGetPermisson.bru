@@ -1,0 +1,15 @@
+meta {
+  name: DemoGetPermisson
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{base_url}}api/permission/u?Id=1
+  body: none
+  auth: none
+}
+
+params:query {
+  Id: 1
+}

@@ -1,8 +1,12 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Exceptions;
 using Project_LMS.Interfaces.Services;
+using Project_LMS.Models;
+using Project_LMS.Services;
 
 namespace Project_LMS.Controllers
 {
@@ -17,49 +21,133 @@ namespace Project_LMS.Controllers
             _service = service;
         }
 
-        [HttpGet]
-        public async Task<ActionResult<PaginatedResponse<TeachingAssignmentResponse>>> GetAll(
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 10)
-        {
-            var result = await _service.GetAll(pageNumber, pageSize);
-            return Ok(result);
-        }
-
         [HttpGet("{id}")]
-        public async Task<ActionResult<TeachingAssignmentResponse>> GetById(int id)
+        public async Task<IActionResult> GetById(int id)
         {
             var result = await _service.GetById(id);
-            if (result == null) return NotFound();
-            return Ok(result);
+            if (result == null)
+            {
+                Console.WriteLine($"API GetById: Không tìm thấy TeachingAssignment với ID: {id}");
+                return NotFound(new ApiResponse<object>(1, $"Không tìm thấy phân công giảng dạy với ID: {id}"));
+            }
+            return Ok(new ApiResponse<object>(0, "Tìm thấy phân công giảng dạy thành công!", result));
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] TeachingAssignmentRequest request)
+        public async Task<IActionResult> Create([FromBody] TeachingAssignmentRequestCreate request)
         {
-            var response = await _service.Create(request);
-            return response != null
-                ? Ok(new { Message = "Phân công giảng dạy đã được tạo!", Data = response })
-                : BadRequest(new { Message = "Tạo phân công thất bại!" });
+            try
+            {
+                //Console.WriteLine($"Bắt đầu tạo phân công: UserId={request.UserId}, ClassId={request.ClassId}, SubjectId={request.SubjectId}");
+
+                var response = await _service.Create(request);
+                if (response != null)
+                {
+                    return Ok(new ApiResponse<object>(0, "Phân công giảng dạy đã được tạo!", response));
+                }
+
+                return BadRequest(new ApiResponse<object>(1, "Tạo phân công thất bại!"));
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(new ApiResponse<object>(1, ex.Message));
+            }
+            catch (BadRequestException ex)
+            {
+                return BadRequest(new ApiResponse<object>(1, ex.Message));
+            }
+            catch (DbUpdateException dbEx)
+            {
+                Console.WriteLine($"Lỗi khi lưu vào database: {dbEx.InnerException?.Message ?? dbEx.Message}");
+                return StatusCode(500,
+                    new ApiResponse<object>(1, $"Lỗi khi lưu dữ liệu vào database: " + (dbEx.InnerException?.Message ?? dbEx.Message)));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<object>(1, ex.Message));
+            }
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] TeachingAssignmentRequest request)
+        [HttpPut]
+        public async Task<IActionResult> UpdateById([FromBody] TeachingAssignmentRequestUpdate request)
         {
-            var response = await _service.Update(id, request);
-            return response != null
-                ? Ok(new { Message = "Cập nhật thành công!", Data = response })
-                : NotFound(new { Message = "Không tìm thấy phân công giảng dạy!" });
+            try
+            {
+                var response = await _service.UpdateById(request);
+
+                if (response != null)
+                {
+                    return Ok(new ApiResponse<object>(0, "Cập nhật thành công!", response));
+                }
+
+                return BadRequest(new ApiResponse<object>(1, "Cập nhật thất bại!"));
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(new ApiResponse<object>(1, ex.Message));
+            }
+            catch (BadRequestException ex)
+            {
+                return BadRequest(new ApiResponse<object>(1, ex.Message));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<object>(1, ex.Message));
+            }
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        [HttpDelete]
+        public async Task<IActionResult> Delete([FromBody] DeleteRequest request)
         {
-            var success = await _service.Delete(id);
+            var success = await _service.Delete(request.ids);
             return success
-                ? Ok(new { Message = "Xóa thành công!" })
-                : NotFound(new { Message = "Không tìm thấy phân công giảng dạy!" });
+                ? Ok(new ApiResponse<object>(0, "Xóa phân công giảng dạy thành công!"))
+                : NotFound(new ApiResponse<object>(1, "Không tìm thấy phân công giảng dạy!"));
         }
-    }
 
+        //Xem lại academicYear
+        [HttpGet("get-all")]
+        public async Task<IActionResult> GetAllTeachingAssignments(
+           [FromQuery] int? academicYearId,
+           [FromQuery] int? subjectGroupId,
+           [FromQuery] int? userId,
+           [FromQuery] int pageNumber = 1,
+           [FromQuery] int pageSize = 10)
+        {
+            try
+            {
+                var result = await _service.GetTeachingAssignments(academicYearId, subjectGroupId, userId, pageNumber, pageSize);
+                return Ok(new ApiResponse<object>(0, "Lấy dữ liệu thành công!", result));
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(new ApiResponse<object>(1, ex.Message));
+            }
+            catch (BadRequestException ex)
+            {
+                return BadRequest(new ApiResponse<object>(1, ex.Message));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<object>(1, ex.Message));
+            }
+
+        }
+
+        [HttpGet("topics")]
+        public async Task<IActionResult> GetTopicsByAssignment([FromQuery] int TeachingAssignmentId)
+        {
+            var topics = await _service.GetTopicsByAssignmentIdAsync(TeachingAssignmentId);
+
+            if (topics == null || !topics.Any())
+            {
+                return BadRequest(new ApiResponse<object>(1, "Không tìm thấy dữ liệu chủ đề"));
+            }
+
+            return Ok(new ApiResponse<object>(0, "Lấy dữ liệu thành công!", topics));
+        }
+
+      
+    }
 }
+

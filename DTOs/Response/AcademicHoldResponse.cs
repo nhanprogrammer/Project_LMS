@@ -1,13 +1,30 @@
-﻿namespace Project_LMS.DTOs.Response;
+﻿using System.Collections;
+using System.Text.Json.Serialization;
+
+namespace Project_LMS.DTOs.Response;
 
 public class AcademicHoldResponse
 {
-    public string StudentCode { get; set; }
-    public string StudentName { get; set; }
-    public DateTime BirthDate { get; set; }
-    public string Gender { get; set; }
-    public string ClassCode { get; set; }
-    public DateTime HoldDate { get; set; }
-    public string SemesterName { get; set; }
-    public string Reason { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public int Id { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public int? UserId { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public string? UserCode { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public string? FullName { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public DateTimeOffset? BirthDate { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public string? Gender { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public string? ClassName { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public DateTimeOffset? HoldDate { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public string? HoldDuration { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public string? Reason { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public string? FileName { get; set; }
 }

@@ -10,8 +10,9 @@ public interface ISubjectGroupService
         int? pageSize,
         string? sortDirection);
     Task<ApiResponse<SubjectGroupResponse>> CreateSubjectGroupAsync(CreateSubjectGroupRequest createSubjectGroupRequest);
-    Task<ApiResponse<SubjectGroupResponse>> UpdateSubjectGroupAsync(int id,  UpdateSubjectGroupRequest updateSubjectGroupRequest);
+    Task<ApiResponse<SubjectGroupResponse>> UpdateSubjectGroupAsync(UpdateSubjectGroupRequest updateSubjectGroupRequest);
     Task<ApiResponse<SubjectGroupResponse>> DeleteSubjectGroupAsync(int id);
     
-    Task<ApiResponse<SubjectGroupResponse>> DeleteSubjectGroupSubject(List<int> ids);
+    Task<ApiResponse<SubjectGroupResponse>> DeleteSubjectGroupSubject(DeleteRequest deleteRequest);
+    Task<ApiResponse<List<SubjectGroupDropdownResponse>>> GetSubjectGroupDropdownAsync();
 }

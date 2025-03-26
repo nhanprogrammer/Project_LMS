@@ -1,0 +1,21 @@
+meta {
+  name: Students create questions
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{base_url}}api/QuestionsAnswers
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "teachingAssignmentId": 1,
+    "userId": 17,
+    "parentCommentId": 80,
+    "message": "Arrays là tập hợp nhiều phần tử cùng kiểu dữ liệu với nhau",
+    "fileName": ""
+  }
+}

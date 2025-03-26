@@ -9,5 +9,7 @@ namespace Project_LMS.Interfaces.Repositories
         Task AddAsync(TestExamType testExamType);
         Task UpdateAsync(TestExamType testExamType);
         Task DeleteAsync(TestExamType testExamType);
+
+        Task<List<TestExamType>> GetAllByIds(List<int> ids);
     }
 }

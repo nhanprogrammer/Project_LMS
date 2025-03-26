@@ -1,0 +1,28 @@
+meta {
+  name: AddLesson
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}api/Lesson
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+          "classId": 2,
+          "teacherId": 0,
+          "classLessonCode": "LESSON05",
+          "description": "Buổi học Toán",
+          "topic": "Kiểm tra 1 Tiết",
+          "duration": "60 phút",
+          "startDate": "2024-10-02T09:00:00",
+          "endDate": "2024-10-02T10:00:00",
+          "password": null,
+          "isResearchable": true,
+          "isAutoStart": false,
+          "isSave": true
+  }
+}

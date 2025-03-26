@@ -1,0 +1,17 @@
+meta {
+  name: DeleteLesson
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{base_url}}api/Lesson
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "ids": [1,2]
+  }
+}

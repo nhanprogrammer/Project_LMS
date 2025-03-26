@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs.Request;
+using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers
@@ -10,75 +12,49 @@ namespace Project_LMS.Controllers
     public class SystemSettingController : ControllerBase
     {
         private readonly ISystemSettingService _systemSettingService;
-
+        
         public SystemSettingController(ISystemSettingService systemSettingService)
         {
             _systemSettingService = systemSettingService;
         }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
+        // [HttpGet]
+        // public async Task<IActionResult> GetAll()
+        // {
+        //     var result = await _systemSettingService.GetAll();
+        //     return Ok(new ApiResponse<object>(0, "Tìm thấy", result));
+        // }
+
+        [Authorize]
+        [HttpPut]
+        public async Task<IActionResult> UpdateSetting([FromBody] SystemSettingRequest request)
         {
-            try
-            {
-                var result = await _systemSettingService.GetById(id);
-                return Ok(result);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
+            var response = await _systemSettingService.UpdateByUserId(request);
+            return Ok(new ApiResponse<UserSystemSettingResponse>(0, "Cập nhật thành công!", response));
         }
 
+        [Authorize(Policy = "DATA-MNG-VIEW")]
         [HttpGet]
-        public async Task<IActionResult> GetAll()
-        {
-            var result = await _systemSettingService.GetAll();
-            return Ok(result);
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] SystemSettingRequest request)
+        public async Task<IActionResult> GetUserSetting()
         {
             try
             {
-                var result = await _systemSettingService.Create(request);
-                return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+                var response = await _systemSettingService.GetCurrentUserSettingAsync();
+                return Ok(new ApiResponse<UserSystemSettingResponse>(0, "Lấy cài đặt thành công!", response));
             }
-            catch (ArgumentException ex)
+            catch (UnauthorizedAccessException ex)
             {
-                return BadRequest(new { message = ex.Message });
-            }
-        }
-
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] SystemSettingRequest request)
-        {
-            try
-            {
-                var result = await _systemSettingService.Update(id, request);
-                return Ok(result);
+                return Unauthorized(new ApiResponse<string>(1, ex.Message, null));
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(new { message = ex.Message });
+                return NotFound(new ApiResponse<string>(1, ex.Message, null));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<string>(1, "Lỗi hệ thống: " + ex.Message, null));
             }
         }
 
-        //[HttpDelete("{id}")]
-        //public async Task<IActionResult> Delete(int id)
-        //{
-        //    try
-        //    {
-        //        var success = await _systemSettingService.Delete(id);
-        //        if (!success) return BadRequest(new { message = "Xóa thất bại." });
-
-        //        return NoContent();
-        //    }
-        //    catch (KeyNotFoundException ex)
-        //    {
-        //        return NotFound(new { message = ex.Message });
-        //    }
-        //}
     }
 }

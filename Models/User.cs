@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Project_LMS.Models
 {
@@ -12,6 +13,7 @@ namespace Project_LMS.Models
             Assignments = new HashSet<Assignment>();
             ChatMessages = new HashSet<ChatMessage>();
             ClassStudentOnlines = new HashSet<ClassStudentOnline>();
+            ClassOnlines = new HashSet<ClassOnline>();
             ClassStudents = new HashSet<ClassStudent>();
             Classes = new HashSet<Class>();
             Disciplines = new HashSet<Discipline>();
@@ -34,7 +36,13 @@ namespace Project_LMS.Models
         }
 
         public int Id { get; set; }
-        public int? GroupRolePermission { get; set; }
+        public int? GroupModulePermissonId { get; set; }
+        [Column("subject_group_id")]
+        public int? SubjectGroupId { get; set; }
+        public bool? Disable { get; set; }
+        public string? ResetCode { get; set; }
+        public DateTime? ResetCodeExpiry { get; set; }
+        public bool? PermissionChanged  { get; set; }
         public int? RoleId { get; set; }
         public int? StudentStatusId { get; set; }
         public int? TeacherStatusId { get; set; }
@@ -84,14 +92,18 @@ namespace Project_LMS.Models
         public DateTime? UpdateAt { get; set; }
         public int? UserCreate { get; set; }
         public int? UserUpdate { get; set; }
-        public virtual ModulePermission GroupRolePermissionNavigation { get; set; } = null!;
+        public virtual GroupModulePermisson? GroupModulePermisson { get; set; }
         public virtual Role? Role { get; set; }
         public virtual StudentStatus? StudentStatus { get; set; }
         public virtual TeacherStatus? TeacherStatus { get; set; }
+        [ForeignKey("SubjectGroupId")]
+        public virtual SubjectGroup? SubjectGroup { get; set; }
+
         public virtual ICollection<AcademicHold> AcademicHolds { get; set; }
         public virtual ICollection<Assignment> Assignments { get; set; }
         public virtual ICollection<ChatMessage> ChatMessages { get; set; }
         public virtual ICollection<ClassStudentOnline> ClassStudentOnlines { get; set; }
+        public virtual ICollection<ClassOnline> ClassOnlines { get; set; }
         public virtual ICollection<ClassStudent> ClassStudents { get; set; }
         public virtual ICollection<Class> Classes { get; set; }
         public virtual ICollection<Discipline> Disciplines { get; set; }
@@ -111,7 +123,11 @@ namespace Project_LMS.Models
         public virtual ICollection<Topic> Topics { get; set; }
         public virtual ICollection<UserTrainingRank> UserTrainingRanks { get; set; }
         public virtual ICollection<Department> Departments { get; set; }
+        public virtual ICollection<Exemption> Exemptions { get; set; }
+        public virtual ICollection<TeacherStatusHistory> TeacherStatusHistories { get; set; }
+        public virtual ICollection<QuestionAnswerTopicView> QuestionAnswerTopicViews { get; set; }
     }
+
     public class Jwt
     {
         public string Key { get; set; }
@@ -125,9 +141,11 @@ namespace Project_LMS.Models
         public string Username { get; set; }
         public string Password { get; set; }
     }
+
     public class RegisterModel
     {
         public string Username { get; set; }
+
         public string Password { get; set; }
         //public string Email { get; set; }
     }

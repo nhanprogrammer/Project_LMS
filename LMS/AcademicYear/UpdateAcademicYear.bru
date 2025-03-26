@@ -1,0 +1,25 @@
+meta {
+  name: UpdateAcademicYear
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{base_url}}api/AcademicYear
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+      "Id": 1,
+      "StartDate": "2025-01-01T00:00:00",
+      "EndDate": "2028-12-31T23:59:59",
+      "IsInherit": false,
+      "AcademicParent": 1,
+  //     "UpdateAt": "2025-02-18T12:00:00",
+      "UserUpdate": 1,
+      "IsDelete": false
+  }
+  
+}

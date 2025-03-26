@@ -5,8 +5,8 @@ namespace Project_LMS.Interfaces.Services;
 
 public interface ISystemSettingService
 {
+    Task<UserSystemSettingResponse> GetCurrentUserSettingAsync();
     Task<SystemSettingResponse> GetById(int id);
     Task<IEnumerable<SystemSettingResponse>> GetAll();
-    Task<SystemSettingResponse> Create(SystemSettingRequest request);
-    Task<SystemSettingResponse> Update(int id, SystemSettingRequest request);
+    Task<UserSystemSettingResponse> UpdateByUserId(SystemSettingRequest request);
 }

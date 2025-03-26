@@ -18,7 +18,7 @@ namespace Project_LMS.Models
         public string? Title { get; set; }
         public string? FileName { get; set; }
         public string? Description { get; set; }
-        public DateTime? CloseAt { get; set; }
+        public DateTimeOffset? CloseAt { get; set; }
         public DateTime? CreateAt { get; set; }
         public DateTime? UpdateAt { get; set; }
         public int? UserCreate { get; set; }
@@ -30,5 +30,7 @@ namespace Project_LMS.Models
         public virtual User? User { get; set; }
         public virtual ICollection<Favourite> Favourites { get; set; }
         public virtual ICollection<Topic> InverseTopicNavigation { get; set; }
+        public virtual ICollection<QuestionAnswerTopicView> QuestionAnswerTopicViews { get; set; }
+
     }
 }

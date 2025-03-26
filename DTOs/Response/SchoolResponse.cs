@@ -37,6 +37,7 @@ namespace Project_LMS.DTOs.Response
     public DateTime EstablishmentDate { get; set; }
 
     public string? HeadOffice { get; set; }
+    public string? Image { get; set; }
 
     private List<SchoolBranchResponse>? _branches;
 

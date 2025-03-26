@@ -1,0 +1,15 @@
+meta {
+  name: FindStudentByUserCode
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{base_url}}api/Student/findstudentbyusercode?userCode=SV002
+  body: none
+  auth: inherit
+}
+
+params:query {
+  userCode: SV002
+}

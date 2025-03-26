@@ -19,6 +19,11 @@ namespace Project_LMS.Repositories
             await _context.SaveChangesAsync();
         }
 
+        public async Task<int> CountAsync()
+        {
+            return await _context.Users.CountAsync();
+        }
+
         public async Task DeleteAsync(User user)
         {
             _context.Users.Remove(user);
@@ -33,7 +38,10 @@ namespace Project_LMS.Repositories
         public async Task<List<User>> GetAllAsync(int pageNumber, int pageSize)
         {
             return await _context.Users
-                .Where(user => user.IsDelete == false)
+                .Include(user =>user.Role)
+                .Include(user =>user.StudentStatus)
+                .Include(user=>user.ClassStudents).ThenInclude(cs=>cs.Class)
+                .Where(user => user.IsDelete == false && user.Role.Name.Equals("Student"))
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();

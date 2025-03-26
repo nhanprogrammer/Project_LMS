@@ -22,11 +22,12 @@ namespace Project_LMS.Models
         public int? UserCreate { get; set; }
         public int? UserUpdate { get; set; }
         public bool? IsDelete { get; set; }
-
+        public string? Description { get; set; }
         public virtual Class? Class { get; set; }
         public virtual Subject? Subject { get; set; }
         public virtual User? User { get; set; }
         public virtual ICollection<QuestionAnswer> QuestionAnswers { get; set; }
         public virtual ICollection<Topic> Topics { get; set; }
+        public virtual ICollection<Lesson> Lessons { get; set; } = new HashSet<Lesson>();
     }
 }
