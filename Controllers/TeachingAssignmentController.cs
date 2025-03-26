@@ -115,7 +115,8 @@ namespace Project_LMS.Controllers
            [FromQuery] int pageSize = 10)
         {
             try
-            { var result = await _service.GetTeachingAssignments(academicYearId, subjectGroupId, userId, pageNumber, pageSize);
+            {
+                var result = await _service.GetTeachingAssignments(academicYearId, subjectGroupId, userId, pageNumber, pageSize);
                 return Ok(new ApiResponse<object>(0, "Lấy dữ liệu thành công!", result));
             }
             catch (NotFoundException ex)
@@ -130,7 +131,7 @@ namespace Project_LMS.Controllers
             {
                 return StatusCode(500, new ApiResponse<object>(1, ex.Message));
             }
-           
+
         }
 
         [HttpGet("topics")]
@@ -145,14 +146,8 @@ namespace Project_LMS.Controllers
 
             return Ok(new ApiResponse<object>(0, "Lấy dữ liệu thành công!", topics));
         }
-        [HttpGet("class/search")]
-        public async Task<IActionResult> SearchClass([FromQuery] string? keyword)
-        {
-            var result = await _service.SearchClass(keyword);
-            if (!result.Any() || result == null)
-                return Ok(new ApiResponse<object>(1, "Không tìm thấy lớp học"));
-            return Ok(new ApiResponse<object>(0, "Tìm thành công lớp học", result));
-        }
+
+      
     }
 }
 

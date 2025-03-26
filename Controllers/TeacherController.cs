@@ -1,6 +1,7 @@
 ﻿using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs.Request;
+using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces.Services;
 using System;
 using System.Threading.Tasks;
@@ -145,6 +146,25 @@ namespace Project_LMS.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, $"Lỗi server: {ex.Message}");
+            }
+        }
+        [HttpGet("for-assignment")]
+        public async Task<ActionResult<ApiResponse<List<UserResponseTeachingAssignment>>>> GetTeachers()
+        {
+            try
+            {
+                var teachers = await _teacherService.GetTeachersAsync();
+
+                if (teachers == null || !teachers.Any())
+                {
+                    return Ok(new ApiResponse<List<UserResponseTeachingAssignment>>(1, "Không có giảng viên nào.", null));
+                }
+
+                return Ok(new ApiResponse<List<UserResponseTeachingAssignment>>(0, "Lấy danh sách giảng viên thành công!", teachers));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi khi lấy danh sách giảng viên.", ex.Message));
             }
         }
     }

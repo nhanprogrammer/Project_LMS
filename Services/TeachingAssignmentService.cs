@@ -56,6 +56,34 @@ public class TeachingAssignmentService : ITeachingAssignmentService
             if (user == null)
                 throw new UnauthorizedAccessException("Token không hợp lệ hoặc đã hết hạn!");
 
+            // Kiểm tra trạng thái Active của người dùng được phân công
+            var assignedUser = await _context.Users
+            .Where(u => u.Id == request.UserId && (u.IsDelete == false || u.IsDelete == null))
+            .Select(u => new
+            {
+                u.FullName,
+                u.TeacherStatusId,
+                StatusName = u.TeacherStatus != null ? u.TeacherStatus.StatusName : null,
+                u.RoleId,
+                RoleName = u.Role != null ? u.Role.Name : null
+            })
+            .FirstOrDefaultAsync();
+
+            if (assignedUser == null)
+            {
+                throw new BadRequestException($"Không tìm thấy người dùng với ID {request.UserId}.");
+            }
+
+            if (assignedUser.RoleId != 2)
+            {
+                throw new BadRequestException($"Người dùng {assignedUser.FullName} không phải là giảng viên (hiện tại: {assignedUser.RoleName ?? "Không xác định"}).");
+            }
+
+            if (assignedUser.TeacherStatusId != 1)
+            {
+                throw new BadRequestException($"Giảng viên {assignedUser.FullName} không ở trạng thái giảng viên đang làm việc (hiện tại: {assignedUser.StatusName ?? "Không xác định"}).");
+            }
+
             // Kiểm tra StartDate và EndDate: EndDate phải lớn hơn hoặc bằng StartDate
             if (request.EndDate < request.StartDate)
             {
@@ -129,6 +157,30 @@ public class TeachingAssignmentService : ITeachingAssignmentService
                 Console.WriteLine($"Insert vào học kỳ tiếp theo: {nextSemester.Name}, niên khóa: {nextSemester.AcademicYear?.StartDate?.Year} - {nextSemester.AcademicYear?.EndDate?.Year}");
             }
 
+
+            // Kiểm tra xem giảng viên có được dạy môn học này không
+            // Lấy thông tin môn học
+            var subject = await _context.Subjects
+                .Where(s => s.Id == request.SubjectId && (s.IsDelete == false || s.IsDelete == null))
+                .Select(s => new { s.SubjectName })
+                .FirstOrDefaultAsync();
+
+            if (subject == null)
+            {
+                throw new BadRequestException($"Không tìm thấy môn học với ID {request.SubjectId}.");
+            }
+
+            // Lấy thông tin lớp học
+            var classInfo = await _context.Classes
+                .Where(c => c.Id == request.ClassId && (c.IsDelete == false || c.IsDelete == null))
+                .Select(c => new { c.Name })
+                .FirstOrDefaultAsync();
+
+            if (classInfo == null)
+            {
+                throw new BadRequestException($"Không tìm thấy lớp học với ID {request.ClassId}.");
+            }
+
             // Kiểm tra xem giảng viên có được dạy môn học này không
             var teacherSubjectExists = await _context.TeacherClassSubjects
                 .AnyAsync(tcs => tcs.UserId == request.UserId
@@ -137,7 +189,17 @@ public class TeachingAssignmentService : ITeachingAssignmentService
 
             if (!teacherSubjectExists)
             {
-                throw new BadRequestException($"Giảng viên với ID {request.UserId} không được phép dạy môn học với ID {request.SubjectId}.");
+                throw new BadRequestException($"Giảng viên {assignedUser.FullName} không được phép dạy môn {subject.SubjectName} ở lớp {classInfo.Name}.");
+            }
+            // Kiểm tra xem lớp có được phép dạy môn học này không (dựa vào bảng ClassSubject)
+            var classSubjectExists = await _context.ClassSubjects
+                .AnyAsync(cs => cs.ClassId == request.ClassId
+                             && cs.SubjectId == request.SubjectId
+                             && (cs.IsDelete == false || cs.IsDelete == null));
+
+            if (!classSubjectExists)
+            {
+                throw new BadRequestException($"Lớp {classInfo.Name} không được phép dạy môn học {subject.SubjectName}.");
             }
 
             // Kiểm tra xem giảng viên đã được phân công dạy môn này, ở lớp này, trong học kỳ này chưa
@@ -152,9 +214,8 @@ public class TeachingAssignmentService : ITeachingAssignmentService
 
             if (existingAssignment != null)
             {
-                throw new BadRequestException($"Giảng viên với ID {request.UserId} đã được phân công dạy môn học với ID {request.SubjectId} ở lớp với ID {request.ClassId} trong học kỳ {semesterToCheck.Name}.");
+                throw new BadRequestException($"Giảng viên {assignedUser.FullName} đã được phân công dạy môn {subject.SubjectName} ở lớp {classInfo.Name} trong học kỳ {semesterToCheck.Name}.");
             }
-
             // Tạo TeachingAssignment
             var assignment = new TeachingAssignment
             {
@@ -200,6 +261,7 @@ public class TeachingAssignmentService : ITeachingAssignmentService
                 throw new BadRequestException($"EndDate ({request.EndDate}) phải lớn hơn hoặc bằng StartDate ({request.StartDate}).");
             }
 
+            // Lấy thông tin TeachingAssignment hiện tại
             var assignment = await _context.TeachingAssignments
                 .Include(ta => ta.Subject)
                 .Include(ta => ta.Class)
@@ -209,11 +271,78 @@ public class TeachingAssignmentService : ITeachingAssignmentService
             if (assignment == null)
                 throw new NotFoundException("Không tìm thấy phân công giảng dạy này.");
 
+            // Lấy UserId và SubjectId từ TeachingAssignment hiện tại
+            var userId = assignment.UserId;
+            var subjectId = assignment.SubjectId;
+
+            // Kiểm tra lớp học mới có tồn tại không
             var classExists = await _context.Classes
                 .AnyAsync(c => c.Id == request.ClassId && c.IsDelete != true);
 
             if (!classExists)
                 throw new NotFoundException("Lớp học không tồn tại.");
+
+            // Lấy thông tin môn học
+            var subject = await _context.Subjects
+                .Where(s => s.Id == subjectId && (s.IsDelete == false || s.IsDelete == null))
+                .Select(s => new { s.SubjectName })
+                .FirstOrDefaultAsync();
+
+            if (subject == null)
+            {
+                throw new BadRequestException($"Không tìm thấy môn học với ID {subjectId}.");
+            }
+
+            // Lấy thông tin lớp học mới
+            var classInfo = await _context.Classes
+                .Where(c => c.Id == request.ClassId && (c.IsDelete == false || c.IsDelete == null))
+                .Select(c => new { c.Name })
+                .FirstOrDefaultAsync();
+
+            if (classInfo == null)
+            {
+                throw new BadRequestException($"Không tìm thấy lớp học với ID {request.ClassId}.");
+            }
+
+            // Lấy thông tin giảng viên
+            var assignedUser = await _context.Users
+                .Where(u => u.Id == userId && (u.IsDelete == false || u.IsDelete == null))
+                .Select(u => new
+                {
+                    u.FullName,
+                    u.TeacherStatusId,
+                    StatusName = u.TeacherStatus != null ? u.TeacherStatus.StatusName : null,
+                    u.RoleId,
+                    RoleName = u.Role != null ? u.Role.Name : null
+                })
+                .FirstOrDefaultAsync();
+
+            if (assignedUser == null)
+            {
+                throw new BadRequestException($"Không tìm thấy người dùng với ID {userId}.");
+            }
+
+            // Kiểm tra xem giảng viên có được phép dạy môn học này không
+            var teacherSubjectExists = await _context.TeacherClassSubjects
+                .AnyAsync(tcs => tcs.UserId == userId
+                              && tcs.SubjectsId == subjectId
+                              && (tcs.IsDelete == false || tcs.IsDelete == null));
+
+            if (!teacherSubjectExists)
+            {
+                throw new BadRequestException($"Giảng viên {assignedUser.FullName} không được phép dạy môn {subject.SubjectName}.");
+            }
+
+            // Kiểm tra xem lớp mới có được phép dạy môn học này không
+            var classSubjectExists = await _context.ClassSubjects
+                .AnyAsync(cs => cs.ClassId == request.ClassId
+                             && cs.SubjectId == subjectId
+                             && (cs.IsDelete == false || cs.IsDelete == null));
+
+            if (!classSubjectExists)
+            {
+                throw new BadRequestException($"Lớp {classInfo.Name} không được phép dạy môn học {subject.SubjectName}.");
+            }
 
             // Kiểm tra niên khóa và học kỳ
             var now = DateTime.UtcNow;
@@ -255,6 +384,22 @@ public class TeachingAssignmentService : ITeachingAssignmentService
             }
 
             Console.WriteLine($"Học kỳ mới: {newSemester.Name}, niên khóa: {newSemester.AcademicYear?.StartDate?.Year} - {newSemester.AcademicYear?.EndDate?.Year}");
+
+            // Kiểm tra xem giảng viên đã được phân công dạy môn này, ở lớp này, trong học kỳ mới chưa
+            var existingAssignment = await _context.TeachingAssignments
+                .Where(ta => ta.UserId == userId
+                          && ta.SubjectId == subjectId
+                          && ta.ClassId == request.ClassId
+                          && ta.Id != request.teachingAssignmentId // Loại trừ bản ghi hiện tại
+                          && (ta.IsDelete == false || ta.IsDelete == null)
+                          && ta.StartDate >= newSemester.StartDate
+                          && ta.EndDate <= newSemester.EndDate)
+                .FirstOrDefaultAsync();
+
+            if (existingAssignment != null)
+            {
+                throw new BadRequestException($"Giảng viên {assignedUser.FullName} đã được phân công dạy môn {subject.SubjectName} ở lớp {classInfo.Name} trong học kỳ {newSemester.Name}.");
+            }
 
             // Tìm học kỳ hiện tại
             var currentSemester = await _context.Semesters
@@ -394,7 +539,6 @@ public class TeachingAssignmentService : ITeachingAssignmentService
             throw;
         }
     }
-
     public async Task<bool> Delete(List<int> ids)
     {
         var user = await _authService.GetUserAsync();
@@ -615,4 +759,5 @@ public class TeachingAssignmentService : ITeachingAssignmentService
 
         return classes;
     }
+
 }
