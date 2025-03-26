@@ -37,11 +37,11 @@ public class TeacherService : ITeacherService
     public async Task<ApiResponse<object>> AddAsync(TeacherRequest request)
     {
 
-        if (await _teacherRepository.FindTeacherByUserCode(request.UserCode) != null) 
-            return new ApiResponse<object>(1, "UserCode đã tồn tại"); 
-        if (await _teacherRepository.FindTeacherByEmailOrderUserCode(request.Email,null) != null) 
+        if (await _teacherRepository.FindTeacherByUserCode(request.UserCode) != null)
+            return new ApiResponse<object>(1, "UserCode đã tồn tại");
+        if (await _teacherRepository.FindTeacherByEmailOrderUserCode(request.Email, null) != null)
             return new ApiResponse<object>(1, "Email đã tồn tại");
-        
+
         var teacher = _mapper.Map<User>(request);
         var username = await _studentService.GeneratedUsername(request.Email);
         var password = await _studentService.GenerateSecurePassword(10);
@@ -105,7 +105,8 @@ public class TeacherService : ITeacherService
             {
                 userCodeDeleteError.Add(userCode);
             }
-        };
+        }
+        ;
         if (userCodeDeleteSuccess.Count > 0)
         {
             return new ApiResponse<object>(0, "Xóa giảng viên thành công.")
@@ -373,4 +374,8 @@ public class TeacherService : ITeacherService
         }
     }
 
+public async Task<List<UserResponseTeachingAssignment>> GetTeachersAsync()
+{
+    return await _teacherRepository.GetTeachersAsync();
+}
 }

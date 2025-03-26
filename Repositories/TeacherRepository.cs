@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Org.BouncyCastle.Asn1.Ocsp;
 using Project_LMS.Data;
 using Project_LMS.DTOs.Request;
+using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces.Responsitories;
 using Project_LMS.Models;
 
@@ -45,7 +46,7 @@ namespace Project_LMS.Repositories
                     (cs.TeacherStatus.StatusName.ToLower().Contains(searchItem))
                 );
             }
-            return await query.CountAsync();    
+            return await query.CountAsync();
         }
 
         public async Task DeleteAsync(User user)
@@ -57,7 +58,7 @@ namespace Project_LMS.Repositories
 
         public async Task<User> FindTeacherByEmailOrderUserCode(string email, string userCode)
         {
-            return await _context.Users.Where(u=>(!(u.UserCode.Equals(userCode)) || userCode == null)&& u.Email.Equals(email)).FirstOrDefaultAsync();
+            return await _context.Users.Where(u => (!(u.UserCode.Equals(userCode)) || userCode == null) && u.Email.Equals(email)).FirstOrDefaultAsync();
         }
 
         public async Task<User> FindTeacherByUserCode(string userCode)
@@ -205,6 +206,19 @@ namespace Project_LMS.Repositories
             _context.Users.Update(user);
             await _context.SaveChangesAsync();
             return user;
+        }
+        public async Task<List<UserResponseTeachingAssignment>> GetTeachersAsync()
+        {
+            var teachers = await _context.Users
+                .Where(u => u.RoleId == 2 && u.TeacherStatusId == 1 && (u.IsDelete == false || u.IsDelete == null))
+                .Select(u => new UserResponseTeachingAssignment
+                {
+                    Id = u.Id,
+                    FullName = u.FullName
+                })
+                .ToListAsync();
+
+            return teachers;
         }
     }
 }
