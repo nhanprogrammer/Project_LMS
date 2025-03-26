@@ -54,28 +54,26 @@ public class TeacherService : ITeacherService
             teacher.Username = username;
             teacher.Password = BCrypt.Net.BCrypt.HashPassword(password);
             teacher = await _teacherRepository.AddAsync(teacher);
-
-            Task task1 = Task.Run(async () =>
+            foreach (int item in request.TeacherSubjectIds)
             {
-                foreach (int item in request.TeacherSubjectIds)
+                TeacherClassSubject teacherClass = new TeacherClassSubject();
+                teacherClass.SubjectsId = item;
+                teacherClass.UserId = teacher.Id;
+                if (item == request.SubjectId)
                 {
-                    TeacherClassSubject teacherClass = new TeacherClassSubject();
-                    teacherClass.SubjectsId = item;
-                    teacherClass.UserId = teacher.Id;
-                    if (item == request.SubjectId)
-                    {
-                        teacherClass.IsPrimary = true;
-                    }
-                    await _teacherClassSubjectRepository.AddAsync(teacherClass);
+                    teacherClass.IsPrimary = true;
                 }
-            });
+                await _teacherClassSubjectRepository.AddAsync(teacherClass);
 
-            Task task2 = Task.Run(async () =>
+            }
+
+
+
+            Task.Run(async () =>
             {
                 await ExecuteEmail(teacher.Email, teacher.FullName, username, password);
             });
 
-            Task.WhenAll(task1);
             return new ApiResponse<object>(0, "Tạo tài khoản giảng viên thành công.");
         }
         catch (Exception ex)
@@ -187,8 +185,7 @@ public class TeacherService : ITeacherService
             Task task1 = Task.Run(async () =>
             {
                 var subjects = await _teacherClassSubjectRepository.GetAllByTeacher(teacher.Id);
-                Task task1 = Task.Run(async () =>
-                {
+
                     foreach (var item in subjects)
                     {
                         if (!request.TeacherSubjectIds.Contains(item.Id))
@@ -196,7 +193,7 @@ public class TeacherService : ITeacherService
                             await _teacherClassSubjectRepository.DeleteAsync(item);
                         }
                     }
-                });
+         
                 Task task2 = Task.Run(async () =>
                 {
                     foreach (int item in request.TeacherSubjectIds)

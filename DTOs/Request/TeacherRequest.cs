@@ -39,10 +39,6 @@ namespace Project_LMS.DTOs.Request
         public string? Alias { get; set; }
         public string? National { get; set; }
         [JsonIgnore]
-        public DateTime? CreateAt { get; set; }
-        [JsonIgnore]
-        public DateTime? UpdateAt { get; set; }
-        [JsonIgnore]
         public int? UserCreate { get; set; }
         [JsonIgnore]
         public int? UserUpdate { get; set; }

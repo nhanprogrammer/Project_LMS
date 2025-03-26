@@ -8,32 +8,42 @@ using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers
 {
-    [Authorize(Policy = "DATA-MNG-VIEW")]
     [ApiController]
     [Route("api/[controller]")]
     public class TranscriptController : ControllerBase
     {
         private readonly ITranscriptService _transcriptService;
-        private readonly IAuthService _authService;
+        //private readonly IAuthService _authService;
 
-        public TranscriptController(ITranscriptService transcriptService, IAuthService authService)
+        public TranscriptController(ITranscriptService transcriptService)
         {
             _transcriptService = transcriptService;
-            _authService = authService ?? throw new ArgumentNullException(nameof(authService));
+            //_authService = authService ?? throw new ArgumentNullException(nameof(authService));
         }
 
 
         [HttpGet]
-        public async Task<IActionResult> GetTranscriptAsync([FromBody] TranscriptRequest transcriptRequest)
+        public async Task<IActionResult> GetTranscriptAsync([FromQuery]TranscriptRequest transcriptRequest)
         {
-            var user = await _authService.GetUserAsync();
-            if (user == null)
-                return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+            //var user = await _authService.GetUserAsync();
+            //if (user == null)
+            //    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
 
-            var userId = user.Id;
+            //var userId = user.Id;
 
-            Console.WriteLine($"TeacherId từ token: {userId}");
-            var result = await _transcriptService.GetTranscriptAsync(transcriptRequest, userId);
+            var result = await _transcriptService.GetTranscriptAsync(transcriptRequest);
+            return Ok(result);
+        }     
+        [HttpGet("exportexcel")]
+        public async Task<IActionResult> ExportExcelTranscriptAsync([FromQuery]TranscriptRequest transcriptRequest)
+        {
+            //var user = await _authService.GetUserAsync();
+            //if (user == null)
+            //    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+
+            //var userId = user.Id;
+
+            var result = await _transcriptService.ExportExcelTranscriptAsync(transcriptRequest);
             return Ok(result);
         }
 

@@ -5,6 +5,7 @@ namespace Project_LMS.Interfaces.Services
 {
     public interface ITranscriptService
     {
-        Task<ApiResponse<List<TranscriptReponse>>> GetTranscriptAsync(TranscriptRequest transcriptRequest, int userId);
+        Task<ApiResponse<object>> GetTranscriptAsync(TranscriptRequest transcriptRequest);
+        Task<ApiResponse<object>> ExportExcelTranscriptAsync(TranscriptRequest transcriptRequest);
     }
 }
