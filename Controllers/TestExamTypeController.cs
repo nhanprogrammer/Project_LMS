@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Exceptions;
+using Project_LMS.Interfaces;
 using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers
@@ -12,9 +14,12 @@ namespace Project_LMS.Controllers
     public class TestExamTypeController : ControllerBase
     {
         private readonly ITestExamTypeService _service;
-        public TestExamTypeController(ITestExamTypeService service)
+        private readonly IAuthService _authService;
+
+        public TestExamTypeController(ITestExamTypeService service, IAuthService authService)
         {
             _service = service;
+            _authService = authService;
         }
         [HttpGet]
         public Task<ApiResponse<PaginatedResponse<TestExamTypeResponse>>> GetAll(
@@ -39,9 +44,22 @@ namespace Project_LMS.Controllers
             }
         }
         [HttpPost]
-        public Task<ApiResponse<TestExamTypeResponse>> Create(TestExamTypeRequest request)
+        public async Task<ActionResult<ApiResponse<TestExamTypeResponse>>> Create(TestExamTypeRequest request)
         {
-            return _service.Create(request);
+            if (request == null)
+            {
+                return BadRequest(new ApiResponse<string>(1, "Request body không được để trống", null));
+            }
+
+            var user = await _authService.GetUserAsync();
+            if (user == null)
+                return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+
+            var response = await _service.Create(request, user.Id);
+            return response.Status == 0
+                ? Ok(response)
+                : BadRequest(new ApiResponse<string>(1, response.Message, null));
+
         }
         [HttpPut]
         public async Task<ActionResult<ApiResponse<TestExamTypeResponse>>> Update([FromBody] TestExamTypeRequest request)
@@ -53,19 +71,29 @@ namespace Project_LMS.Controllers
                     return BadRequest(new ApiResponse<string>(1, "Request body hoặc Id không được để trống hoặc không hợp lệ", null));
                 }
 
-                var response = await _service.Update(request.Id.Value, request);
-                if (response == null)
-                {
-                    return NotFound(new ApiResponse<TestExamTypeResponse>(1, "Không tìm thấy loại điểm cần cập nhật", null));
-                }
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
 
-                return Ok(new ApiResponse<TestExamTypeResponse>(0, "Cập nhật loại điểm thành công", response.Data));
+                var response = await _service.Update(request.Id.Value, request, user.Id);
+                return new ApiResponse<TestExamTypeResponse>(0, "Cập nhật loại điểm thành công!", response.Data);
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(new ApiResponse<string>(1, ex.Message, null));
+            }
+            catch (BadRequestException ex)
+            {
+                return BadRequest(new ApiResponse<string>(1, ex.Message, null));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi khi cập nhật loại điểm", ex.Message));
+                return StatusCode(500, new ApiResponse<string>(1, $"Đã xảy ra lỗi khi cập nhật loại điểm: {ex.Message}", null));
             }
+
+
         }
+
         [HttpDelete("{id}")]
         public Task<ApiResponse<TestExamTypeResponse>> Delete(int id)
         {

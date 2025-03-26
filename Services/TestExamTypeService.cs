@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Project_LMS.Data;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Exceptions;
 using Project_LMS.Interfaces.Services;
 using Project_LMS.Models;
 
@@ -90,34 +91,68 @@ namespace Project_LMS.Services
             };
         }
 
-        public async Task<ApiResponse<TestExamTypeResponse>> Create(TestExamTypeRequest request)
+        public async Task<ApiResponse<TestExamTypeResponse>> Create(TestExamTypeRequest request, int userId)
         {
-            var testExamType = _mapper.Map<TestExamType>(request);
-            await _context.TestExamTypes.AddAsync(testExamType);
-            await _context.SaveChangesAsync();
-            var response = _mapper.Map<TestExamTypeResponse>(testExamType);
-            return new ApiResponse<TestExamTypeResponse>(0, "Tạo loại bài kiểm tra thành công.")
+            try
             {
-                Data = response
-            };
-        }
+                var testExamType = _mapper.Map<TestExamType>(request);
+                testExamType.UserCreate = userId;
+                await _context.TestExamTypes.AddAsync(testExamType);
+                var saved = await _context.SaveChangesAsync();
+                if (saved <= 0)
+                {
+                    throw new BadRequestException("Không thể lưu loại bài kiểm tra vào cơ sở dữ liệu.");
+                }
 
-        public async Task<ApiResponse<TestExamTypeResponse>> Update(int id, TestExamTypeRequest request)
-        {
-            var testExamType = await _context.TestExamTypes.FindAsync(id);
-            if (testExamType == null)
-            {
-                return new ApiResponse<TestExamTypeResponse>(1, "Loại bài kiểm tra không tồn tại.");
+                var response = _mapper.Map<TestExamTypeResponse>(testExamType);
+                return new ApiResponse<TestExamTypeResponse>(0, "Tạo loại bài kiểm tra thành công.")
+                {
+                    Data = response
+                };
             }
-
-            _mapper.Map(request, testExamType);
-            await _context.SaveChangesAsync();
-            var response = _mapper.Map<TestExamTypeResponse>(testExamType);
-            return new ApiResponse<TestExamTypeResponse>(0, "Cập nhật loại bài kiểm tra thành công.")
+            catch (Exception ex)
             {
-                Data = response
-            };
+                Console.WriteLine($"Error in Create TestExamType: {ex.Message} | {ex.StackTrace}");
+                throw new BadRequestException("Đã xảy ra lỗi khi tạo loại bài kiểm tra: " + ex.Message);
+            }
         }
+
+        public async Task<ApiResponse<TestExamTypeResponse>> Update(int id, TestExamTypeRequest request, int userId)
+        {
+            try
+            {
+                var testExamType = await _context.TestExamTypes.FindAsync(id);
+                if (testExamType == null)
+                {
+                    throw new NotFoundException("Loại bài kiểm tra không tồn tại.");
+                }
+
+                _mapper.Map(request, testExamType);
+                testExamType.UserUpdate = userId;
+                var saved = await _context.SaveChangesAsync();
+                if (saved <= 0)
+                {
+                    throw new BadRequestException("Không thể cập nhật loại bài kiểm tra vào cơ sở dữ liệu.");
+                }
+
+                var response = _mapper.Map<TestExamTypeResponse>(testExamType);
+                return new ApiResponse<TestExamTypeResponse>(0, "Cập nhật loại bài kiểm tra thành công.")
+                {
+                    Data = response
+                };
+            }
+            catch (NotFoundException ex)
+            {
+                throw; // Ném lại để controller xử lý
+            }
+            catch (Exception ex)
+            {
+                // Ghi log lỗi (nếu có logger)
+                Console.WriteLine($"Error in Update TestExamType: {ex.Message} | {ex.StackTrace}");
+                throw new BadRequestException("Đã xảy ra lỗi khi cập nhật loại bài kiểm tra: " + ex.Message);
+            }
+        }
+
 
         public async Task<ApiResponse<TestExamTypeResponse>> Delete(int id)
         {
