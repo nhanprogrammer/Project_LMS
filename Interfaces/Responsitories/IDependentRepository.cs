@@ -7,5 +7,7 @@ namespace Project_LMS.Interfaces.Responsitories
         public Task<Dependent> AddAsync(Dependent dependent);
         public Task DeleteAsync(Dependent dependent);
 
+        public Task<Dependent> FindByIdAsync(int id);   
+
     }
 }

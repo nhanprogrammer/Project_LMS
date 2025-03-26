@@ -828,7 +828,7 @@ namespace Project_LMS.Data
                     .HasColumnName("create_at")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                entity.Property(e => e.DependentCode).HasColumnName("dependent_code");
+                //entity.Property(e => e.DependentCode).HasColumnName("dependent_code");
 
                 entity.Property(e => e.IsDelete)
                     .HasColumnName("is_delete")

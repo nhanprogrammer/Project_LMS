@@ -14,6 +14,7 @@ namespace Project_LMS.Interfaces.Responsitories
         public Task<ClassStudent> FindClassStudentByUserCodeClassId(string userCode, int classId);
         public Task<ClassStudent> FindStudentByClassAndStudent(int classId, int studentId);
         public Task<ClassStudent> FindStudentByIdIsActive(int studentId);
+        public Task<List<ClassStudent>> FindStudentByStudentAcademic(int studentId,int academicId);
 
     }
 }

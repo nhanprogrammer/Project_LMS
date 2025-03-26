@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Text.Json.Serialization;
 
 namespace Project_LMS.DTOs.Request
 {
@@ -38,6 +39,11 @@ namespace Project_LMS.DTOs.Request
         public DateTime? BirthGuardianship { get; set; }
         public string? WorkGuardianship { get; set; }
         public string? PhoneGuardianship { get; set; }
+
+        [JsonIgnore]
+        public int? UserCreate { get; set; }
+        [JsonIgnore]
+        public int? UserUpdate { get; set; }
 
 
     }
