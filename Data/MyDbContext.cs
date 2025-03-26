@@ -87,19 +87,19 @@ namespace Project_LMS.Data
                 .HasOne(e => e.User)
                 .WithMany(u => u.Exemptions)
                 .HasForeignKey(e => e.UserId)
-                .OnDelete(DeleteBehavior.Cascade);   
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<User>()
                 .HasOne(u => u.SubjectGroup)
                 .WithMany(s => s.Users)
-                .HasForeignKey(u =>u.SubjectGroupId)
-                .OnDelete(DeleteBehavior.Cascade);       
+                .HasForeignKey(u => u.SubjectGroupId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<TeacherStatusHistory>()
-                .HasOne(t=>t.User)
-                .WithMany(u=>u.TeacherStatusHistories)
-                .HasForeignKey(t=>t.UserId)
-                .OnDelete(DeleteBehavior.Cascade);  
+                .HasOne(t => t.User)
+                .WithMany(u => u.TeacherStatusHistories)
+                .HasForeignKey(t => t.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
 
 
             modelBuilder.Entity<AcademicHold>(entity =>
@@ -1070,73 +1070,55 @@ namespace Project_LMS.Data
                 entity.ToTable("lessons");
 
                 entity.Property(e => e.Id).HasColumnName("id");
-
                 entity.Property(e => e.TeachingAssignmentId).HasColumnName("teaching_assignment_id");
-
                 entity.Property(e => e.ClassLessonCode)
                     .HasMaxLength(255)
                     .HasColumnName("class_lesson_code");
-
                 entity.Property(e => e.CreateAt)
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("create_at")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
                 entity.Property(e => e.Description).HasColumnName("description");
-
                 entity.Property(e => e.Duration)
                     .HasMaxLength(50)
                     .HasColumnName("duration");
-
                 entity.Property(e => e.LessonLink)
                     .HasColumnType("character varying")
                     .HasColumnName("lesson_link");
-
                 entity.Property(e => e.EndDate)
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("end_date");
-
                 entity.Property(e => e.IsAutoStart)
                     .HasColumnName("is_auto_start")
                     .HasDefaultValueSql("false");
-
                 entity.Property(e => e.IsDelete)
                     .HasColumnName("is_delete")
                     .HasDefaultValueSql("false");
-
                 entity.Property(e => e.IsResearchable)
                     .HasColumnName("is_researchable")
                     .HasDefaultValueSql("false");
-
                 entity.Property(e => e.IsSave)
                     .HasColumnName("is_save")
                     .HasDefaultValueSql("false");
-
                 entity.Property(e => e.PaswordLeassons).HasColumnName("pasword_leassons");
-
                 entity.Property(e => e.StartDate)
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("start_date");
-
                 entity.Property(e => e.Topic)
                     .HasMaxLength(255)
                     .HasColumnName("topic");
-
                 entity.Property(e => e.UpdateAt)
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("update_at")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
                 entity.Property(e => e.UserCreate).HasColumnName("user_create");
-
                 entity.Property(e => e.UserId).HasColumnName("user_id");
-
                 entity.Property(e => e.UserUpdate).HasColumnName("user_update");
 
                 entity.HasOne(d => d.TeachingAssignment)
                     .WithMany(p => p.Lessons)
                     .HasForeignKey(d => d.TeachingAssignmentId)
-                    .HasConstraintName("fk_lessons_teachingassignment");
+                    .HasConstraintName("lessons_teaching_assignments_fk");
 
                 entity.HasOne(d => d.User)
                     .WithMany(p => p.Lessons)
@@ -1593,9 +1575,9 @@ namespace Project_LMS.Data
                 entity.Property(e => e.Address)
                     .HasMaxLength(255)
                     .HasColumnName("address");
-                      entity.Property(e => e.SchoolPhone)
-                    .HasMaxLength(10)
-                    .HasColumnName("school_phone");
+                entity.Property(e => e.SchoolPhone)
+              .HasMaxLength(10)
+              .HasColumnName("school_phone");
 
                 entity.Property(e => e.BranchName)
                     .HasMaxLength(255)

@@ -99,5 +99,17 @@ namespace Project_LMS.Controllers
 
             return Ok(new ApiResponse<AcademicYearResponse>(response.Status, response.Message, response.Data));
         }
+
+        [HttpGet("names")]
+        public async Task<ActionResult<ApiResponse<List<AcademicYearNameResponse>>>> GetAcademicYearNames()
+        {
+            var result = await _academicYearsService.GetAcademicYearNamesAsync();
+            if (!result.Any())
+            {
+                return Ok(new ApiResponse<List<AcademicYearNameResponse>>(1, "Không tìm thấy niên khóa", null));
+            }
+
+            return Ok(new ApiResponse<List<AcademicYearNameResponse>>(0, "Lấy danh sách niên khóa thành công", result));
+        }
     }
 }

@@ -34,6 +34,18 @@ public class NotificationsService : INotificationsService
         }
     }
 
+    public async Task AddNotificationToUsersAsync(List<int> userIds, string subject, string content)
+    {
+        try
+        {
+            await _notificationsRepository.AddNotificationToUsersAsync(userIds, subject, content);
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Không thể thêm thông báo đến danh sách người dùng: {ex.Message}", ex);
+        }
+    }
+
     public async Task<ApiResponse<IEnumerable<NotificationResponse>>> GetNotificationsByUserIdAsync(int userId)
     {
         try

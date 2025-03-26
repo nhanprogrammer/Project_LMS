@@ -250,11 +250,11 @@ namespace Project_LMS.Controllers
         [Authorize(Policy = "STUDENT-CLASS-FUTURE-VIEW")]
         [HttpGet("futurestudent")]
         public async Task<ActionResult<ApiResponse<PaginatedResponse<ClassFutureResponse>>>> GetClassLessonStudent(
-[FromQuery] string? keyword,
-[FromQuery] int? subjectId,
-[FromQuery] int status = 0,
-[FromQuery] int pageNumber = 1,
-[FromQuery] int pageSize = 10)
+      [FromQuery] string? keyword,
+      [FromQuery] int? subjectId,
+      [FromQuery] int status = 0,
+      [FromQuery] int pageNumber = 1,
+      [FromQuery] int pageSize = 10)
         {
             try
             {
@@ -298,16 +298,16 @@ namespace Project_LMS.Controllers
             }
         }
 
-
         [HttpGet("search-classes")]
-        public async Task<IActionResult> GetClassesByAcademicYearAndKeyword([FromQuery] int academicYearId, [FromQuery] string keyword)
+        public async Task<IActionResult> GetClassesByAcademicYearAndKeyword(
+            [FromQuery] int academicYearId)
         {
             try
             {
-                var classes = await _classService.GetClassesByAcademicYearAndKeyword(academicYearId, keyword);
+                var classes = await _classService.GetClassesByAcademicYear(academicYearId);
                 return Ok(new ApiResponse<List<Class_UserResponse>>(
                     0,
-                    "Tìm kiếm lớp học thành công!",
+                    "Lấy danh sách lớp học thành công!",
                     classes));
             }
             catch (Exception ex)

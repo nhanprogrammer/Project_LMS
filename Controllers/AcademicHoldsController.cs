@@ -37,11 +37,11 @@ namespace Project_LMS.Controllers
         }
 
         [HttpGet("search-users")]
-        public async Task<IActionResult> SearchUsers([FromQuery] int classId, [FromQuery] string keyword)
+        public async Task<IActionResult> SearchUsers([FromQuery] int classId)
         {
             try
             {
-                var users = await _academicHoldsService.SearchUsersByCriteriaAsync(classId, keyword);
+                var users = await _academicHoldsService.SearchUsersByCriteriaAsync(classId);
                 return Ok(new ApiResponse<List<User_AcademicHoldsResponse>>(
                     0,
                     "Tìm kiếm người dùng thành công!",
