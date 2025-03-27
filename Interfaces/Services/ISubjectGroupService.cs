@@ -14,4 +14,5 @@ public interface ISubjectGroupService
     Task<ApiResponse<SubjectGroupResponse>> DeleteSubjectGroupAsync(int id);
     
     Task<ApiResponse<SubjectGroupResponse>> DeleteSubjectGroupSubject(DeleteRequest deleteRequest);
+    Task<ApiResponse<List<SubjectGroupDropdownResponse>>> GetSubjectGroupDropdownAsync();
 }

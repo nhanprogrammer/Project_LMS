@@ -1,107 +1,153 @@
+using AutoMapper;
+using FluentValidation;
 using Project_LMS.Data;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces;
 using Project_LMS.Interfaces.Responsitories;
 using Project_LMS.Models;
+using Project_LMS.Repositories;
 
 namespace Project_LMS.Services
 {
     public class DisciplinesService : IDisciplinesService
     {
         private readonly IDisciplineRepository _disciplineRepository;
-        private readonly ApplicationDbContext _context;
+        private readonly IValidator<DisciplineRequest> _validator;
+        private readonly IMapper _mapper;
+        private readonly IStudentRepository _studentRepository;
+        private readonly IClassStudentRepository _classStudentRepository;
+        private readonly ICloudinaryService _cloudinaryService;
 
-        public DisciplinesService(IDisciplineRepository disciplineRepository, ApplicationDbContext context)
+        public DisciplinesService(IDisciplineRepository disciplineRepository, IValidator<DisciplineRequest> validator, IMapper mapper, IStudentRepository studentRepository, IClassStudentRepository classStudentRepository, ICloudinaryService cloudinaryService)
         {
             _disciplineRepository = disciplineRepository;
-            _context = context;
+            _validator = validator;
+            _mapper = mapper;
+            _studentRepository = studentRepository;
+            _classStudentRepository = classStudentRepository;
+            _cloudinaryService = cloudinaryService;
         }
 
-        public async Task<ApiResponse<List<DisciplineResponse>>> GetAllDisciplineAsync()
+        public async Task<ApiResponse<object>> AddAsync(DisciplineRequest request)
         {
-            var disciplines = await _disciplineRepository.GetAllAsync();
-    
-            var data = disciplines.Select(c => new DisciplineResponse
+            var errors = new List<string>();
+            var validationResult = await _validator.ValidateAsync(request);
+            if (!validationResult.IsValid)
             {
-                Id = c.Id,
-                DisciplineContent = c.DisciplineContent,
-                CreateAt = c.CreateAt,
-            }).ToList();
-    
-            return new ApiResponse<List<DisciplineResponse>>(0, "Fill dữ liệu thành công ", data);
-        }
+                errors = validationResult.Errors.Select(e => e.ErrorMessage).ToList();
+                return new ApiResponse<object>(1, "Thêm kỷ luật thất bại.")
+                {
+                    Data = errors
+                };
+            }
+            var discipline = _mapper.Map<Discipline>(request);
+            try
+            {
+                if (request.Name != null)
+                {
+                    discipline.Name = await _cloudinaryService.UploadDocAsync(request.Name);
+                    Console.WriteLine("url : " + discipline.Name);
+                }
 
-        public async Task<ApiResponse<DisciplineResponse>> CreateDisciplineAsync(CreateDisciplineRequest createDisciplineRequest)
-        {
-            var discipline = new Discipline
+                var student = await _studentRepository.FindStudentByUserCode(request.UserCode);
+                discipline.UserId = student.Id;
+                discipline.DisciplineDate = DateTime.Now;
+                discipline.CreateAt = DateTime.Now;
+                await _disciplineRepository.AddAsync(discipline);
+                return new ApiResponse<object>(0, "Thêm kỷ luật thành công.");
+            }
+            catch (Exception ex)
             {
-                UserId = createDisciplineRequest.StudentId,
-                SemesterId = createDisciplineRequest.SemesterId,
-                DisciplineCode = createDisciplineRequest.DisciplineCode,
-                DisciplineContent = createDisciplineRequest.DisciplineContent,
-                Name = createDisciplineRequest.Name,
-                // userCreate vì chưa phân quyền nên ko có token 
-            };
-            await _disciplineRepository.AddAsync(discipline);
-            var response = new DisciplineResponse
-            {  
-                Id = discipline.Id,
-                DisciplineContent = discipline.DisciplineContent,
-                CreateAt = discipline.CreateAt,
-             
-            };
-            return new ApiResponse<DisciplineResponse>(0, "Department đã thêm thành công", response);
-        }
-
-        public async Task<ApiResponse<DisciplineResponse>> UpdateDisciplineAsync(string id, UpdateDisciplineRequest updateDisciplineRequest)
-        {
-            if (!int.TryParse(id, out int disciplineId))
-            {
-                return new ApiResponse<DisciplineResponse>(1, "ID không hợp lệ. Vui lòng kiểm tra lại.", null);
+                return new ApiResponse<object>(1, "Thêm kỷ luật thất bại.")
+                {
+                    Data = "error : " + ex.Message
+                };
             }
 
-            var discipline = await _disciplineRepository.GetByIdAsync(disciplineId);
+
+        }
+
+
+
+        public async Task<ApiResponse<object>> UpdateAsync(UpdateDisciplineRequest request)
+        {
+            var errors = new List<string>();
+            var discipline = await _disciplineRepository.GetByIdAsync(request.id);
+            if (discipline == null) return new ApiResponse<object>(1, "Kỷ luật không tồn tại.");
+            var validationResult = await _validator.ValidateAsync(request);
+            if (!validationResult.IsValid)
+            {
+                errors = (validationResult.Errors.Select(e => e.ErrorMessage)).ToList();
+                return new ApiResponse<object>(1, "Cập nhật kỷ luật thất bại.")
+                {
+                    Data = errors
+                };
+            }
+
+            string Name = discipline.Name;
+            try
+            {
+                discipline = _mapper.Map(request, discipline);
+                if (request.Name != null)
+                {
+                    Name = await _cloudinaryService.UploadDocAsync(request.Name);
+                }
+
+                discipline.Name = Name;
+
+                var student = await _studentRepository.FindStudentByUserCode(request.UserCode);
+                discipline.UserId = student.Id;
+                discipline.UpdateAt = DateTime.Now;
+                await _disciplineRepository.UpdateAsync(discipline);
+                return new ApiResponse<object>(0, "Cập nhật kỷ luật thành công.");
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<object>(1, "Cập nhật kỷ luật thất bại.")
+                {
+                    Data = "error : " + ex.Message
+                };
+            }
+
+        }
+
+        public async Task<ApiResponse<object>> DeleteAsync(int id)
+        {
+            var discipline = await _disciplineRepository.GetByIdAsync(id);
             if (discipline == null)
             {
-                return new ApiResponse<DisciplineResponse>(1, "Không tìm thấy discipline.", null);
+                return new ApiResponse<object>(1, "Kỷ luật không tồn tại.");
             }
-            discipline.DisciplineContent = updateDisciplineRequest.DisciplineContent;
-            discipline.Name = updateDisciplineRequest.Name;
-            discipline.UserId = updateDisciplineRequest.StudentId;
-            discipline.SemesterId = updateDisciplineRequest.SemesterId;
-            discipline.UpdateAt = DateTime.Now;
-            discipline.UserUpdate = null;
-            discipline.DisciplineCode = updateDisciplineRequest.DisciplineCode;
-           
-            await _disciplineRepository.UpdateAsync(discipline);
-            var response = new DisciplineResponse
-            {  
-                Id = discipline.Id,
-                DisciplineContent = discipline.DisciplineContent,
-                CreateAt = discipline.CreateAt,
-             
-            };
-
-            return new ApiResponse<DisciplineResponse>(0, "Department đã cập nhật thành công", response);
-        }
-
-        public async Task<ApiResponse<DisciplineResponse>> DeleteDisciplineAsync(string id)
-        {
-            if (!int.TryParse(id, out int departmentId))
-            {
-                return new ApiResponse<DisciplineResponse>(1, "ID không hợp lệ. Vui lòng kiểm tra lại.", null);
-            }
-            var discipline = await _disciplineRepository.GetByIdAsync(departmentId);
-            if (discipline == null)
-            {
-                return new ApiResponse<DisciplineResponse>(1, "Department không tìm thấy");
-            }
-
             discipline.IsDelete = true;
             await _disciplineRepository.UpdateAsync(discipline);
-
-            return new ApiResponse<DisciplineResponse>(0, "Department đã xóa thành công ");
+            return new ApiResponse<object>(0, "Xóa kỷ luật thành công.");
         }
+
+        public async Task<ApiResponse<object>> GetByIdAsync(int id)
+        {
+            var discipline = await _disciplineRepository.GetByIdAsync(id);
+            if (discipline == null) return new ApiResponse<object>(1, "Kỷ luật không tồn tại.");
+            //var classStudent = await _classStudentRepository.FindStudentByIdIsActive(discipline.UserId ?? 0);
+            //string className = classStudent.Class.Name.ToString();
+            var disciplineResponse = new
+            {
+                discipline.Id,
+                discipline.DisciplineContent,
+                discipline.Name,
+                discipline.DisciplineDate,
+                discipline?.User?.FullName,
+                //className,
+                disciplineName = discipline?.Semester?.Name
+            };
+            return new ApiResponse<object>(0, "Đã tìm thấy kỷ luật.")
+            {
+                Data = disciplineResponse
+            };
+        }
+
+
+
+
     }
 }

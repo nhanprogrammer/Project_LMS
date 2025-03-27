@@ -21,5 +21,6 @@ namespace Project_LMS.Models
 
         public virtual User? User { get; set; }
         public virtual ICollection<SubjectGroupSubject> SubjectGroupSubjects { get; set; }
+        public virtual ICollection<User> Users { get; set; }
     }
 }

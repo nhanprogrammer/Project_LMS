@@ -1,0 +1,19 @@
+meta {
+  name: ExportExcelFind
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{base_url}}api/Student/exportexcel/seach?academicId=1&departmentId=1&column=1&orderBy=true&searchItem=L%C3%AA%20th%E1%BB%8B%20C
+  body: none
+  auth: inherit
+}
+
+params:query {
+  academicId: 1
+  departmentId: 1
+  column: 1
+  orderBy: true
+  searchItem: Lê thị C
+}

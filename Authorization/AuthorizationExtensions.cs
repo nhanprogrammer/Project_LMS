@@ -11,9 +11,9 @@ namespace Project_LMS.Authorization
             services.AddAuthorization(options =>
             {
                 var permissions = new List<string>
-                {   
+                {
                     //Khai báo dữ liệu
-                    "DATA-MNG-VIEW", 
+                    "DATA-MNG-VIEW",
                     "DATA-MNG-INSERT",
                     "DATA-MNG-UPDATE",
                     "DATA-MNG-DELETE",

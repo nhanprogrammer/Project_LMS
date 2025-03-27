@@ -6,20 +6,20 @@ using Project_LMS.Interfaces.Repositories;
 using Project_LMS.Models;
 using Project_LMS.Exceptions;
 using Project_LMS.Helpers;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using Project_LMS.Interfaces.Responsitories;
 
 namespace Project_LMS.Services
 {
     public class SemesterService : ISemesterService
     {
         private readonly ISemesterRepository _semesterRepository;
+        private readonly IAcademicYearRepository _academicYearRepository;
         private readonly IMapper _mapper;
 
-        public SemesterService(ISemesterRepository semesterRepository, IMapper mapper)
+        public SemesterService(ISemesterRepository semesterRepository, IAcademicYearRepository academicYearRepository, IMapper mapper)
         {
             _semesterRepository = semesterRepository;
+            _academicYearRepository = academicYearRepository;
             _mapper = mapper;
         }
 
@@ -40,83 +40,128 @@ namespace Project_LMS.Services
             return _mapper.Map<SemesterResponse>(semester);
         }
 
-        public async Task<SemesterResponse> CreateAsync(SemesterRequest request)
+        public async Task<ApiResponse<SemesterResponse>> CreateSemesters(List<CreateSemesterRequest> request, int academicYearId, int userId)
         {
-            var errors = new List<ValidationError>();
-
-            if (StringValidator.ContainsSpecialCharacters(request.Name))
-                errors.Add(new ValidationError { Field = "Name", Error = "Tên học kỳ không được chứa ký tự đặc biệt" });
-
-            if (!request.DateStart.HasValue || !DateTimeValidator.IsValidDateTime(request.DateStart?.ToString() ?? ""))
-                errors.Add(new ValidationError { Field = "DateStart", Error = "Ngày bắt đầu không hợp lệ" });
-
-            if (!request.DateEnd.HasValue || !DateTimeValidator.IsValidDateTime(request.DateEnd?.ToString() ?? ""))
-                errors.Add(new ValidationError { Field = "DateEnd", Error = "Ngày kết thúc không hợp lệ" });
-
-            if (request.DateStart.HasValue && request.DateEnd.HasValue)
+            var academicYear = await _academicYearRepository.GetByIdAsync(academicYearId);
+            if (academicYear == null)
             {
-                if (request.DateStart > request.DateEnd)
-                    errors.Add(new ValidationError { Field = "DateRange", Error = "Ngày bắt đầu không thể lớn hơn ngày kết thúc" });
-
-                if (DateTimeValidator.IsPastDate(request.DateStart.Value))
-                    errors.Add(new ValidationError { Field = "DateStart", Error = "Ngày bắt đầu không thể ở quá khứ" });
+                return new ApiResponse<SemesterResponse>(1, "Niên khóa không tồn tại.");
             }
+            
+            if (request == null || !request.Any())
+                {
+                    return new ApiResponse<SemesterResponse>(1, "Danh sách học kỳ không hợp lệ.");
+                }
 
-            if (errors.Any())
-            {
-                throw new BadRequestException("Validation failed.", errors);
-            }
+                var sortedSemesters = request.OrderBy(s => s.DateStart).ToList();
 
-            var semester = _mapper.Map<Semester>(request);
-            semester.UserCreate = 1;
+                for (int i = 0; i < sortedSemesters.Count - 1; i++)
+                {
+                    var currentSemester = sortedSemesters[i];
+                    var nextSemester = sortedSemesters[i + 1];
 
-            await _semesterRepository.AddAsync(semester);
+                    if (currentSemester.Name == nextSemester.Name)
+                    {
+                        return new ApiResponse<SemesterResponse>(1, "Tên học kỳ không thể trùng nhau.");
+                    }
 
-            return _mapper.Map<SemesterResponse>(semester);
+                    if (currentSemester.DateEnd > nextSemester.DateStart)
+                    {
+                        return new ApiResponse<SemesterResponse>(1,
+                            $"Thời gian của {currentSemester.Name} không hợp lệ. " +
+                            $"Ngày kết thúc ({currentSemester.DateEnd:yyyy-MM-dd}) " +
+                            $"không thể lớn hơn Ngày bắt đầu của {nextSemester.Name} ({nextSemester.DateStart:yyyy-MM-dd}).");
+                    }
+                }
+
+                academicYear.Semesters = _mapper.Map<List<Semester>>(request);
+
+                foreach (var semester in academicYear.Semesters)
+                {
+                    semester.UserCreate = userId;
+                    semester.CreateAt = TimeHelper.Now;
+                }
+
+                await _semesterRepository.AddRangeAsync(academicYear.Semesters);
+            
+            return new ApiResponse<SemesterResponse>(0, "Thêm Học Kỳ thành công.");
         }
 
-        public async Task<SemesterResponse> UpdateAsync(int id, SemesterRequest request)
+        public async Task<ApiResponse<SemesterResponse>> UpdateSemesters(List<UpdateSemesterRequest> semesters, int academicYearId, int userId)
         {
-            var semester = await _semesterRepository.GetByIdAsync(id);
-            if (semester == null)
+            var academicYearRequest = await _academicYearRepository.GetByIdAsync(academicYearId);
+            var existingSemesters = (await _semesterRepository.GetByAcademicYearIdAsync(academicYearId)).ToList();
+            var updatedSemesters = new List<Semester>();
+            var newSemesters = new List<Semester>();
+            var sortedSemesters = semesters.OrderBy(s => s.DateStart).ToList();
+            for (int i = 0; i < sortedSemesters.Count - 1; i++)
             {
-                throw new NotFoundException("Không tìm thấy học kỳ.");
+                var currentSemester = sortedSemesters[i];
+                var nextSemester = sortedSemesters[i + 1];
+
+                if (currentSemester.Name == nextSemester.Name)
+                {
+                    return new ApiResponse<SemesterResponse>(1, "Tên học kỳ không thể trùng nhau.");
+                }
+
+                if (currentSemester.DateEnd > nextSemester.DateStart)
+                {
+                    return new ApiResponse<SemesterResponse>(1,
+                        $"Thời gian của {currentSemester.Name} không hợp lệ. " +
+                        $"Ngày kết thúc ({currentSemester.DateEnd:yyyy-MM-dd}) " +
+                        $"không thể lớn hơn Ngày bắt đầu của {nextSemester.Name} ({nextSemester.DateStart:yyyy-MM-dd}).");
+                }
+            }
+            
+            foreach (var semester in semesters)
+            {
+                // Kiểm tra trong context trước để tránh lỗi theo dõi trùng lặp
+                var existingSemester = existingSemesters.FirstOrDefault(s => s.Id == semester.Id);
+
+                if (semester.DateStart > semester.DateEnd)
+                {
+                    return new ApiResponse<SemesterResponse>(1, $"Ngày kết thúc của {semester.Name} không thể thấp hơn ngày bắt đầu.");
+                }
+               
+                if (semester.DateStart.ToDateTime(TimeOnly.MinValue) < academicYearRequest.StartDate || semester.DateEnd.ToDateTime(TimeOnly.MinValue) > academicYearRequest.EndDate)
+                {
+                    return new ApiResponse<SemesterResponse>(1, $"Thời gian của {semester.Name} không hợp lệ với Niên Khóa.");
+                }
+
+                if (existingSemester != null)
+                {
+                    _mapper.Map(semester, existingSemester);
+                    existingSemester.AcademicYearId = academicYearId;
+                    existingSemester.UserUpdate = userId;
+                    existingSemester.UpdateAt = TimeHelper.Now;
+                    updatedSemesters.Add(existingSemester);                 
+                }
+                else
+                {
+                    var newSemester = _mapper.Map<Semester>(semester);
+                    newSemester.Id = 0;
+                    newSemester.AcademicYearId = academicYearId;
+                    newSemester.UserCreate = userId;
+                    newSemester.CreateAt = TimeHelper.Now;
+                    newSemesters.Add(newSemester);
+                }
             }
 
-            var errors = new List<ValidationError>();
+            var semesterIdsFromRequest = semesters.Where(s => s.Id > 0).Select(s => s.Id).ToList();
+            var semestersToDelete = existingSemesters.Where(s => !semesterIdsFromRequest.Contains(s.Id)).ToList();
+            if (semestersToDelete.Any())
+                await _semesterRepository.DeleteRangeAsync(semestersToDelete);
 
-            if (StringValidator.ContainsSpecialCharacters(request.Name))
-                errors.Add(new ValidationError { Field = "Name", Error = "Tên học kỳ không được chứa ký tự đặc biệt" });
-
-            if (!request.DateStart.HasValue || !DateTimeValidator.IsValidDateTime(request.DateStart?.ToString() ?? ""))
-                errors.Add(new ValidationError { Field = "DateStart", Error = "Ngày bắt đầu không hợp lệ" });
-
-            if (!request.DateEnd.HasValue || !DateTimeValidator.IsValidDateTime(request.DateEnd?.ToString() ?? ""))
-                errors.Add(new ValidationError { Field = "DateEnd", Error = "Ngày kết thúc không hợp lệ" });
-
-            if (request.DateStart.HasValue && request.DateEnd.HasValue)
+            if (updatedSemesters.Any())
             {
-                if (request.DateStart > request.DateEnd)
-                    errors.Add(new ValidationError { Field = "DateRange", Error = "Ngày bắt đầu không thể lớn hơn ngày kết thúc" });
+                await _semesterRepository.UpdateRangeAsync(updatedSemesters);
+            }   
 
-            }
-
-            // if (request.DateStart.HasValue && request.DateStart < semester.DateStart)
-            // {
-            //     errors.Add(new ValidationError { Field = "DateStart", Error = "Ngày bắt đầu không thể nhỏ hơn ngày bắt đầu trước đó." });
-            // }
-
-            if (errors.Any())
+            if (newSemesters.Any())
             {
-                throw new BadRequestException("Validation failed.", errors);
+                await _semesterRepository.AddRangeAsync(newSemesters);
             }
-
-            _mapper.Map(request, semester);
-            semester.UserUpdate = 1;
-
-            await _semesterRepository.UpdateAsync(semester);
-
-            return _mapper.Map<SemesterResponse>(semester);
+            return new ApiResponse<SemesterResponse>(0, "Cập nhật Học Kỳ thành công.");
         }
 
         public async Task<SemesterResponse> DeleteAsync(int id)

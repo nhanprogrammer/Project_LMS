@@ -7,8 +7,8 @@ namespace Project_LMS.Interfaces.Services
     {
         Task<IEnumerable<SchoolBranchResponse>> GetAllAsync();
         Task<SchoolBranchResponse> GetByIdAsync(int id);
-        Task<SchoolBranchResponse> CreateAsync(SchoolBranchRequest request);
-        Task<SchoolBranchResponse> UpdateAsync(int id, SchoolBranchRequest request);
+        Task<SchoolBranchResponse> CreateAsync(SchoolBranchRequest request, int userId);
+        Task<SchoolBranchResponse> UpdateAsync(int id, SchoolBranchRequest request,int userId);
         Task<SchoolBranchResponse> DeleteAsync(int id);
     }
 }

@@ -706,63 +706,89 @@ namespace Project_LMS.Services
             }
         }
 
-        public async Task<ApiResponse<PaginatedResponse<ClassFutureResponse>>> GetClassFuture(string? keyword, int? subjectId, int pageNumber = 1, int pageSize = 10)
+        public async Task<ApiResponse<PaginatedResponse<ClassFutureResponse>>> GetClassFuture(
+    int? userId, string? keyword, int? subjectId, bool future, int pageNumber = 1, int pageSize = 10)
         {
             try
             {
                 if (pageNumber < 1) pageNumber = 1;
                 if (pageSize < 1) pageSize = 10;
 
-                // Create base query
-                var query = _context.TeachingAssignments
-                    .Include(ta => ta.Class)
-                    .Include(ta => ta.Subject)
-                    .Include(ta => ta.User)
-                    .Where(ta => (!ta.IsDelete.HasValue || !ta.IsDelete.Value) &&
-                                ta.Class != null &&
-                                (!ta.Class.IsDelete.HasValue || !ta.Class.IsDelete.Value));
+                var currentDate = DateTime.Now;
+
+                // Base query
+                var query = _context.Lessons
+                    .Include(l => l.TeachingAssignment)
+                        .ThenInclude(ta => ta.Class)
+                    .Include(l => l.TeachingAssignment)
+                        .ThenInclude(ta => ta.Subject)
+                    .Include(l => l.TeachingAssignment)
+                        .ThenInclude(ta => ta.User)
+                    .Where(l => l.TeachingAssignment.UserId == userId && // Filter by teacher ID
+                               (!l.IsDelete.HasValue || !l.IsDelete.Value) &&
+                               (!l.TeachingAssignment.IsDelete.HasValue || !l.TeachingAssignment.IsDelete.Value) &&
+                               l.TeachingAssignment.Class != null &&
+                               (!l.TeachingAssignment.Class.IsDelete.HasValue || !l.TeachingAssignment.Class.IsDelete.Value));
+
+                // Debug: Log total records before filtering
+                var totalRecords = await query.CountAsync();
+                Console.WriteLine($"Total records before filtering: {totalRecords}");
 
                 // Filter by subject if provided
                 if (subjectId.HasValue && subjectId > 0)
                 {
-                    query = query.Where(ta => ta.SubjectId == subjectId);
+                    query = query.Where(l => l.TeachingAssignment.SubjectId == subjectId);
                 }
 
-                // Apply keyword search if provided
+                // Apply keyword search if provided 
                 if (!string.IsNullOrWhiteSpace(keyword))
                 {
                     keyword = keyword.ToLower().Trim();
-                    query = query.Where(ta =>
-                        (ta.Class.ClassCode != null && ta.Class.ClassCode.ToLower().Contains(keyword)) ||
-                        (ta.Class.Name != null && ta.Class.Name.ToLower().Contains(keyword)) ||
-                        (ta.Subject.SubjectName != null && ta.Subject.SubjectName.ToLower().Contains(keyword)) ||
-                        (ta.User.FullName != null && ta.User.FullName.ToLower().Contains(keyword))
+                    query = query.Where(l =>
+                        (l.TeachingAssignment.Class.ClassCode != null &&
+                         l.TeachingAssignment.Class.ClassCode.ToLower().Contains(keyword)) ||
+                        (l.TeachingAssignment.Class.Name != null &&
+                         l.TeachingAssignment.Class.Name.ToLower().Contains(keyword)) ||
+                        (l.TeachingAssignment.Subject.SubjectName != null &&
+                         l.TeachingAssignment.Subject.SubjectName.ToLower().Contains(keyword))
                     );
                 }
 
-                // Get total count for pagination
-                var totalItems = await query.CountAsync();
-                var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
-
-                // Get paginated results
-                var assignments = await query
-                    .OrderBy(ta => ta.Class.Name)
-                    .Skip((pageNumber - 1) * pageSize)
-                    .Take(pageSize)
-                    .Select(ta => new ClassFutureResponse
+                // Get all lessons
+                var allLessons = await query
+                    .Select(l => new ClassFutureResponse
                     {
-                        Id = ta.Class.Id,
-                        ClassCode = ta.Class.ClassCode,
-                        SubjectName = ta.Subject.SubjectName,
-                        StartDate = ta.Class.StartDate,
-                        TeacherName = ta.User.FullName,
-                        StatusClass = ta.Class.StatusClass
+                        TeachingAssignmentId = l.TeachingAssignment.Id,
+                        ClassCode = l.TeachingAssignment.Class.ClassCode,
+                        SubjectName = l.TeachingAssignment.Subject.SubjectName,
+                        StartDate = l.StartDate,
+                        TeacherName = l.TeachingAssignment.User.FullName,
+                        StatusClass = l.TeachingAssignment.Class.StatusClass
                     })
                     .ToListAsync();
 
+                // Filter and sort by date
+                var filteredLessons = future
+                    ? allLessons.Where(l => l.StartDate >= currentDate).ToList()
+                    : allLessons.Where(l => l.StartDate < currentDate).ToList();
+
+                var sortedLessons = future
+                    ? filteredLessons.OrderBy(l => l.StartDate).ToList()
+                    : filteredLessons.OrderByDescending(l => l.StartDate).ToList();
+
+                // Calculate pagination
+                var totalItems = sortedLessons.Count;
+                var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+                // Get paginated items
+                var paginatedLessons = sortedLessons
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToList();
+
                 var paginatedResponse = new PaginatedResponse<ClassFutureResponse>
                 {
-                    Items = assignments,
+                    Items = paginatedLessons,
                     PageNumber = pageNumber,
                     PageSize = pageSize,
                     TotalItems = totalItems,
@@ -771,13 +797,16 @@ namespace Project_LMS.Services
                     HasNextPage = pageNumber < totalPages
                 };
 
-                return new ApiResponse<PaginatedResponse<ClassFutureResponse>>(0,
-                    assignments.Any() ? "Lấy danh sách phân công giảng dạy thành công" : "Không có dữ liệu",
-                    paginatedResponse);
+                var message = !future
+                    ? (paginatedLessons.Any() ? "Lấy danh sách buổi học đã qua thành công" : "Không có bài học đã qua")
+                    : (paginatedLessons.Any() ? "Lấy danh sách buổi học sắp tới thành công" : "Không có bài học sắp tới");
+
+                return new ApiResponse<PaginatedResponse<ClassFutureResponse>>(0, message, paginatedResponse);
             }
             catch (Exception ex)
             {
-                return new ApiResponse<PaginatedResponse<ClassFutureResponse>>(1, $"Lỗi khi lấy danh sách phân công giảng dạy: {ex.Message}", null);
+                return new ApiResponse<PaginatedResponse<ClassFutureResponse>>(1,
+                    $"Lỗi khi lấy danh sách bài học: {ex.Message}", null);
             }
         }
 
@@ -803,9 +832,10 @@ namespace Project_LMS.Services
                         TeacherName = ta.User.FullName,
                         StartDate = ta.StartDate,
                         EndDate = ta.EndDate,
-                        TotalLessons = ta.Lessons.Count(l => !l.IsDelete.HasValue || !l.IsDelete.Value), // Tính tổng số buổi học
+                        TotalLessons = ta.Lessons.Count(l => !l.IsDelete.HasValue || !l.IsDelete.Value),
                         Lessons = ta.Lessons
                             .Where(l => !l.IsDelete.HasValue || !l.IsDelete.Value)
+                            .OrderBy(l => l.StartDate) // Sort by StartDate ascending
                             .Select(l => new ClassLessonResponse
                             {
                                 Id = l.Id,
@@ -821,7 +851,8 @@ namespace Project_LMS.Services
                                 IsSave = l.IsSave,
                                 LessonLink = l.LessonLink,
                                 TeacherName = l.User.FullName
-                            }).ToList()
+                            })
+                            .ToList()
                     })
                     .FirstOrDefaultAsync();
 
@@ -838,6 +869,253 @@ namespace Project_LMS.Services
             }
         }
 
+
+        public async Task<ApiResponse<PaginatedResponse<ClassFutureStudentResponse>>> GetClassLessonStudent(
+    int? userId, string? keyword, int? subjectId, int status, int pageNumber = 1, int pageSize = 10)
+        {
+            try
+            {
+                if (pageNumber < 1) pageNumber = 1;
+                if (pageSize < 1) pageSize = 10;
+
+                var currentDate = DateTime.Now;
+
+                // Query từ Lessons để lấy từng buổi học riêng lẻ
+                var query = _context.Lessons
+                    .Include(l => l.TeachingAssignment)
+                        .ThenInclude(ta => ta.Class)
+                            .ThenInclude(c => c.ClassStudents)
+                    .Include(l => l.TeachingAssignment)
+                        .ThenInclude(ta => ta.Subject)
+                    .Include(l => l.TeachingAssignment)
+                        .ThenInclude(ta => ta.User)
+                    .Where(l =>
+                        l.TeachingAssignment.Class.ClassStudents.Any(cs =>
+                            cs.UserId == userId &&
+                            (!cs.IsDelete.HasValue || !cs.IsDelete.Value)) &&
+                        (!l.IsDelete.HasValue || !l.IsDelete.Value) &&
+                        (!l.TeachingAssignment.IsDelete.HasValue || !l.TeachingAssignment.IsDelete.Value) &&
+                        l.TeachingAssignment.Class != null &&
+                        (!l.TeachingAssignment.Class.IsDelete.HasValue || !l.TeachingAssignment.Class.IsDelete.Value));
+
+                // Filter by subject
+                if (subjectId.HasValue && subjectId > 0)
+                {
+                    query = query.Where(l => l.TeachingAssignment.SubjectId == subjectId);
+                }
+
+                // Apply keyword search
+                if (!string.IsNullOrWhiteSpace(keyword))
+                {
+                    keyword = keyword.ToLower().Trim();
+                    query = query.Where(l =>
+                        (l.TeachingAssignment.Class.ClassCode != null &&
+                         l.TeachingAssignment.Class.ClassCode.ToLower().Contains(keyword)) ||
+                        (l.TeachingAssignment.Class.Name != null &&
+                         l.TeachingAssignment.Class.Name.ToLower().Contains(keyword)) ||
+                        (l.TeachingAssignment.Subject.SubjectName != null &&
+                         l.TeachingAssignment.Subject.SubjectName.ToLower().Contains(keyword))
+                    );
+                }
+
+                // Get all lessons first
+                var allLessons = await query
+                    .Select(l => new
+                    {
+                        TeachingAssignmentId = l.TeachingAssignment.Id,
+                        ClassCode = l.TeachingAssignment.Class.ClassCode,
+                        SubjectName = l.TeachingAssignment.Subject.SubjectName,
+                        StartDate = l.StartDate,
+                        TeacherName = l.TeachingAssignment.User.FullName,
+                        StatusClass = l.TeachingAssignment.Class.StatusClass,
+                        IsCompleted = l.StartDate < currentDate
+                    })
+                    .ToListAsync();
+
+                // Group by TeachingAssignment to get totals
+                var teachingAssignmentTotals = allLessons
+                    .GroupBy(l => l.TeachingAssignmentId)
+                    .ToDictionary(
+                        g => g.Key,
+                        g => new
+                        {
+                            TotalLessons = g.Count(),
+                            CompletedLessons = g.Count(l => l.IsCompleted)
+                        });
+
+                // Filter based on status
+                var filteredLessons = status switch
+                {
+                    0 => allLessons, // All lessons
+                    1 => allLessons.Where(l => l.StartDate >= currentDate), // Upcoming lessons
+                    2 => allLessons.Where(l => l.StartDate < currentDate), // Completed
+                    3 => allLessons
+        .GroupBy(l => l.TeachingAssignmentId)
+        .Where(g =>
+            // Điều kiện 1: Có ít nhất 1 buổi đã qua và có buổi sắp tới
+            (g.Any(l => l.StartDate < currentDate) && g.Any(l => l.StartDate >= currentDate)) ||
+            // Điều kiện 2: Chỉ có 1 buổi và buổi đó chưa diễn ra
+            (g.Count() == 1 && g.First().StartDate >= currentDate)
+        )
+        .Select(g => new
+        {
+            TeachingAssignmentId = g.Key,
+            ClassCode = g.First().ClassCode,
+            SubjectName = g.First().SubjectName,
+            StartDate = g.Where(l => l.StartDate >= currentDate)
+                        .OrderBy(l => l.StartDate)
+                        .First().StartDate,
+            TeacherName = g.First().TeacherName,
+            StatusClass = g.First().StatusClass,
+            IsCompleted = g.First().IsCompleted
+        })
+        .ToList(),
+                    _ => allLessons
+                };
+
+                // Sort based on status
+                var sortedLessons = status switch
+                {
+                    0 => filteredLessons.OrderBy(l => l.StartDate),
+                    1 => filteredLessons.OrderBy(l => l.StartDate),
+                    2 => filteredLessons.OrderByDescending(l => l.StartDate),
+                    3 => filteredLessons.OrderBy(l => l.StartDate),
+                    _ => filteredLessons.OrderBy(l => l.StartDate)
+                };
+
+                // Convert to response type
+                var items = sortedLessons.Select(l => new ClassFutureStudentResponse
+                {
+                    TeachingAssignmentId = l.TeachingAssignmentId,
+                    ClassCode = l.ClassCode,
+                    SubjectName = l.SubjectName,
+                    StartDate = l.StartDate,
+                    TeacherName = l.TeacherName,
+                    StatusClass = l.StatusClass,
+                    TotalLessons = teachingAssignmentTotals[l.TeachingAssignmentId].TotalLessons,
+                    CompletedLessons = teachingAssignmentTotals[l.TeachingAssignmentId].CompletedLessons,
+                    CompletionPercentage = teachingAssignmentTotals[l.TeachingAssignmentId].TotalLessons > 0
+                        ? Math.Round((double)teachingAssignmentTotals[l.TeachingAssignmentId].CompletedLessons /
+                                   teachingAssignmentTotals[l.TeachingAssignmentId].TotalLessons * 100, 2)
+                        : 0
+                }).ToList();
+
+                // Apply pagination
+                var totalItems = items.Count;
+                var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+                var paginatedItems = items
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToList();
+
+                var paginatedResponse = new PaginatedResponse<ClassFutureStudentResponse>
+                {
+                    Items = paginatedItems,
+                    PageNumber = pageNumber,
+                    PageSize = pageSize,
+                    TotalItems = totalItems,
+                    TotalPages = totalPages,
+                    HasPreviousPage = pageNumber > 1,
+                    HasNextPage = pageNumber < totalPages
+                };
+
+                var message = status switch
+                {
+                    0 => paginatedItems.Any() ? "Lấy danh sách tất cả buổi học thành công" : "Không có buổi học nào",
+                    1 => paginatedItems.Any() ? "Lấy danh sách buổi học sắp tới thành công" : "Không có buổi học sắp tới",
+                    2 => paginatedItems.Any() ? "Lấy danh sách lớp học đã hoàn thành thành công" : "Không có lớp học đã hoàn thành",
+                    3 => paginatedItems.Any() ? "Lấy danh sách lớp học chưa hoàn thành thành công" : "Không có lớp học chưa hoàn thành",
+                    _ => "Lấy danh sách buổi học thành công"
+                };
+
+                return new ApiResponse<PaginatedResponse<ClassFutureStudentResponse>>(0, message, paginatedResponse);
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<PaginatedResponse<ClassFutureStudentResponse>>(1,
+                    $"Lỗi khi lấy danh sách buổi học: {ex.Message}", null);
+            }
+        }
+
+        public async Task<ApiResponse<TeachingAssignmentDetailResponse>> GetClassLessonStudentDetail(int teachingAssignmentId)
+        {
+            try
+            {
+                var teachingAssignment = await _context.TeachingAssignments
+                    .Include(ta => ta.Class)
+                        .ThenInclude(c => c.ClassStudents)
+                    .Include(ta => ta.Subject)
+                    .Include(ta => ta.User)
+                    .Include(ta => ta.Lessons.Where(l => !l.IsDelete.HasValue || !l.IsDelete.Value))
+                        .ThenInclude(l => l.User)
+                    .Where(ta => ta.Id == teachingAssignmentId &&
+                                (!ta.IsDelete.HasValue || !ta.IsDelete.Value) &&
+                                ta.Class != null &&
+                                (!ta.Class.IsDelete.HasValue || !ta.Class.IsDelete.Value))
+                    .Select(ta => new TeachingAssignmentDetailResponse
+                    {
+                        Id = ta.Id,
+                        ClassName = ta.Class.Name,
+                        Description = ta.Class.Description,
+                        Name = ta.Class.Name,
+                        SubjectName = ta.Subject.SubjectName,
+                        TeacherName = ta.User.FullName,
+                        StartDate = ta.StartDate,
+                        EndDate = ta.EndDate,
+                        TotalLessons = ta.Lessons.Count(l => !l.IsDelete.HasValue || !l.IsDelete.Value),
+                        Lessons = ta.Lessons
+                            .Where(l => !l.IsDelete.HasValue || !l.IsDelete.Value)
+                            .OrderBy(l => l.StartDate) // Sort by StartDate ascending
+                            .Select(l => new ClassLessonResponse
+                            {
+                                Id = l.Id,
+                                ClassLessonCode = l.ClassLessonCode,
+                                Description = l.Description,
+                                PaswordLeassons = l.PaswordLeassons,
+                                Topic = l.Topic,
+                                Duration = l.Duration,
+                                StartDate = l.StartDate,
+                                EndDate = l.EndDate,
+                                IsResearchable = l.IsResearchable,
+                                IsAutoStart = l.IsAutoStart,
+                                IsSave = l.IsSave,
+                                LessonLink = l.LessonLink,
+                                TeacherName = l.User.FullName
+                            })
+                            .ToList()
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (teachingAssignment == null)
+                {
+                    return new ApiResponse<TeachingAssignmentDetailResponse>(1, "Không tìm thấy phân công giảng dạy", null);
+                }
+
+                return new ApiResponse<TeachingAssignmentDetailResponse>(0, "Lấy thông tin phân công giảng dạy thành công", teachingAssignment);
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<TeachingAssignmentDetailResponse>(1,
+                    $"Lỗi khi lấy thông tin phân công giảng dạy: {ex.Message}", null);
+            }
+        }
+
+
+        public async Task<List<Class_UserResponse>> GetClassesByAcademicYear(int academicYearId)
+        {
+            var query = _context.Classes
+                .Where(c => c.AcademicYearId == academicYearId && c.IsDelete == false);
+
+            var classes = await query
+                .Select(c => new Class_UserResponse
+                {
+                    ClassId = c.Id,
+                    ClassName = c.Name ?? string.Empty,
+                })
+                .ToListAsync();
+
+            return classes;
+        }
     }
 
 }

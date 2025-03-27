@@ -76,38 +76,6 @@ public class SystemSettingService : ISystemSettingService
         });
     }
 
-
-
-    //public async Task<SystemSettingResponse> UpdateByUserId(int userId, SystemSettingRequest request)
-    //{
-    //    try
-    //    {
-    //        var setting = await _context.SystemSettings.FirstOrDefaultAsync(s => s.UserId == userId && s.IsDelete != true);
-    //        if (setting == null) throw new KeyNotFoundException("Không tìm thấy cài đặt hệ thống theo UserId.");
-
-    //        setting.CaptchaEnabled = request.CaptchaEnabled;
-    //        setting.CurrentTheme = request.CurrentTheme;
-    //        setting.Language = request.Language;
-    //        setting.UpdateAt = DateTime.Now;
-
-    //        await _context.SaveChangesAsync();
-
-    //        return new SystemSettingResponse
-    //        {
-    //            Id = setting.Id,
-    //            CaptchaEnabled = setting.CaptchaEnabled,
-    //            CurrentTheme = setting.CurrentTheme,
-    //            Language = setting.Language,
-    //            //CreateAt = setting.CreateAt,
-    //            //UpdateAt = setting.UpdateAt
-    //        };
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        Console.WriteLine($"Lỗi khi cập nhật: {ex.Message} | {ex.StackTrace}");
-    //        throw;
-    //    }
-    //}
     public async Task<UserSystemSettingResponse> UpdateByUserId(SystemSettingRequest request)
     {
         try

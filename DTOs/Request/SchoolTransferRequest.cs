@@ -4,7 +4,6 @@ namespace Project_LMS.DTOs.Request
 {
     public class SchoolTransferRequest
     {
-        public int Id { get; set; }
 
         [Required(ErrorMessage = "Mã học sinh là bắt buộc")]
         public int? UserId { get; set; }

@@ -45,5 +45,36 @@ namespace Project_LMS.Repositories
                 await _context.SaveChangesAsync();
             }
         }
+
+        public async Task AddRangeAsync(ICollection<Semester> semesters)
+        {
+            await _context.Semesters.AddRangeAsync(semesters);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<IEnumerable<Semester>> GetByAcademicYearIdAsync(int academicYearId)
+        {
+            return await _context.Semesters
+                                 .Where(s => s.AcademicYearId == academicYearId)
+                                 .ToListAsync();
+        }
+
+        public async Task DeleteRangeAsync(List<Semester> semestersToDelete)
+        {
+            if (semestersToDelete == null || !semestersToDelete.Any())
+                return;
+
+            _context.Semesters.RemoveRange(semestersToDelete);
+            await _context.SaveChangesAsync();
+        }
+        public async Task UpdateRangeAsync(List<Semester> updatedSemesters)
+        {
+            if (updatedSemesters == null || !updatedSemesters.Any())
+                return;
+
+            _context.Semesters.UpdateRange(updatedSemesters);
+            await _context.SaveChangesAsync();
+        }
+
     }
 }
