@@ -8,8 +8,6 @@ namespace Project_LMS.DTOs.Request
 {
     public class TeacherRequest
     {
-        [JsonIgnore]
-        public int? Id { get; set; }
         public int? TeacherStatusId { get; set; }
         public int? SubjectGroupId { get; set; }
         public int? SubjectId { get; set; }
