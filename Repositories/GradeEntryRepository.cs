@@ -254,7 +254,7 @@ public class GradeEntryRepository : IGradeEntryRepository
             var teacher = await _context.Users.FindAsync(teacherId);
             if (teacher == null)
             {
-                throw new Exception("Không tìm thấy giáo viên!");
+                throw new Exception("Không tìm thấy thông tin giáo viên trong hệ thống");
             }
 
             // Kiểm tra bài kiểm tra hoặc lịch thi
@@ -263,13 +263,13 @@ public class GradeEntryRepository : IGradeEntryRepository
                 .FirstOrDefaultAsync(t => t.Id == request.TestId && t.IsDelete == false);
             if (test == null)
             {
-                throw new Exception("Không tìm thấy bài kiểm tra hoặc lịch thi!");
+                throw new Exception("Không tìm thấy bài kiểm tra hoặc kỳ thi này trong hệ thống");
             }
 
             // Kiểm tra ClassId của bài kiểm tra
             if (!test.ClassId.HasValue)
             {
-                throw new Exception("Bài kiểm tra không được liên kết với lớp học nào!");
+                throw new Exception("Bài kiểm tra hoặc kỳ thi này chưa được gán cho lớp học nào");
             }
 
             int classId = test.ClassId.Value;
@@ -279,7 +279,7 @@ public class GradeEntryRepository : IGradeEntryRepository
                 .FirstOrDefaultAsync(c => c.Id == classId && c.IsDelete == false);
             if (classInfo == null)
             {
-                throw new Exception("Không tìm thấy lớp học!");
+                throw new Exception("Không tìm thấy thông tin lớp học trong hệ thống");
             }
 
             // Kiểm tra lớp có học môn của bài kiểm tra không
@@ -288,29 +288,30 @@ public class GradeEntryRepository : IGradeEntryRepository
                     cs.ClassId == classId && cs.SubjectId == test.SubjectId && cs.IsDelete == false);
             if (classSubject == null)
             {
-                throw new Exception("Lớp này không học môn của bài kiểm tra/lịch thi!");
+                throw new Exception("Lớp học này không được gán môn học của bài kiểm tra hoặc kỳ thi");
             }
 
             // Kiểm tra quyền truy cập
             bool hasAccess = await HasGradingPermissionAsync(teacherId, classId, test.SubjectId.Value,
-                test.StartDate.Value,
-                test.IsExam.Value, classInfo.UserId);
+                test.StartDate.Value, test.IsExam.Value, classInfo.UserId);
             if (!hasAccess)
             {
-                throw new Exception("Bạn không có quyền chấm điểm cho lớp này!");
+                throw new Exception(
+                    "Giáo viên không có quyền chấm điểm bài kiểm tra này vì không phải Admin, không phải giáo viên chủ nhiệm của lớp, và không được phân công dạy môn học này cho lớp vào thời điểm bài kiểm tra");
             }
 
             // Kiểm tra trạng thái bài kiểm tra
             var allowedStatuses = new[] { 5, 7 }; // Có thể thay bằng enum hoặc cấu hình
             if (!allowedStatuses.Contains<int>(test.ScheduleStatusId.Value))
             {
-                throw new Exception("Bài kiểm tra/lịch thi chưa hoàn thành hoặc chưa kết thúc, không thể chấm điểm!");
+                throw new Exception(
+                    "Bài kiểm tra hoặc kỳ thi này chưa hoàn thành hoặc chưa kết thúc, không thể chấm điểm");
             }
 
             // Kiểm tra thời gian kết thúc bài kiểm tra
             if (test.EndDate > DateTimeOffset.UtcNow)
             {
-                throw new Exception("Bài kiểm tra/lịch thi chưa kết thúc, không thể chấm điểm!");
+                throw new Exception("Bài kiểm tra hoặc kỳ thi này vẫn đang diễn ra, chưa thể chấm điểm");
             }
 
             // Lấy danh sách học sinh hợp lệ trong lớp
@@ -318,29 +319,70 @@ public class GradeEntryRepository : IGradeEntryRepository
                 .Where(cs =>
                     cs.ClassId == classId && cs.IsActive == true && cs.IsDelete == false &&
                     cs.CreateAt <= test.StartDate)
-                .Select(cs => cs.UserId.Value)
                 .ToListAsync();
+
+            // Kiểm tra trạng thái học sinh trong bảng Users
+            var studentIds = classStudents
+                .Where(cs => cs.UserId.HasValue)
+                .Select(cs => cs.UserId.Value)
+                .ToList();
+            var validStudents = await _context.Users
+                .Where(u => studentIds.Contains(u.Id) && u.IsDelete == false)
+                .Select(u => u.Id)
+                .ToListAsync();
+
+            // Ghi log danh sách học sinh hợp lệ
+            _logger.LogInformation(
+                $"Danh sách học sinh hợp lệ thuộc lớp ClassId: {classId} tại thời điểm bài kiểm tra TestId: {request.TestId}: {string.Join(", ", validStudents)}");
+
+            // Kiểm tra học sinh có thuộc lớp không
+            foreach (var grade in request.Grades)
+            {
+                if (!validStudents.Contains(grade.StudentId))
+                {
+                    throw new Exception(
+                        "Một hoặc nhiều học sinh trong danh sách điểm không thuộc lớp học này hoặc đã bị xóa khỏi hệ thống");
+                }
+
+                // Kiểm tra điểm hợp lệ
+                if (grade.Score.HasValue && (grade.Score < 0 || grade.Score > 10))
+                {
+                    throw new Exception(
+                        "Điểm số của một hoặc nhiều học sinh không hợp lệ, điểm phải nằm trong khoảng từ 0 đến 10");
+                }
+            }
 
             // Lấy tất cả bài nộp cho bài kiểm tra này
             var assignments = await _context.Assignments
                 .Where(a => a.TestExamId == request.TestId && a.IsDelete == false)
                 .ToListAsync();
 
+            // Ghi log để kiểm tra bài nộp
+            if (!assignments.Any())
+            {
+                _logger.LogInformation($"Không tìm thấy bài nộp nào cho TestId: {request.TestId}");
+            }
+            else
+            {
+                foreach (var assignment in assignments)
+                {
+                    if (assignment.SubmissionFile != null &&
+                        !assignment.SubmissionFile.StartsWith("https://res.cloudinary.com"))
+                    {
+                        _logger.LogWarning(
+                            $"SubmissionFile của học sinh {assignment.UserId} cho TestId: {request.TestId} không phải URL từ Cloudinary: {assignment.SubmissionFile}");
+                    }
+                    else
+                    {
+                        _logger.LogInformation(
+                            $"Bài nộp của học sinh {assignment.UserId} cho TestId: {request.TestId}, SubmissionFile: {assignment.SubmissionFile}");
+                    }
+                }
+            }
+
             // Lưu điểm cho từng học sinh
             foreach (var grade in request.Grades)
             {
-                // Kiểm tra học sinh có thuộc lớp không
-                if (!classStudents.Contains(grade.StudentId))
-                {
-                    throw new Exception($"Học sinh {grade.StudentId} không thuộc lớp này tại thời điểm bài kiểm tra!");
-                }
-
-                // Kiểm tra điểm hợp lệ
-                if (grade.Score.HasValue && (grade.Score < 0 || grade.Score > 10))
-                {
-                    throw new Exception($"Điểm của học sinh {grade.StudentId} không hợp lệ (phải từ 0 đến 10)!");
-                }
-
                 // Tìm bài nộp của học sinh
                 var assignment = assignments.FirstOrDefault(a => a.UserId == grade.StudentId);
                 if (assignment == null)
@@ -380,11 +422,11 @@ public class GradeEntryRepository : IGradeEntryRepository
         {
             _logger.LogError(ex, "Lỗi khi lưu điểm cho TestId: {TestId}, TeacherId: {TeacherId}", request.TestId,
                 teacherId);
-            throw;
+            throw new Exception(ex.Message); // Truyền lỗi lên để hàm SaveGrades xử lý
         }
     }
 
-// Hàm phụ kiểm tra quyền truy cập (giữ nguyên)
+    // Hàm phụ kiểm tra quyền truy cập (giữ nguyên)
     private async Task<bool> HasGradingPermissionAsync(int teacherId, int classId, int subjectId,
         DateTimeOffset testStartDate, bool isExam, int? classTeacherId)
     {
