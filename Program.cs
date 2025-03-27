@@ -206,6 +206,8 @@ builder.Services.AddLogging(); // Đăng ký logging
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IMeetService, MeetService>(); // Đăng ký IMeetService với MeetService
+builder.Services.AddScoped<IWorkProcessService, WorkProcessService>(); 
+builder.Services.AddScoped<IEducationInformationService, EducationInformationService>();
 
 // Đọc cấu hình JWT từ appsettings.json
 var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -232,7 +234,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             OnMessageReceived = async context =>
             {
-                // Nếu không có HttpContext hoặc không có token trong Items, tiến hành lấy token
                 var memoryCache = context.HttpContext.RequestServices.GetRequiredService<IMemoryCache>();
                 var token = context.Request.Cookies["AuthToken"];
                 Console.WriteLine($"Cookie AuthToken: {token}");
