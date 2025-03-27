@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Exceptions;
@@ -8,6 +9,7 @@ using Project_LMS.Services;
 
 namespace Project_LMS.Controllers
 {
+    [Authorize(Policy = "STUDENT-REC-VIEW")]
     [Route("api/[controller]")]
     [ApiController]
     public class AcademicHoldsController : ControllerBase
@@ -20,7 +22,7 @@ namespace Project_LMS.Controllers
             _authService = authService;
         }
 
-
+        [Authorize(Policy = "STUDENT-REC-VIEW")]
         [HttpGet]
         public async Task<ActionResult<ApiResponse<PaginatedResponse<AcademicHoldResponse>>>> GetAll([FromQuery] PaginationRequest request)
         {
@@ -36,6 +38,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "STUDENT-REC-VIEW")]
         [HttpGet("search-users")]
         public async Task<IActionResult> SearchUsers([FromQuery] int classId)
         {
@@ -52,6 +55,8 @@ namespace Project_LMS.Controllers
                 return BadRequest(new ApiResponse<string>(1, ex.Message, null));
             }
         }
+
+        [Authorize(Policy = "STUDENT-REC-INSERT")]
         [HttpPost]
         public async Task<IActionResult> Add([FromBody] CreateAcademicHoldRequest academicHoldRequest)
         {
@@ -73,6 +78,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "STUDENT-REC-UPDATE")]
         [HttpPut]
         public async Task<IActionResult> Update([FromBody] UpdateAcademicHoldRequest academicHoldRequest)
         {
