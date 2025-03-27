@@ -94,9 +94,6 @@ public class SubjectGroupController : ControllerBase
     [HttpDelete]
     public async Task<IActionResult> DeleteListSubject([FromBody] DeleteRequest deleteRequest)
     {
-        Console.WriteLine($"Received IDs: {string.Join(", ", deleteRequest)}");
-
-
         var response = await _subjectGroupService.DeleteSubjectGroupSubject(deleteRequest);
 
         if (response.Status == 1)
