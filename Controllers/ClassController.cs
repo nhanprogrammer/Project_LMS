@@ -200,7 +200,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        // [Authorize(Policy = "TEACHER-CLASS-FUTURE-VIEW")] CheckRole
+        [Authorize(Policy = "TEACHER-REC-VIEW")]
         [HttpGet("future")]
         public async Task<ActionResult<ApiResponse<PaginatedResponse<ClassFutureResponse>>>> GetClassFuture(
     [FromQuery] string? keyword,
@@ -228,7 +228,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        // [Authorize(Policy = "TEACHER-CLASS-FUTURE-DETAIL-VIEW")] CheckRole
+        [Authorize(Policy = "TEACHER-REC-VIEW")]
         [HttpGet("future/{teachingAssignmentId}")]
         public async Task<ActionResult<ApiResponse<TeachingAssignmentDetailResponse>>> GetClassFutureDetail(int teachingAssignmentId)
         {
@@ -251,7 +251,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        // [Authorize(Policy = "STUDENT-CLASS-FUTURE-VIEW")] CheckRole
+        [Authorize(Policy = "STUDENT-REC-VIEW")]
         [HttpGet("futurestudent")]
         public async Task<ActionResult<ApiResponse<PaginatedResponse<ClassFutureResponse>>>> GetClassLessonStudent(
       [FromQuery] string? keyword,
@@ -279,7 +279,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        // [Authorize(Policy = "STUDENT-CLASS-FUTURE-DETAIL-VIEW")] CheckRole
+        [Authorize(Policy = "STUDENT-REC-VIEW")]
         [HttpGet("futurestudent/{teachingAssignmentId}")]
         public async Task<ActionResult<ApiResponse<TeachingAssignmentDetailResponse>>> GetClassLessonStudentDetail(int teachingAssignmentId)
         {

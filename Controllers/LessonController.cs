@@ -19,7 +19,7 @@ public class LessonController : ControllerBase
         _authService = authService;
     }
 
-    [Authorize(Policy = "LESSON-VIEW")]
+    [Authorize(Policy = "TEACHER-REC-VIEW")]
     [HttpGet]
     public async Task<ActionResult<ApiResponse<PaginatedResponse<LessonResponse>>>> GetAll(
         [FromQuery] string? keyword = null,
@@ -41,7 +41,7 @@ public class LessonController : ControllerBase
         }
     }
 
-    [Authorize(Policy = "LESSON-VIEW")] 
+    [Authorize(Policy = "TEACHER-REC-VIEW")]
     [HttpGet("{id}")]
     public async Task<ActionResult<ApiResponse<LessonResponse>>> GetById(int id)
     {
@@ -64,7 +64,7 @@ public class LessonController : ControllerBase
         }
     }
 
-    [Authorize(Policy = "LESSON-INSERT")]
+    [Authorize(Policy = "TEACHER-REC-INSERT")]
     [HttpPost]
     public async Task<ActionResult<ApiResponse<LessonResponse>>> Create([FromBody] CreateLessonRequest request)
     {
@@ -93,7 +93,7 @@ public class LessonController : ControllerBase
         }
     }
 
-    [Authorize(Policy = "LESSON-UPDATE")]
+    [Authorize(Policy = "TEACHER-REC-UPDATE")]
     [HttpPut]
     public async Task<ActionResult<ApiResponse<LessonResponse>>> Update([FromBody] CreateLessonRequest request)
     {
@@ -126,7 +126,7 @@ public class LessonController : ControllerBase
         }
     }
 
-    [Authorize(Policy = "LESSON-DELETE")]
+    [Authorize(Policy = "TEACHER-REC-DELETE")]
     [HttpDelete]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteMultiple([FromBody] DeleteMultipleRequest request)
     {
