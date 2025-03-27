@@ -10,6 +10,7 @@ namespace Project_LMS.Models
         public Department()
         {
             Classes = new HashSet<Class>();
+            WorkProcesses = new HashSet<WorkProcess>();
         }
 
         public int Id { get; set; }
@@ -28,6 +29,7 @@ namespace Project_LMS.Models
         public virtual User User { get; set; } = null!;
         
         public virtual ICollection<Class> Classes { get; set; }
+        public virtual ICollection<WorkProcess> WorkProcesses { get; set; }
         public ICollection<TestExam> TestExams { get; set; }
 
     }

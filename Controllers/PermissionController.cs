@@ -37,12 +37,12 @@ namespace Project_LMS.Controllers
             }
         }
         [HttpPost("create")]
-        public async Task<IActionResult> CreateGroupPermission([FromBody] SaveGroupPermissionRequest request)
+        public async Task<IActionResult> CreateGroupPermission([FromBody] GroupPermissionCreateRequest request)
         {
             try
             {
                 bool result = await _permissionService.SaveGroupPermission(
-                    request.GroupRoleId,
+                    0,
                     request.GroupRoleName,
                     request.Description,
                     request.AllPermission,
@@ -74,10 +74,11 @@ namespace Project_LMS.Controllers
         }
 
         [HttpPut("update")]
-        public async Task<IActionResult> UpdateGroupPermission([FromBody] SaveGroupPermissionRequest request)
+        public async Task<IActionResult> UpdateGroupPermission([FromBody] GroupPermissionUpdateRequest request)
         {
             try
             {
+
                 bool result = await _permissionService.SaveGroupPermission(
                     request.GroupRoleId,
                     request.GroupRoleName,

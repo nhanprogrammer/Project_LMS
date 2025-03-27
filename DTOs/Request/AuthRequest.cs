@@ -32,26 +32,15 @@ namespace Project_LMS.DTOs.Request
 
     public class AuthForgotPasswordRequest
     {
-        [Required(ErrorMessage = "Username không được bỏ trống")]
-         [EmailAddress(ErrorMessage = "Email không hợp lệ")]
-        public string? Email { get; set; }
+       [Required(ErrorMessage = "UserName không được bỏ trống")]
+        public string? UserName { get; set; }
     }
 
     public class AuthResetPasswordRequest
     {
         [Required(ErrorMessage = "UserName không được bỏ trống")]
-       
         public string? UserName { get; set; }
         [Required(ErrorMessage = "Mã xác thực không được bỏ trống")]
         public string? VerificationCode { get; set; }
-
-        [Required(ErrorMessage = "Mật khẩu mới không được bỏ trống")]
-        [MinLength(6, ErrorMessage = "Mật khẩu phải có ít nhất 6 ký tự")]
-        public string? NewPassword { get; set; }
-
-        [Required(ErrorMessage = "Xác nhận mật khẩu không được bỏ trống")]
-        [Compare("NewPassword", ErrorMessage = "Mật khẩu xác nhận không khớp")]
-        public string? ConfirmPassword { get; set; }
     }
-
 }

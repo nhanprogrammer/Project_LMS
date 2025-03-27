@@ -50,18 +50,22 @@ namespace Project_LMS.Controllers
                 await _authService.LogoutAsync(HttpContext);
                 return Ok(new ApiResponse<string>(0, "Đăng xuất thành công!", null));
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new ApiResponse<string>(1, ex.Message, null));
+            }
             catch (Exception ex)
             {
                 return BadRequest(new ApiResponse<string>(1, ex.Message, null));
             }
         }
 
-        [HttpPost("send-verification-code")]
+        [HttpPost("forgot-password")]
         public async Task<IActionResult> SendVerificationCode([FromBody] AuthForgotPasswordRequest request)
         {
             try
             {
-                await _authService.SendVerificationCodeAsync(request.Email);
+                await _authService.SendVerificationCodeAsync(request.UserName);
                 return Ok(new ApiResponse<string>(0, "Mã xác thực đã được gửi!", null));
             }
             catch (KeyNotFoundException ex)
@@ -84,8 +88,8 @@ namespace Project_LMS.Controllers
         {
             try
             {
-                await _authService.ResetPasswordWithCodeAsync(request.UserName, request.VerificationCode, request.NewPassword, request.ConfirmPassword);
-                return Ok(new ApiResponse<string>(0, "Mật khẩu đã được đặt lại thành công!", null));
+                await _authService.ResetPasswordWithCodeAsync(request.UserName, request.VerificationCode);
+                return Ok(new ApiResponse<string>(0, "Mật khẩu đã được gửi. Bạn đã có thể đăng nhập với mật khẩu mới!", null));
             }
             catch (Exception ex)
             {

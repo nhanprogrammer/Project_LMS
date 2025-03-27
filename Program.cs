@@ -177,6 +177,8 @@ builder.Services.AddLogging(); // Đăng ký logging
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IMeetService, MeetService>(); // Đăng ký IMeetService với MeetService
+builder.Services.AddScoped<IWorkProcessService, WorkProcessService>(); 
+builder.Services.AddScoped<IEducationInformationService, EducationInformationService>();
 
 // Đọc cấu hình JWT từ appsettings.json
 var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -245,7 +247,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     context.HandleResponse();
                     context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                     context.Response.ContentType = "application/json";
-                    var response = new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null);
+                    var response = new ApiResponse<string>(1, "Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại!", null);
                     return context.Response.WriteAsync(JsonSerializer.Serialize(response));
                 },
             OnForbidden = context =>
