@@ -123,19 +123,24 @@ namespace Project_LMS.Controllers
         public async Task<IActionResult> GenerateUserCode([FromQuery] bool isStudent)
         {
             string code;
-            if (isStudent)
-            {
+            if (isStudent) {
                 code = "SV";
-            }
-            else
+            } else
             {
                 code = "GV";
             }
             var result = await _studentService.GeneratedUserCode(code);
-            return Ok(new ApiResponse<object>(0,"Lấy UserCode thành công")
+            return Ok(new ApiResponse<object>(0, "Lấy UserCode thành công")
             {
                 Data = result
-            });  
+            });
+
+        }
+        [HttpGet("exportsampledata")]
+        public async Task<IActionResult> ExportSampleData()
+        {
+            var result = await _studentService.ExportSampleData();
+            return Ok(result);
         }
     }
 }
