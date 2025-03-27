@@ -23,6 +23,8 @@ public interface IStudentService
     public Task ExecuteEmail(string email, string fullname, string username, string password);
     public bool ValidateExcelFormat(Stream fileStream, out string errorMessage);
 
+    public Task<ApiResponse<object>> ExportSampleData();
+
 
 
 }
