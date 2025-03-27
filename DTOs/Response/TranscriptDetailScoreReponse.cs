@@ -7,7 +7,7 @@
         //Hệ số
         public int coefficient { get; set; }
         //Điểm
-        public int score { get; set; }
+        public double score { get; set; }
         //Điểm trung bình
         public double totalScore { get; set; }
     }

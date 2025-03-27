@@ -451,7 +451,7 @@ public class StudentService : IStudentService
             {
                 for (int row = 0; row < subjects.Count; row++)
                 {
-                    int totalScore = 0;
+                    double totalScore = 0;
                     double totalCoefficient = 0;
                     for (int col = 0; col < testExamTypes.Count; col++)
                     {
@@ -481,7 +481,7 @@ public class StudentService : IStudentService
             {
                 for (int row = 0; row < subjects.Count; row++)
                 {
-                    int totalScore = 0;
+                    double totalScore = 0;
                     double totalCoefficient = 0;
                     for (int col = 0; col < testExamTypes.Count; col++)
                     {
@@ -828,7 +828,7 @@ public class StudentService : IStudentService
                     .ToList();
 
                 var typeScores = new List<Dictionary<string, object>>();
-                int totalScore = 0;
+                double totalScore = 0;
                 int totalCoefficient = 0;
                 foreach (var item2 in assignmentOfSubject)
                 {

@@ -87,19 +87,19 @@ namespace Project_LMS.Data
                 .HasOne(e => e.User)
                 .WithMany(u => u.Exemptions)
                 .HasForeignKey(e => e.UserId)
-                .OnDelete(DeleteBehavior.Cascade);   
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<User>()
                 .HasOne(u => u.SubjectGroup)
                 .WithMany(s => s.Users)
-                .HasForeignKey(u =>u.SubjectGroupId)
-                .OnDelete(DeleteBehavior.Cascade);       
+                .HasForeignKey(u => u.SubjectGroupId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<TeacherStatusHistory>()
-                .HasOne(t=>t.User)
-                .WithMany(u=>u.TeacherStatusHistories)
-                .HasForeignKey(t=>t.UserId)
-                .OnDelete(DeleteBehavior.Cascade);  
+                .HasOne(t => t.User)
+                .WithMany(u => u.TeacherStatusHistories)
+                .HasForeignKey(t => t.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
 
 
             modelBuilder.Entity<AcademicHold>(entity =>
@@ -1593,9 +1593,9 @@ namespace Project_LMS.Data
                 entity.Property(e => e.Address)
                     .HasMaxLength(255)
                     .HasColumnName("address");
-                      entity.Property(e => e.SchoolPhone)
-                    .HasMaxLength(10)
-                    .HasColumnName("school_phone");
+                entity.Property(e => e.SchoolPhone)
+              .HasMaxLength(10)
+              .HasColumnName("school_phone");
 
                 entity.Property(e => e.BranchName)
                     .HasMaxLength(255)
