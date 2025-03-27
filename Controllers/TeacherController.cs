@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces.Services;
-using System;
-using System.Threading.Tasks;
+using Project_LMS.DTOs.Response;
+
 
 namespace Project_LMS.Controllers
 {
@@ -146,7 +146,10 @@ namespace Project_LMS.Controllers
             try
             {
                 var result = await _studentService.GeneratedUserCode("GV");
-                return Ok(result);
+                return Ok(new ApiResponse<object>(0, "Lấy UserCode thành công")
+                {
+                    Data = result
+                });
             }
             catch (Exception ex)
             {

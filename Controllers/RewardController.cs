@@ -24,7 +24,7 @@ namespace Project_LMS.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<ApiResponse<RewardResponse>>> GetById(int id)
         {
-            var result = _rewardService.GetByIdAsync(id);
+            var result = await _rewardService.GetByIdAsync(id);
             return Ok(result);
         }
 

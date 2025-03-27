@@ -41,7 +41,7 @@ namespace Project_LMS.Repositories
         public async Task<int> CountStudentOfRewardByIds(bool isReward, List<int> ids, string searchItem)
         {
             var query = _context.Users
-          .Include(u => u.Rewards)
+          .Include(u => u.Rewards).AsSplitQuery()
           .Where(u => isReward ? (u.Rewards.Count > 0) : (u.Disciplines.Count > 0) && u.IsDelete == false && u.Role.Name.Equals("Student"));
             if (!string.IsNullOrWhiteSpace(searchItem))
             {
@@ -67,6 +67,7 @@ namespace Project_LMS.Repositories
                     .Include(u => u.Assignments).ThenInclude(asm => asm.TestExam).ThenInclude(te => te.Subject)
                     .Include(u => u.Rewards)
                     .Include(u => u.Disciplines)
+                    .AsSplitQuery()
                     .Where(u => u.Id == studentId && u.IsDelete ==false  && u.Role.Name.ToLower().Contains("student"))
                     .FirstOrDefaultAsync();
         }
@@ -91,6 +92,7 @@ namespace Project_LMS.Repositories
             var query = _context.Users
                 .Include(u => u.Rewards)
                 .Include(u=>u.Disciplines)
+                .AsSplitQuery()
                 .Where(u => isReward ? (u.Rewards.Count > 0) : (u.Disciplines.Count > 0) && u.IsDelete == false && u.Role.Name.Equals("Student"));
             if (!string.IsNullOrWhiteSpace(searchItem))
             {

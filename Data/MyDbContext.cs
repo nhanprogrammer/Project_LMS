@@ -77,9 +77,12 @@ namespace Project_LMS.Data
             if (!optionsBuilder.IsConfigured)
             {
                 optionsBuilder.UseNpgsql(
-                    "Host=dpg-cv6l940gph6c73dnr7hg-a.oregon-postgres.render.com;Port=5432;Database=lms_rvdc;Username=lms_rvdc_user;Password=GJKc4tITIEh9s1MXQ97tH94RTR8xia8G");
+                    "Host=dpg-cv6l940gph6c73dnr7hg-a.oregon-postgres.render.com;Port=5432;Database=lms_rvdc;Username=lms_rvdc_user;Password=GJKc4tITIEh9s1MXQ97tH94RTR8xia8G",
+                    npgsqlOptions => npgsqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery) // ⚡ Tối ưu hóa truy vấn
+                );
             }
         }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

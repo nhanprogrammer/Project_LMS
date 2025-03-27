@@ -27,7 +27,7 @@ public class DisciplineController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<ApiResponse<RewardResponse>>> GetById(int id)
     {
-        var result = _disciplinesService.GetByIdAsync(id);
+        var result = await _disciplinesService.GetByIdAsync(id);
         return Ok(result);
     }
 
