@@ -7,6 +7,7 @@ using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers
 {
+    [Authorize(Policy = "DATA-MNG-VIEW")]
     [ApiController]
     [Route("api/[controller]")]
     public class SubjectController : ControllerBase
@@ -20,7 +21,6 @@ namespace Project_LMS.Controllers
             _authService = authService;
         }
 
-        [Authorize(Policy = "SUBJECT-VIEW")]
         [HttpGet]
         public async Task<ActionResult<ApiResponse<PaginatedResponse<SubjectResponse>>>> GetAll(
             [FromQuery] string? keyword = null,
@@ -42,7 +42,6 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "SUBJECT-VIEW")]
         [HttpGet("{id}")]
         public async Task<ActionResult<ApiResponse<SubjectResponse>>> GetById(int id)
         {
@@ -65,7 +64,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "SUBJECT-INSERT")]
+        [Authorize(Policy = "DATA-MNG-INSERT")]
         [HttpPost]
         public async Task<ActionResult<ApiResponse<SubjectResponse>>> Create([FromBody] SubjectRequest request)
         {
@@ -94,7 +93,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "SUBJECT-UPDATE")]
+        [Authorize(Policy = "DATA-MNG-UPDATE")]
         [HttpPut]
         public async Task<ActionResult<ApiResponse<SubjectResponse>>> Update([FromBody] SubjectRequest request)
         {
@@ -141,7 +140,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "SUBJECT-DELETE")]
+        [Authorize(Policy = "DATA-MNG-DELETE")]
         [HttpDelete]
         public async Task<ActionResult<ApiResponse<bool>>> DeleteMultiple([FromBody] DeleteMultipleRequest request)
         {
@@ -167,6 +166,38 @@ namespace Project_LMS.Controllers
             {
                 return StatusCode(500, new ApiResponse<bool>(1, $"Lỗi khi xóa môn học: {ex.Message}", false));
             }
+        }
+
+        [HttpGet("search-subject")]
+        public async Task<IActionResult> getSubjectByUserId([FromQuery] int userId)
+        {
+            if (userId <= 0)
+            {
+                return BadRequest(new ApiResponse<object>(1, "UserId không hợp lệ."));
+            }
+
+            var result = await _subjectService.getSubjectByUserId(userId);
+            if (!result.Any() || result == null)
+                return Ok(new ApiResponse<object>(1, "Giảng viên chưa có môn học nào!", null));
+            return Ok(new ApiResponse<object>(0, "Lấy danh sách môn học thành công!", result));
+        }
+        
+        [HttpGet("by-subject-group/{subjectGroupId}")]
+        public async Task<IActionResult> GetSubjectsBySubjectGroupId(int subjectGroupId)
+        {
+            if (subjectGroupId <= 0)
+            {
+                return BadRequest(new ApiResponse<object>(1, "SubjectGroupId không hợp lệ."));
+            }
+
+            var result = await _subjectService.GetSubjectsBySubjectGroupIdAsync(subjectGroupId);
+
+            if (result == null || !result.Any())
+            {
+                return Ok(new ApiResponse<object>(1, "Không có môn học nào thuộc tổ bộ môn này!", null));
+            }
+
+            return Ok(new ApiResponse<object>(0, "Lấy danh sách môn học thành công!", result));
         }
     }
 }

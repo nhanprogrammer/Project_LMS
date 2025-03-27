@@ -112,9 +112,13 @@ builder.Services.AddScoped<IQuestionsAnswersService, QuestionsAnswersService>();
 builder.Services.AddScoped<ITopicService, TopicService>();
 builder.Services.AddScoped<INotificationsService, NotificationsService>();
 builder.Services.AddScoped<ITeacherTestExamService, TeacherTestExamService>();
+builder.Services.AddScoped<IDependentService, DependentService>();
+builder.Services.AddScoped<ITranscriptService, TranscriptService>();
+//AddSingleton
 builder.Services.AddSingleton<ISupportService, SupportService>();
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 builder.Services.AddScoped<IGradeEntryService, GradeEntryService>();
+
 
 // Repositories
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
@@ -162,6 +166,7 @@ builder.Services.AddScoped<ISubjectGroupRepository, SubjectGroupRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IStudentStatusRepository, StudenStatusRepository>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
+builder.Services.AddScoped<IDependentRepository, DependentRepository>();
 
 
 builder.Services.AddScoped<IPermissionService, PermissionService>();
@@ -192,6 +197,7 @@ builder.Services.AddAutoMapper(typeof(RewardMapper));
 builder.Services.AddAutoMapper(typeof(DisciplineMapper));
 builder.Services.AddAutoMapper(typeof(TeacherMapper));
 builder.Services.AddAutoMapper(typeof(TeacherStatusHistoryMapper));
+builder.Services.AddAutoMapper(typeof(DependentMapper));
 
 //loging
 
@@ -295,6 +301,7 @@ builder.Services.AddValidatorsFromAssemblyContaining<RewardRequestValidator>(); 
 builder.Services.AddValidatorsFromAssemblyContaining<DisciplineRequestValidator>(); // 
 builder.Services.AddValidatorsFromAssemblyContaining<TeacherRequestValidator>(); // 
 builder.Services.AddValidatorsFromAssemblyContaining<TeacherStatusHistoryRequestValidator>(); // 
+builder.Services.AddValidatorsFromAssemblyContaining<DependentRequestValidator>(); // 
 
 builder.Services.AddLogging();
 

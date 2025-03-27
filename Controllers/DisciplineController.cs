@@ -1,4 +1,5 @@
 ﻿
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
@@ -8,6 +9,8 @@ using Project_LMS.Interfaces.Services;
 using Project_LMS.Services;
 
 namespace Project_LMS.Controllers;
+
+[Authorize(Policy = "STUDENT-REC-VIEW")]
 [ApiController]
 [Route("api/[controller]")]
 public class DisciplineController : ControllerBase
@@ -20,13 +23,15 @@ public class DisciplineController : ControllerBase
         _disciplinesService = disciplinesService;
         _studentService = studentService;
     }
+
     [HttpGet("{id}")]
     public async Task<ActionResult<ApiResponse<RewardResponse>>> GetById(int id)
     {
-        var result = _disciplinesService.GetByIdAsync(id);
+        var result = await _disciplinesService.GetByIdAsync(id);
         return Ok(result);
     }
 
+    [Authorize(Policy = "STUDENT-REC-INSERT")]
     [HttpPost]
     public async Task<ActionResult<ApiResponse<RewardResponse>>> Create(DisciplineRequest request)
     {
@@ -49,6 +54,7 @@ public class DisciplineController : ControllerBase
         }
     }
 
+    [Authorize(Policy = "STUDENT-REC-UPDATE")]
     [HttpPut]
     public async Task<ActionResult<ApiResponse<RewardResponse>>> Update(UpdateDisciplineRequest request)
     {
@@ -71,6 +77,7 @@ public class DisciplineController : ControllerBase
         }
     }
 
+    [Authorize(Policy = "STUDENT-REC-DELETE")]
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse<RewardResponse>>> Delete(int id)
     {
@@ -95,6 +102,7 @@ public class DisciplineController : ControllerBase
         var resutlt = await _studentService.GetAllStudentOfRewardOrDisciplines(false, academicId, departmentId, request, column, orderBy, null);
         return Ok(resutlt);
     }
+    
     [HttpGet("searchstudentdiscipline")]
     public async Task<IActionResult> SearchStudentOfReward([FromQuery] int academicId, [FromQuery] int departmentId, [FromQuery] PaginationRequest request, [FromQuery] string column, [FromQuery] bool orderBy, [FromQuery] string searchItem)
     {

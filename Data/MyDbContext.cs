@@ -77,9 +77,12 @@ namespace Project_LMS.Data
             if (!optionsBuilder.IsConfigured)
             {
                 optionsBuilder.UseNpgsql(
-                    "Host=dpg-cv6l940gph6c73dnr7hg-a.oregon-postgres.render.com;Port=5432;Database=lms_rvdc;Username=lms_rvdc_user;Password=GJKc4tITIEh9s1MXQ97tH94RTR8xia8G");
+                    "Host=dpg-cv6l940gph6c73dnr7hg-a.oregon-postgres.render.com;Port=5432;Database=lms_rvdc;Username=lms_rvdc_user;Password=GJKc4tITIEh9s1MXQ97tH94RTR8xia8G",
+                    npgsqlOptions => npgsqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery) // ⚡ Tối ưu hóa truy vấn
+                );
             }
         }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -828,7 +831,7 @@ namespace Project_LMS.Data
                     .HasColumnName("create_at")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                entity.Property(e => e.DependentCode).HasColumnName("dependent_code");
+                //entity.Property(e => e.DependentCode).HasColumnName("dependent_code");
 
                 entity.Property(e => e.IsDelete)
                     .HasColumnName("is_delete")
@@ -1070,73 +1073,55 @@ namespace Project_LMS.Data
                 entity.ToTable("lessons");
 
                 entity.Property(e => e.Id).HasColumnName("id");
-
                 entity.Property(e => e.TeachingAssignmentId).HasColumnName("teaching_assignment_id");
-
                 entity.Property(e => e.ClassLessonCode)
                     .HasMaxLength(255)
                     .HasColumnName("class_lesson_code");
-
                 entity.Property(e => e.CreateAt)
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("create_at")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
                 entity.Property(e => e.Description).HasColumnName("description");
-
                 entity.Property(e => e.Duration)
                     .HasMaxLength(50)
                     .HasColumnName("duration");
-
                 entity.Property(e => e.LessonLink)
                     .HasColumnType("character varying")
                     .HasColumnName("lesson_link");
-
                 entity.Property(e => e.EndDate)
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("end_date");
-
                 entity.Property(e => e.IsAutoStart)
                     .HasColumnName("is_auto_start")
                     .HasDefaultValueSql("false");
-
                 entity.Property(e => e.IsDelete)
                     .HasColumnName("is_delete")
                     .HasDefaultValueSql("false");
-
                 entity.Property(e => e.IsResearchable)
                     .HasColumnName("is_researchable")
                     .HasDefaultValueSql("false");
-
                 entity.Property(e => e.IsSave)
                     .HasColumnName("is_save")
                     .HasDefaultValueSql("false");
-
                 entity.Property(e => e.PaswordLeassons).HasColumnName("pasword_leassons");
-
                 entity.Property(e => e.StartDate)
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("start_date");
-
                 entity.Property(e => e.Topic)
                     .HasMaxLength(255)
                     .HasColumnName("topic");
-
                 entity.Property(e => e.UpdateAt)
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("update_at")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
                 entity.Property(e => e.UserCreate).HasColumnName("user_create");
-
                 entity.Property(e => e.UserId).HasColumnName("user_id");
-
                 entity.Property(e => e.UserUpdate).HasColumnName("user_update");
 
                 entity.HasOne(d => d.TeachingAssignment)
                     .WithMany(p => p.Lessons)
                     .HasForeignKey(d => d.TeachingAssignmentId)
-                    .HasConstraintName("fk_lessons_teachingassignment");
+                    .HasConstraintName("lessons_teaching_assignments_fk");
 
                 entity.HasOne(d => d.User)
                     .WithMany(p => p.Lessons)

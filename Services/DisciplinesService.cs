@@ -128,17 +128,17 @@ namespace Project_LMS.Services
         {
             var discipline = await _disciplineRepository.GetByIdAsync(id);
             if (discipline == null) return new ApiResponse<object>(1, "Kỷ luật không tồn tại.");
-            var classStudent = await _classStudentRepository.FindStudentByIdIsActive(discipline.UserId ?? 0);
-            string className = classStudent.Class.Name.ToString();
+            //var classStudent = await _classStudentRepository.FindStudentByIdIsActive(discipline.UserId ?? 0);
+            //string className = classStudent.Class.Name.ToString();
             var disciplineResponse = new
             {
                 discipline.Id,
                 discipline.DisciplineContent,
                 discipline.Name,
                 discipline.DisciplineDate,
-                discipline.User.FullName,
-                className,
-                disciplineName = discipline?.Semester.Name
+                discipline?.User?.FullName,
+                //className,
+                disciplineName = discipline?.Semester?.Name
             };
             return new ApiResponse<object>(0, "Đã tìm thấy kỷ luật.")
             {

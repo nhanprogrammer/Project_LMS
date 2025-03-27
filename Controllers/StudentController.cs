@@ -7,6 +7,7 @@ using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers
 {
+    [Authorize(Policy = "STUDENT-REC-VIEW")]
     [Route("api/[controller]")]
     [ApiController]
     public class StudentController : ControllerBase
@@ -34,7 +35,7 @@ namespace Project_LMS.Controllers
             return Ok(result);
         }
         [HttpGet("exportexcel/seach")]
-        public async Task<IActionResult> ExportExcelSearch([FromQuery] int academicId, [FromQuery] int departmentId, [FromQuery] string column, [FromQuery] bool orderBy, [FromQuery]string searchItem)
+        public async Task<IActionResult> ExportExcelSearch([FromQuery] int academicId, [FromQuery] int departmentId, [FromQuery] string column, [FromQuery] bool orderBy, [FromQuery] string searchItem)
         {
             var result = await _classStudentService.ExportAllStudentExcel(academicId, departmentId, column, orderBy, searchItem);
             return Ok(result);
@@ -50,6 +51,7 @@ namespace Project_LMS.Controllers
             return _classStudentService.GetAllByAcademicAndDepartment(academicId, departmentId, request, column, orderBy, search);
         }
 
+
         [HttpPost("checkuser/{name}")]
         public async Task<IActionResult> CheckUser(string name)
         {
@@ -62,6 +64,7 @@ namespace Project_LMS.Controllers
             var result = await _userService.CheckOTP(otp);
             return Ok(result);
         }
+
         [HttpPost("changepassword")]
         [Authorize]
         public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request)
@@ -70,6 +73,7 @@ namespace Project_LMS.Controllers
             return Ok(result);
         }
         //Create Student
+        [Authorize(Policy = "STUDENT-REC-INSERT")]
         [HttpPost("add")]
         public async Task<IActionResult> AddAsync([FromBody] StudentRequest request)
         {
@@ -77,48 +81,66 @@ namespace Project_LMS.Controllers
             return Ok(result);
         }
 
+        [Authorize(Policy = "STUDENT-REC-UPDATE")]
         [HttpPut("update")]
         public async Task<IActionResult> UpdateAsync([FromBody] StudentRequest request)
         {
             var result = await _studentService.UpdateAsync(request);
             return Ok(result);
-        }        
+        }
+
+        [Authorize(Policy = "STUDENT-REC-DELETE")]
         [HttpDelete("delete")]
         public async Task<IActionResult> DeleteAsync([FromBody] DeleteStudentRequest request)
         {
             var result = await _studentService.DeleteAsync(request.UserCode);
             return Ok(result);
         }
+
         [HttpGet("learningoutcomes")]
         public async Task<IActionResult> LearningOutcomes([FromQuery] int studentId, [FromQuery] int classId)
         {
             var result = await _studentService.LearningOutcomesOfStudent(studentId, classId);
             return Ok(result);
         }
+
+        [Authorize(Policy = "STUDENT-REC-INSERT")]
         [HttpPost("importexcel")]
         public async Task<IActionResult> AddStudentByImportExcel([FromForm] IFormFile fileExcel)
         {
             var result = await _studentService.ReadStudentsFromExcelAsync(fileExcel);
             return Ok(result);
-        } 
+        }
+
+
         [HttpGet("exportexcelstudent")]
         public async Task<IActionResult> ExportExcel([FromQuery] int studentId, [FromQuery] int classId)
         {
-            var result = await _studentService.ExportExcelLearningProcess(studentId,classId);
+            var result = await _studentService.ExportExcelLearningProcess(studentId, classId);
             return Ok(result);
         }
         [HttpGet("generateusercode")]
         public async Task<IActionResult> GenerateUserCode([FromQuery] bool isStudent)
         {
             string code;
-            if(isStudent){
+            if (isStudent) {
                 code = "SV";
-            }else
+            } else
             {
                 code = "GV";
             }
             var result = await _studentService.GeneratedUserCode(code);
-            return Ok(result);  
+            return Ok(new ApiResponse<object>(0, "Lấy UserCode thành công")
+            {
+                Data = result
+            });
+
+        }
+        [HttpGet("exportsampledata")]
+        public async Task<IActionResult> ExportSampleData()
+        {
+            var result = await _studentService.ExportSampleData();
+            return Ok(result);
         }
     }
 }
