@@ -118,7 +118,10 @@ namespace Project_LMS.Controllers
                 code = "GV";
             }
             var result = await _studentService.GeneratedUserCode(code);
-            return Ok(result);  
+            return Ok(new ApiResponse<object>(0,"Lấy UserCode thành công")
+            {
+                Data = result
+            });  
         }
     }
 }

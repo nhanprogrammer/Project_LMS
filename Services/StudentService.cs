@@ -67,12 +67,12 @@ public class StudentService : IStudentService
         {
             valids.Add("Usercode không được để trống.");
         }
+
+        if (await _studentRepository.FindStudentByUserCode(request.UserCode) != null)
         {
-            if (await _studentRepository.FindStudentByUserCode(request.UserCode) != null)
-            {
-                valids.Add($"UserCode đã tồn tại.");
-            }
+            valids.Add($"UserCode đã tồn tại.");
         }
+
         if (valids.Count > 0) return new ApiResponse<object>(1, "Thêm học viên thất bại.")
         {
             Data = valids
@@ -226,8 +226,8 @@ public class StudentService : IStudentService
         if (cs?.Class == null) // Kiểm tra cả Class để tránh null reference
             return new ApiResponse<object>(1, "Không tìm thấy học viên trong lớp học");
         List<Task> tasks = new List<Task>();
-        try
-        {
+        //try
+        //{
             // Khởi tạo workbook và worksheet
             using var workbook = new Workbook();
             Worksheet sheet1 = workbook.Worksheets[0];
@@ -292,27 +292,26 @@ public class StudentService : IStudentService
                 sheet2.Cells["A1"].SetStyle(mainTitleStyle);
             }));
 
-            tasks.Add(Task.Run(() =>
+
+            // Định nghĩa và ghi tiêu đề học kỳ
+            string[] semesterHeaders = { "Học kỳ 1", "Học kỳ 2", "Cả năm" };
+            for (int colm = 0; colm < semesterHeaders.Length; colm++)
             {
-                // Định nghĩa và ghi tiêu đề học kỳ
-                string[] semesterHeaders = { "Học kỳ 1", "Học kỳ 2", "Cả năm" };
-                for (int colm = 0; colm < semesterHeaders.Length; colm++)
-                {
-                    int startColumn = colm * 3; // Cột đầu của từng học kỳ
-                    sheet2.Cells[1, startColumn].PutValue(semesterHeaders[colm]);
-                    sheet2.Cells.Merge(1, startColumn, 1, 3);
+                int startColumn = colm * 3; // Cột đầu của từng học kỳ
+                sheet2.Cells[1, startColumn].PutValue(semesterHeaders[colm]);
+                sheet2.Cells.Merge(1, startColumn, 1, 3);
 
-                    var semesterStyle = sheet2.Cells[1, startColumn].GetStyle();
-                    semesterStyle.IsTextWrapped = true;
-                    semesterStyle.HorizontalAlignment = TextAlignmentType.Center;
-                    semesterStyle.Font.IsBold = true;
-                    sheet2.Cells[1, startColumn].SetStyle(semesterStyle);
-                }
-                sheet2.AutoFitColumns();
-            }));
+                var semesterStyle = sheet2.Cells[1, startColumn].GetStyle();
+                semesterStyle.IsTextWrapped = true;
+                semesterStyle.HorizontalAlignment = TextAlignmentType.Center;
+                semesterStyle.Font.IsBold = true;
+                sheet2.Cells[1, startColumn].SetStyle(semesterStyle);
+            }
+            sheet2.AutoFitColumns();
 
 
-            tasks.Add(Task.Run(() =>
+
+        tasks.Add(Task.Run(() =>
             {
                 string[] subHeaders = { "Học lực", "Hạnh kiểm", "Điểm trung bình" };
                 // Thêm sub-header
@@ -592,15 +591,15 @@ public class StudentService : IStudentService
 
             return new ApiResponse<object>(0, "Xuất Excel thành công")
             {
-                Data =base64String
+                Data = base64String
             };
-        }
-        catch (Exception ex)
-        {
-            // Xử lý lỗi và trả về thông báo
-            Console.WriteLine($"Error exporting Excel: {ex.Message}");
-            return new ApiResponse<object>(1, $"Lỗi khi xuất Excel: {ex.Message}");
-        }
+        //}
+        //catch (Exception ex)
+        //{
+        //    // Xử lý lỗi và trả về thông báo
+        //    Console.WriteLine($"Error exporting Excel: {ex.Message}");
+        //    return new ApiResponse<object>(1, $"Lỗi khi xuất Excel: {ex.Message}");
+        //}
     }
 
     public async Task<ApiResponse<StudentResponse>> FindStudentByUserCodeAsync(string userCode)
@@ -978,53 +977,51 @@ public class StudentService : IStudentService
             foreach (StudentRequest request in studentRequest)
             {
                 var valids = await ValidateStudentRequest(request);
+                if (request.UserCode == null)
+                {
+                    valids.Add("Usercode không được để trống.");
+                }
+
+                if (await _studentRepository.FindStudentByUserCode(request.UserCode) != null)
+                {
+                    valids.Add($"UserCode đã tồn tại.");
+                }
                 if (valids.Count > 0)
                 {
                     errors.Add($"Học viên có mã [{request.UserCode}] gặp lỗi", valids);
-
+                    Console.WriteLine("vào rồi ");
                 }
             }
+
             if (errors.Count > 0) return new ApiResponse<object>(1, "Thêm danh sách học viên thất bại.")
             {
                 Data = errors
             };
-            foreach (StudentRequest request in studentRequest)
-            {
-                var student = _mapper.Map<User>(request);
-                student.Username = await GeneratedUsername(request.Email);
-                student.IsDelete = false;
-                student.CreateAt = DateTime.Now;
-                string password = await GenerateSecurePassword(8);
-                student.Password = BCrypt.Net.BCrypt.HashPassword(password);
-
-                if (request.Image != null)
-                {
-                    string url = await _cloudinaryService.UploadImageAsync(request.Image);
-                    student.Image = url;
-                    Console.WriteLine("Url : " + request.Image);
-                }
-                var user = await _studentRepository.AddAsync(student);
-                Task.Run(async () =>
-                {
-                    await ExecuteEmail(user.Email, user.FullName, user.Username, password);
-                });
-                await _classStudentRepository.AddAsync(new ClassStudentRequest()
-                {
-                    UserId = user.Id,
-                    ClassId = request.ClassId
-                });
-            }
             //foreach (StudentRequest request in studentRequest)
             //{
-            //    Type type = request.GetType();
-            //    PropertyInfo[] properties = type.GetProperties();
+            //    var student = _mapper.Map<User>(request);
+            //    student.Username = await GeneratedUsername(request.Email);
+            //    student.IsDelete = false;
+            //    student.CreateAt = DateTime.Now;
+            //    string password = await GenerateSecurePassword(8);
+            //    student.Password = BCrypt.Net.BCrypt.HashPassword(password);
 
-            //    foreach (var property in properties)
+            //    if (request.Image != null)
             //    {
-            //        object value = property.GetValue(request);
-            //        string propertyName = property.Name;
-            //        Console.WriteLine(propertyName + ": " + value);
+            //        string url = await _cloudinaryService.UploadImageAsync(request.Image);
+            //        student.Image = url;
+            //        Console.WriteLine("Url : " + request.Image);
             //    }
+            //    var user = await _studentRepository.AddAsync(student);
+            //    Task.Run(async () =>
+            //    {
+            //        await ExecuteEmail(user.Email, user.FullName, user.Username, password);
+            //    });
+            //    await _classStudentRepository.AddAsync(new ClassStudentRequest()
+            //    {
+            //        UserId = user.Id,
+            //        ClassId = request.ClassId
+            //    });
             //}
 
             //Console.WriteLine("StudenRequest "+s)
@@ -1076,7 +1073,8 @@ public class StudentService : IStudentService
                 student.Username = await GeneratedUsername(request.Email);
                 string password = await GenerateSecurePassword(10);
                 student.Password = BCrypt.Net.BCrypt.HashPassword(password);
-                Task.Run(async () => {
+                Task.Run(async () =>
+                {
                     await ExecuteEmail(user.Email, user.FullName, user.Username, password);
 
                 });

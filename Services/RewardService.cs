@@ -85,7 +85,7 @@ namespace Project_LMS.Services
                 };
             }
 
-            string rewardName = reward.RewardName;
+            string rewardName = reward?.RewardName;
             try
             {
                 reward = _mapper.Map(request, reward);
@@ -128,17 +128,17 @@ namespace Project_LMS.Services
         {
             var reward = await _rewardRepository.GetByIdAsync(id);
             if (reward == null) return new ApiResponse<object>(1, "Khen thưởng không tồn tại.");
-            var classStudent = await _classStudentRepository.FindStudentByIdIsActive(reward.UserId ?? 0);
-            string className = classStudent.Class.Name.ToString();
+            //var classStudent = await _classStudentRepository.FindStudentByIdIsActive(reward.UserId ?? 0);
+            //string className = classStudent?.Class.Name?.ToString()??"Chưa có dữ liệu";
             var rewardResponse = new
             {
                 reward.Id,
                 reward.RewardContent,
                 reward.RewardName,
                 reward.RewardDate,
-                reward.User.FullName,
-                className,
-                reward.Semester.Name
+                reward?.User?.FullName,
+                //className,
+                reward?.Semester?.Name
             };
             return  new ApiResponse<object>(0, "Đã tìm thấy khen thưởng.")
             {
