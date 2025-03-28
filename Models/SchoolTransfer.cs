@@ -9,7 +9,6 @@ namespace Project_LMS.Models
     {
         public int Id { get; set; }
         public int? UserId { get; set; }
-        public int? SchoolBranchesId { get; set; }
         public DateTime? TransferDate { get; set; }
         public BitArray? Status { get; set; }
         [Column("transfer_from")]
@@ -30,8 +29,6 @@ namespace Project_LMS.Models
         public DateTime? UpdateAt { get; set; }
         public int? UserCreate { get; set; }
         public int? UserUpdate { get; set; }
-
-        public virtual SchoolBranch? SchoolBranches { get; set; }
         public virtual User? User { get; set; }
     }
 }

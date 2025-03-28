@@ -9,9 +9,6 @@ namespace Project_LMS.DTOs.Request
         [Required(ErrorMessage = "Mã học sinh là bắt buộc")]
         public int? UserId { get; set; }
 
-        [Required(ErrorMessage = "Mã chi nhánh trường là bắt buộc")]
-        public int? SchoolBranchesId { get; set; }
-
         [Required(ErrorMessage = "Ngày chuyển trường là bắt buộc")]
         public DateTime? TransferDate { get; set; }
 
