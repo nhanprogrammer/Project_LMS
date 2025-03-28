@@ -21,6 +21,6 @@ namespace Project_LMS.DTOs.Request
         public string Reason { get; set; } = null!;       
         [Required(ErrorMessage = "Địa chỉ chuyển trường là bắt buộc")]
         public string Address { get; set; } = null!;       
-        public string FileName { get; set; } = null!;
+        public string? FileName { get; set; } = null!;
     }
 }
