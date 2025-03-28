@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Project_LMS.Models
 {
@@ -12,6 +13,10 @@ namespace Project_LMS.Models
         public DateTime? TransferDate { get; set; }
         public BitArray? Status { get; set; }
         public string? Semester { get; set; }
+        [Column("filename")]
+        public string? FileName { get; set; }
+        [Column("address")]
+        public string? Address { get; set; }
         public string? Reason { get; set; }
         public bool? IsDelete { get; set; }
         public DateTime? CreateAt { get; set; }
