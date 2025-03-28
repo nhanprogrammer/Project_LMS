@@ -28,10 +28,24 @@ namespace Project_LMS.Services
             _cloudinaryService = cloudinaryService;
         }
 
-        public async Task<IEnumerable<SchoolTransferResponse>> GetAllAsync()
+        public async Task<ApiResponse<List<object>>> GetAllAsync(int academicId, PaginationRequest request, bool isOrder, string column, string? searchItem)
         {
-            var schoolTransfers = await _schoolTransferRepository.GetAllAsync();
-            return _mapper.Map<IEnumerable<SchoolTransferResponse>>(schoolTransfers);
+            var schoolTransfers = await _schoolTransferRepository.GetAllAsync(academicId, request,isOrder,column,searchItem);
+            var schoolTransfersResponse = schoolTransfers.Select(s => (object)new
+            {
+                s.User?.UserCode,
+                s.User?.FullName,
+                s.User?.BirthDate,
+                gender = s.User?.Gender?.Length>0 ? s.User.Gender[0]: false,
+                s.TransferFrom,
+                s.Semester,
+                departmentName =s.User?.ClassStudents?.Where(cs=>cs.IsActive ==true &&s.IsDelete == false).FirstOrDefault()?.Class?.Department?.Name,
+                s.TransferDate
+            }).ToList();
+            return new ApiResponse<List<object>>(0,"Lấy danh sách chuyển trường thành công.")
+            {
+                Data = schoolTransfersResponse
+            };
         }
 
         public async Task<SchoolTransferResponse> GetByIdAsync(int id)
