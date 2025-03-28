@@ -9,9 +9,15 @@ namespace Project_LMS.Models
     {
         public int Id { get; set; }
         public int? UserId { get; set; }
-        public int? SchoolBranchesId { get; set; }
         public DateTime? TransferDate { get; set; }
         public BitArray? Status { get; set; }
+        [Column("transfer_from")]
+        public string? TransferFrom { get; set; }
+        [Column("province_id")]
+        public string? ProvinceId { get; set; }
+        [Column("district_id")]
+        public string? DistrictId { get; set; }
+
         public string? Semester { get; set; }
         [Column("filename")]
         public string? FileName { get; set; }
@@ -23,8 +29,6 @@ namespace Project_LMS.Models
         public DateTime? UpdateAt { get; set; }
         public int? UserCreate { get; set; }
         public int? UserUpdate { get; set; }
-
-        public virtual SchoolBranch? SchoolBranches { get; set; }
         public virtual User? User { get; set; }
     }
 }

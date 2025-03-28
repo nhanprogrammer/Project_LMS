@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Project_LMS.DTOs.Request
 {
@@ -7,9 +8,6 @@ namespace Project_LMS.DTOs.Request
 
         [Required(ErrorMessage = "Mã học sinh là bắt buộc")]
         public int? UserId { get; set; }
-
-        [Required(ErrorMessage = "Mã chi nhánh trường là bắt buộc")]
-        public int? SchoolBranchesId { get; set; }
 
         [Required(ErrorMessage = "Ngày chuyển trường là bắt buộc")]
         public DateTime? TransferDate { get; set; }
@@ -22,5 +20,8 @@ namespace Project_LMS.DTOs.Request
         [Required(ErrorMessage = "Địa chỉ chuyển trường là bắt buộc")]
         public string Address { get; set; } = null!;       
         public string? FileName { get; set; } = null!;
+        public string? TransferFrom { get; set; }
+        public string? ProvinceId { get; set; }
+        public string? DistrictId { get; set; }
     }
 }
