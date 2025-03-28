@@ -367,7 +367,7 @@ namespace Project_LMS.Services
             var query = _context.Users
                 .Include(u => u.Role)
                 .Include(u => u.GroupModulePermisson) // Load GroupModulePermisson luôn
-                .Where(p => p.IsDelete == false && p.GroupModulePermissonId.HasValue &&
+                .Where(p => p.IsDelete == false && p.Role.Name.ToUpper() == "ADMIN" &&
                     (string.IsNullOrEmpty(key) ||
                      p.FullName.ToLower().Contains(key) ||
                      p.Email.ToLower().Contains(key) ||
@@ -454,21 +454,54 @@ namespace Project_LMS.Services
             }
 
             // Kiểm tra user có tồn tại không
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId && u.IsDelete == false);
+            var user = await _context.Users
+                .Include(u => u.Role) // Load role của user
+                .FirstOrDefaultAsync(u => u.Id == userId && u.IsDelete == false);
+
             if (user == null)
             {
                 throw new NotFoundException("Người dùng không tồn tại.");
             }
 
-            // Cập nhật nhóm quyền và trạng thái
-            user.GroupModulePermissonId = groupId;
-            user.Disable = disable;
-            user.UpdateAt = DateTime.Now; // Cập nhật thời gian sửa đổi
+            if (disable)
+            {
+                // Nếu chưa có quyền (GroupModulePermissonId == null) thì không cần thay đổi
+                if (user.GroupModulePermissonId == null)
+                {
+                    return false;
+                }
+
+                // Nếu user đã có quyền nhưng bị disable, phục hồi vai trò trước đó
+                if (user.ReRoleId.HasValue)
+                {
+                    user.RoleId = user.ReRoleId.Value; // Phục hồi vai trò trước đó
+                }
+
+                user.Disable = true;
+            }
+            else
+            {
+                    // ✅ Chỉ lưu `ReRoleId` nếu chưa có (tránh bị ghi đè sai)
+                    if (!user.ReRoleId.HasValue)
+                    {
+                        user.ReRoleId = user.RoleId; // Lưu lại vai trò gốc (TEACHER/STUDENT)
+                    }
+                    user.RoleId = 5; // Cấp quyền ADMIN
+           
+
+                // Cập nhật nhóm quyền (không xóa khi disable)
+                user.GroupModulePermissonId = groupId;
+                user.Disable = false; // Kích hoạt lại user nếu trước đó bị vô hiệu hóa
+            }
+
+            // Cập nhật thời gian chỉnh sửa
+            user.UpdateAt = DateTime.Now;
 
             // Lưu thay đổi vào database
             await _context.SaveChangesAsync();
             return true; // Thành công
         }
+
 
 
         public async Task<bool> DeleteUser(int userId)
@@ -496,7 +529,7 @@ namespace Project_LMS.Services
         {
             var users = await _context.Users
                 .Include(u => u.Role)
-                .Where(u => u.IsDelete == false && u.GroupModulePermissonId == null && u.Role.Name.ToUpper() != "SUPER-ADMIN")
+                .Where(u => u.IsDelete == false && u.Role.Name.ToUpper() != "ADMIN" && u.Role.Name.ToUpper() != "SUPER-ADMIN")
                 .Select(u => new UnassignedUserResponse
                 {
                     Id = u.Id,
@@ -548,15 +581,10 @@ namespace Project_LMS.Services
                 permissions.Add(user.Role.Name.ToUpper());
             }
 
-            // Nếu user bị Disable hoặc không có quyền (GroupModulePermissonId = null), return ngay (chỉ có Role)
-            if (user.Disable == true || user.GroupModulePermissonId == null)
+            if (user.Disable == true)
             {
                 return permissions;
             }
-
-            // Nếu user có quyền, xóa Role cũ và thêm quyền ADMIN
-            permissions.Clear();
-            permissions.Add("ADMIN");
 
             // Lấy danh sách quyền theo GroupModulePermissonId
             var modulePermissions = await _context.ModulePermissions
