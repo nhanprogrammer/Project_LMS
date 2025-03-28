@@ -9,7 +9,6 @@
         public string? ClassDescription { get; set; }
         public int MaxStudents { get; set; }
         public bool ClassStatus { get; set; }
-        public string ClassLink { get; set; }
         public string? ClassPassword { get; set; }
         public DateTime? UpdateAt { get; set; } = DateTime.UtcNow;
         public int UserUpdate { get; set; }

@@ -363,32 +363,29 @@ namespace Project_LMS.Services
 
             key = key?.ToLower()?.Trim(); // Chuẩn hóa key để tránh lỗi tìm kiếm
 
-            // Tạo truy vấn cơ bản
+            // Truy vấn cơ bản, Include để tránh truy vấn thừa
             var query = _context.Users
-                .AsNoTracking() // Tăng hiệu suất, vì không cần theo dõi Entity
-                .Where(p => p.IsDelete == false &&
+                .Include(u => u.Role)
+                .Include(u => u.GroupModulePermisson) // Load GroupModulePermisson luôn
+                .Where(p => p.IsDelete == false && p.GroupModulePermissonId.HasValue &&
                     (string.IsNullOrEmpty(key) ||
                      p.FullName.ToLower().Contains(key) ||
                      p.Email.ToLower().Contains(key) ||
-                     (p.GroupModulePermissonId != null &&
-                      _context.GroupModulePermissons
-                          .Where(g => g.Id == p.GroupModulePermissonId)
-                          .Any(g => g.Name.ToLower().Contains(key)))));
+                     p.GroupModulePermisson.Name.ToLower().Contains(key))); // Truy vấn trực tiếp trên GroupModulePermisson
 
-            // Lấy tổng số bản ghi sau khi lọc
+            // Đếm tổng số bản ghi
             int totalItems = await query.CountAsync();
-
             if (totalItems == 0)
             {
                 throw new NotFoundException("Không tìm thấy người dùng nào.");
             }
 
-            // Tính toán tổng số trang
+            // Tính tổng số trang
             int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
 
             // Lấy danh sách bản ghi theo trang
             var permissions = await query
-                .OrderBy(p => p.Id) // Có thể thay đổi theo thứ tự mong muốn
+                .OrderBy(p => p.Id) // Có thể thay đổi thứ tự sắp xếp
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .Select(p => new PermissionUserResponse
@@ -396,10 +393,7 @@ namespace Project_LMS.Services
                     Id = p.Id,
                     Name = p.FullName ?? "NaN",
                     Email = p.Email ?? "NaN",
-                    GroupPermissionName = _context.GroupModulePermissons
-                        .Where(g => g.Id == p.GroupModulePermissonId)
-                        .Select(g => g.Name)
-                        .FirstOrDefault() ?? "NaN",
+                    GroupPermissionName = p.GroupModulePermisson.Name ?? "NaN", // Không cần truy vấn phụ
                     Status = p.Disable.HasValue && p.Disable.Value ? "Đã vô hiệu hóa" : "Đang hoạt động"
                 })
                 .ToListAsync();
@@ -416,6 +410,7 @@ namespace Project_LMS.Services
                 HasNextPage = pageNumber < totalPages
             };
         }
+
 
         public async Task<PermissionUserRequest> GetUserPermission(int userId)
         {
@@ -459,33 +454,23 @@ namespace Project_LMS.Services
             }
 
             // Kiểm tra user có tồn tại không
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
-
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId && u.IsDelete == false);
             if (user == null)
             {
-                // Nếu user không tồn tại, tạo mới user với quyền được cấp
-                user = new User
-                {
-                    Id = userId, // ID có thể được gán nếu là user mới
-                    GroupModulePermissonId = groupId,
-                    Disable = disable
-                };
+                throw new NotFoundException("Người dùng không tồn tại.");
+            }
 
-                await _context.Users.AddAsync(user);
-            }
-            else
-            {
-                // Nếu user đã tồn tại, cập nhật nhóm quyền và trạng thái
-                user.GroupModulePermissonId = groupId;
-                user.Disable = disable;
-                user.UpdateAt = DateTime.Now; // Cập nhật thời gian sửa đổi
-                _context.Users.Update(user);
-            }
+            // Cập nhật nhóm quyền và trạng thái
+            user.GroupModulePermissonId = groupId;
+            user.Disable = disable;
+            user.UpdateAt = DateTime.Now; // Cập nhật thời gian sửa đổi
 
             // Lưu thay đổi vào database
             await _context.SaveChangesAsync();
             return true; // Thành công
         }
+
+
         public async Task<bool> DeleteUser(int userId)
         {
             // Kiểm tra user có tồn tại không
@@ -507,44 +492,104 @@ namespace Project_LMS.Services
             return true; // Thành công
         }
 
-
-        public async Task<List<string>> ListPermission(int userId)
+        public async Task<List<UnassignedUserResponse>> GetUnassignedUsersAsync()
         {
-            var user = await _context.Users
-                .Where(u => u.Id == userId && u.IsDelete == false && u.PermissionChanged == false && u.Disable == false)
-                .Select(u => new { u.GroupModulePermissonId })
-                .FirstOrDefaultAsync();
-
-            if (user == null) return new List<string>();
-
-            var modulePermissions = await _context.ModulePermissions
-                .Where(m => m.GroupRoleId == user.GroupModulePermissonId)
+            var users = await _context.Users
+                .Include(u => u.Role)
+                .Where(u => u.IsDelete == false && u.GroupModulePermissonId == null && u.Role.Name.ToUpper() != "SUPER-ADMIN")
+                .Select(u => new UnassignedUserResponse
+                {
+                    Id = u.Id,
+                    FullName = u.FullName ?? "NaN",
+                    UserCode = u.UserCode ?? "NaN",
+                    Email = u.Email ?? "NaN"
+                })
                 .ToListAsync();
 
-            if (!modulePermissions.Any()) return new List<string>();
+            return users;
+        }
 
-            // Load tất cả Modules trước để tránh truy vấn nhiều lần
-            var moduleIds = modulePermissions.Select(m => m.ModuleId).Distinct().ToList();
-            var modulesDict = await _context.Modules
-                .Where(m => moduleIds.Contains(m.Id))
-                .ToDictionaryAsync(m => m.Id, m => m.Name);
-
-            // Chuyển đổi dữ liệu
-            var permissions = modulePermissions
-                .Where(m => m.ModuleId.HasValue && modulesDict.ContainsKey(m.ModuleId.Value)) // ✅ Kiểm tra null
-                .SelectMany(m => new[]
+        public async Task<List<AvailablePermissionResponse>> GetAvailablePermissionsAsync()
+        {
+            var permissions = await _context.GroupModulePermissons
+                .Select(g => new AvailablePermissionResponse
                 {
-                    m.IsView.GetValueOrDefault() ? $"{modulesDict[m.ModuleId.Value]}-VIEW" : null,
-                    m.IsInsert.GetValueOrDefault() ? $"{modulesDict[m.ModuleId.Value]}-INSERT" : null,
-                    m.IsUpdate.GetValueOrDefault() ? $"{modulesDict[m.ModuleId.Value]}-UPDATE" : null,
-                    m.IsDelete.GetValueOrDefault() ? $"{modulesDict[m.ModuleId.Value]}-DELETE" : null,
-                    m.EnterScore.GetValueOrDefault() ? $"{modulesDict[m.ModuleId.Value]}-ENTERSCORE" : null
+                    Id = g.Id,
+                    Name = g.Name
                 })
-                .Where(p => p != null) // Lọc bỏ null
-                .ToList();
+                .ToListAsync();
 
             return permissions;
         }
 
+        public async Task<List<string>> ListPermission(int userId)
+        {
+            var permissions = new List<string>();
+
+            var user = await _context.Users
+                .Include(u => u.Role)
+                .Where(u => u.Id == userId && u.IsDelete == false)
+                .Select(u => new { u.GroupModulePermissonId, u.Role, u.Disable })
+                .FirstOrDefaultAsync();
+
+            // Nếu user không tồn tại, trả về danh sách rỗng
+            if (user == null) return permissions;
+
+            // Nếu là SUPER-ADMIN, mặc định add quyền SUPER-ADMIN và return ngay
+            if (user.Role?.Name?.ToUpper() == "SUPER-ADMIN")
+            {
+                permissions.Add("SUPER-ADMIN");
+                return permissions;
+            }
+
+            // Luôn thêm role vào danh sách quyền
+            if (!string.IsNullOrEmpty(user.Role?.Name))
+            {
+                permissions.Add(user.Role.Name.ToUpper());
+            }
+
+            // Nếu user bị Disable hoặc không có quyền (GroupModulePermissonId = null), return ngay (chỉ có Role)
+            if (user.Disable == true || user.GroupModulePermissonId == null)
+            {
+                return permissions;
+            }
+
+            // Nếu user có quyền, xóa Role cũ và thêm quyền ADMIN
+            permissions.Clear();
+            permissions.Add("ADMIN");
+
+            // Lấy danh sách quyền theo GroupModulePermissonId
+            var modulePermissions = await _context.ModulePermissions
+                .Where(m => m.GroupRoleId == user.GroupModulePermissonId)
+                .ToListAsync();
+
+            if (!modulePermissions.Any()) return permissions; // Nếu không có quyền nào, chỉ return ADMIN
+
+            // Lấy danh sách module để tránh truy vấn nhiều lần
+            var moduleIds = modulePermissions
+                .Where(m => m.ModuleId.HasValue)
+                .Select(m => m.ModuleId.Value)
+                .Distinct()
+                .ToList();
+
+            var modulesDict = await _context.Modules
+                .Where(m => moduleIds.Contains(m.Id))
+                .ToDictionaryAsync(m => m.Id, m => m.Name);
+
+            // Tạo danh sách quyền từ module permissions
+            permissions.AddRange(modulePermissions
+                .Where(m => m.ModuleId.HasValue && modulesDict.ContainsKey(m.ModuleId.Value))
+                .SelectMany(m => new[]
+                {
+            m.IsView.GetValueOrDefault() ? $"{modulesDict[m.ModuleId.Value]}-VIEW" : null,
+            m.IsInsert.GetValueOrDefault() ? $"{modulesDict[m.ModuleId.Value]}-INSERT" : null,
+            m.IsUpdate.GetValueOrDefault() ? $"{modulesDict[m.ModuleId.Value]}-UPDATE" : null,
+            m.IsDelete.GetValueOrDefault() ? $"{modulesDict[m.ModuleId.Value]}-DELETE" : null,
+            m.EnterScore.GetValueOrDefault() ? $"{modulesDict[m.ModuleId.Value]}-ENTERSCORE" : null
+                })
+                .Where(p => p != null)); // Lọc bỏ null
+
+            return permissions;
+        }
     }
 }

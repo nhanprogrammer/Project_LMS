@@ -869,6 +869,7 @@ namespace Project_LMS.Services
             }
         }
 
+
         public async Task<ApiResponse<PaginatedResponse<ClassFutureStudentResponse>>> GetClassLessonStudent(
     int? userId, string? keyword, int? subjectId, int status, int pageNumber = 1, int pageSize = 10)
         {
@@ -1100,16 +1101,10 @@ namespace Project_LMS.Services
         }
 
 
-        public async Task<List<Class_UserResponse>> GetClassesByAcademicYearAndKeyword(int academicYearId, string keyword)
+        public async Task<List<Class_UserResponse>> GetClassesByAcademicYear(int academicYearId)
         {
             var query = _context.Classes
                 .Where(c => c.AcademicYearId == academicYearId && c.IsDelete == false);
-
-            if (!string.IsNullOrWhiteSpace(keyword))
-            {
-                var searchKeyword = keyword.ToLower();
-                query = query.Where(c => c.Name != null && c.Name.Contains(searchKeyword));
-            }
 
             var classes = await query
                 .Select(c => new Class_UserResponse

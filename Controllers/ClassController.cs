@@ -24,6 +24,7 @@ namespace Project_LMS.Controllers
             _authService = authService;
         }
 
+        [Authorize(Policy = "DATA-MNG-VIEW")]
         [HttpGet("list")]
         public async Task<IActionResult> GetClassList([FromQuery] ClassRequest classRequest)
         {
@@ -31,7 +32,7 @@ namespace Project_LMS.Controllers
             return Ok(response);
         }
 
-
+        [Authorize(Policy = "DATA-MNG-INSERT")]
         [HttpPost("create")]
         public async Task<IActionResult> CreateClass([FromBody] ClassSaveRequest request)
         {
@@ -50,6 +51,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "DATA-MNG-UPDATE")]
         [HttpPut("update")]
         public async Task<IActionResult> UpdateClass([FromBody] ClassSaveRequest request)
         {
@@ -72,7 +74,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-
+        [Authorize(Policy = "DATA-MNG-DELETE")]
         [HttpDelete("delete")]
         public async Task<IActionResult> DeleteClass([FromBody] ClassListIdRequest request)
         {
@@ -96,7 +98,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-
+        [Authorize(Policy = "DATA-MNG-VIEW")]
         [HttpGet("detail")]
         public async Task<IActionResult> GetClassDetail([FromQuery] ClassIdRequest classId)
         {
@@ -116,7 +118,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-
+        [Authorize(Policy = "DATA-MNG-VIEW")]
         [HttpGet("subjects/excluding")]
         public async Task<IActionResult> GetSubjectsExcluding([FromQuery] ClassListStringId request)
         {
@@ -124,6 +126,7 @@ namespace Project_LMS.Controllers
             return Ok(response);
         }
 
+        [Authorize(Policy = "DATA-MNG-VIEW")]
         [HttpGet("subjects/inherited")]
         public async Task<IActionResult> GetInheritedSubjects([FromQuery] ClassAcademicDepartmentRequest request)
         {
@@ -131,6 +134,7 @@ namespace Project_LMS.Controllers
             return Ok(response);
         }
 
+        [Authorize(Policy = "DATA-MNG-UPDATE")]
         [HttpPut("student-status")]
         public async Task<IActionResult> SaveStudentStatus([FromBody] ClassStudentStatusRequest request)
         {
@@ -146,6 +150,7 @@ namespace Project_LMS.Controllers
             return BadRequest(new ApiResponse<string>(1, "Cập nhật trạng thái học sinh thất bại", null));
         }
 
+        [Authorize(Policy = "DATA-MNG-VIEW")]
         [HttpGet("export-class-list")]
         public async Task<IActionResult> ExportClassList(int academicYearId, int departmentId)
         {
@@ -160,8 +165,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-
-
+        [Authorize(Policy = "DATA-MNG-INSERT")]
         [HttpPost("upload")]
         public async Task<IActionResult> UploadClassFile([FromBody] ClassBase64FileRequest request)
         {
@@ -181,7 +185,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-
+        [Authorize(Policy = "DATA-MNG-VIEW")]
         [HttpGet("download-excel")]
         public async Task<IActionResult> DownloadClassTemplate()
         {
@@ -196,7 +200,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "TEACHER-CLASS-FUTURE-VIEW")]
+        [Authorize(Policy = "TEACHER")]
         [HttpGet("future")]
         public async Task<ActionResult<ApiResponse<PaginatedResponse<ClassFutureResponse>>>> GetClassFuture(
     [FromQuery] string? keyword,
@@ -224,7 +228,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "TEACHER-CLASS-FUTURE-DETAIL-VIEW")]
+        [Authorize(Policy = "TEACHER")]
         [HttpGet("future/{teachingAssignmentId}")]
         public async Task<ActionResult<ApiResponse<TeachingAssignmentDetailResponse>>> GetClassFutureDetail(int teachingAssignmentId)
         {
@@ -247,14 +251,14 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "STUDENT-CLASS-FUTURE-VIEW")]
+        // [Authorize(Policy = "STUDENT-CLASS-FUTURE-VIEW")] CheckRole
         [HttpGet("futurestudent")]
         public async Task<ActionResult<ApiResponse<PaginatedResponse<ClassFutureResponse>>>> GetClassLessonStudent(
-[FromQuery] string? keyword,
-[FromQuery] int? subjectId,
-[FromQuery] int status = 0,
-[FromQuery] int pageNumber = 1,
-[FromQuery] int pageSize = 10)
+      [FromQuery] string? keyword,
+      [FromQuery] int? subjectId,
+      [FromQuery] int status = 0,
+      [FromQuery] int pageNumber = 1,
+      [FromQuery] int pageSize = 10)
         {
             try
             {
@@ -275,7 +279,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "STUDENT-CLASS-FUTURE-DETAIL-VIEW")]
+        // [Authorize(Policy = "STUDENT-CLASS-FUTURE-DETAIL-VIEW")] CheckRole
         [HttpGet("futurestudent/{teachingAssignmentId}")]
         public async Task<ActionResult<ApiResponse<TeachingAssignmentDetailResponse>>> GetClassLessonStudentDetail(int teachingAssignmentId)
         {
@@ -298,16 +302,16 @@ namespace Project_LMS.Controllers
             }
         }
 
-
         [HttpGet("search-classes")]
-        public async Task<IActionResult> GetClassesByAcademicYearAndKeyword([FromQuery] int academicYearId, [FromQuery] string keyword)
+        public async Task<IActionResult> GetClassesByAcademicYear(
+            [FromQuery] int academicYearId)
         {
             try
             {
-                var classes = await _classService.GetClassesByAcademicYearAndKeyword(academicYearId, keyword);
+                var classes = await _classService.GetClassesByAcademicYear(academicYearId);
                 return Ok(new ApiResponse<List<Class_UserResponse>>(
                     0,
-                    "Tìm kiếm lớp học thành công!",
+                    "Lấy danh sách lớp học thành công!",
                     classes));
             }
             catch (Exception ex)
@@ -315,7 +319,5 @@ namespace Project_LMS.Controllers
                 return BadRequest(new ApiResponse<string>(1, ex.Message, null));
             }
         }
-
-
     }
 }

@@ -38,7 +38,8 @@ public class MappingProfile : Profile
 
         CreateMap<AcademicYear, AcademicYearResponse>()
             .ForMember(dest => dest.Semesters, otp => otp.MapFrom(src => src.Semesters))
-            .ForMember(dest => dest.StartDate, otp => otp.MapFrom(src => DateOnly.FromDateTime((DateTime)src.StartDate)))
+            .ForMember(dest => dest.StartDate,
+                otp => otp.MapFrom(src => DateOnly.FromDateTime((DateTime)src.StartDate)))
             .ForMember(dest => dest.EndDate, otp => otp.MapFrom(src => DateOnly.FromDateTime((DateTime)src.EndDate)));
 
         CreateMap<CreateAcademicYearRequest, AcademicYear>()
@@ -52,14 +53,15 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate.ToDateTime(TimeOnly.MinValue)));
 
         CreateMap<Semester, SemesterResponse>()
-            .ForMember(dest => dest.DateStart, opt => opt.MapFrom(src => DateOnly.FromDateTime((DateTime)src.StartDate)))
+            .ForMember(dest => dest.DateStart,
+                opt => opt.MapFrom(src => DateOnly.FromDateTime((DateTime)src.StartDate)))
             .ForMember(dest => dest.DateEnd, opt => opt.MapFrom(src => DateOnly.FromDateTime((DateTime)src.EndDate)));
 
-        
+
         CreateMap<CreateSemesterRequest, Semester>()
             .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.DateStart.ToDateTime(TimeOnly.MinValue)))
             .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.DateEnd.ToDateTime(TimeOnly.MinValue)));
-            
+
 
         CreateMap<UpdateSemesterRequest, Semester>()
             .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.DateStart.ToDateTime(TimeOnly.MinValue)))
@@ -92,8 +94,7 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.Image, opt => opt.Ignore());
 
         CreateMap<SchoolBranch, SchoolBranchResponse>().ReverseMap();
-        CreateMap<SchoolBranchRequest, SchoolBranch>().
-            ForMember(dest => dest.Image, opt => opt.Ignore());
+        CreateMap<SchoolBranchRequest, SchoolBranch>().ForMember(dest => dest.Image, opt => opt.Ignore());
 
         CreateMap<SchoolTransfer, SchoolTransferResponse>().ReverseMap();
         CreateMap<SchoolTransferRequest, SchoolTransfer>().ReverseMap();
@@ -196,19 +197,19 @@ public class MappingProfile : Profile
             ))
 
             // ExamDate -> StartDate (hoặc EndDate, tùy ý)
-            .ForMember(dest => dest.StartDate,
-                opt => opt.MapFrom(src =>
-                    src.examDate.HasValue
-                        ? new DateTimeOffset(src.examDate.Value.ToDateTime(TimeOnly.MinValue), TimeSpan.FromHours(7))
-                        : (DateTimeOffset?)null
-                ))
+            //.ForMember(dest => dest.StartDate,
+            //    opt => opt.MapFrom(src =>
+            //        src.examDate.HasValue
+            //            ? new DateTimeOffset(src.examDate.Value.ToDateTime(TimeOnly.MinValue), TimeSpan.FromHours(7))
+            //            : (DateTimeOffset?)null
+            //    ))
             // Nếu bạn muốn EndDate giống StartDate:
-            .ForMember(dest => dest.EndDate,
-                opt => opt.MapFrom(src =>
-                    src.examDate.HasValue
-                        ? new DateTimeOffset(src.examDate.Value.ToDateTime(TimeOnly.MaxValue), TimeSpan.FromHours(7))
-                        : (DateTimeOffset?)null
-                ))
+            //.ForMember(dest => dest.EndDate,
+            //    opt => opt.MapFrom(src =>
+            //        src.examDate.HasValue
+            //            ? new DateTimeOffset(src.examDate.Value.ToDateTime(TimeOnly.MaxValue), TimeSpan.FromHours(7))
+            //            : (DateTimeOffset?)null
+            //    ))
             // hoặc .ForMember(dest => dest.EndDate, opt => opt.Ignore())
 
             // Không map ClassId và UserId (vì quan hệ N-N, ta xử lý riêng)
@@ -246,18 +247,18 @@ public class MappingProfile : Profile
             ))
 
             // Map ExamDate sang StartDate và EndDate
-            .ForMember(dest => dest.StartDate,
-                opt => opt.MapFrom(src =>
-                    src.examDate.HasValue
-                        ? new DateTimeOffset(src.examDate.Value.ToDateTime(TimeOnly.MinValue), TimeSpan.FromHours(7))
-                        : (DateTimeOffset?)null
-                ))
-            .ForMember(dest => dest.EndDate,
-                opt => opt.MapFrom(src =>
-                    src.examDate.HasValue
-                        ? new DateTimeOffset(src.examDate.Value.ToDateTime(TimeOnly.MaxValue), TimeSpan.FromHours(7))
-                        : (DateTimeOffset?)null
-                ))
+            //.ForMember(dest => dest.StartDate,
+            //    opt => opt.MapFrom(src =>
+            //        src.examDate.HasValue
+            //            ? new DateTimeOffset(src.examDate.Value.ToDateTime(TimeOnly.MinValue), TimeSpan.FromHours(7))
+            //            : (DateTimeOffset?)null
+            //    ))
+            //.ForMember(dest => dest.EndDate,
+            //    opt => opt.MapFrom(src =>
+            //        src.examDate.HasValue
+            //            ? new DateTimeOffset(src.examDate.Value.ToDateTime(TimeOnly.MaxValue), TimeSpan.FromHours(7))
+            //            : (DateTimeOffset?)null
+            //    ))
 
             // Không map các thuộc tính của mối quan hệ N-N (xử lý riêng)
             .ForMember(dest => dest.ClassId, opt => opt.Ignore())
@@ -344,7 +345,6 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.Examiner,
                 opt => opt.MapFrom(src => string.Join(", ", src.Examiners.Select(e => e.User.FullName))));
 
-        // Create Topic Mapping
         CreateMap<CreateTopicRequest, Topic>()
             .ForMember(dest => dest.TeachingAssignmentId, opt => opt.MapFrom(src => src.TeachingAssignmentId))
             .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
@@ -422,7 +422,10 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.Message, opt => opt.MapFrom(src => src.Message))
             .ForMember(dest => dest.FileName, opt => opt.MapFrom(src => src.FileName))
             .ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => src.CreateAt))
-            .ForMember(dest => dest.UpdateAt, opt => opt.MapFrom(src => src.UpdateAt));
+            .ForMember(dest => dest.UpdateAt, opt => opt.MapFrom(src => src.UpdateAt))
+            .ForMember(dest => dest.FullName,
+                opt => opt.MapFrom(src => src.User != null ? src.User.FullName : "Unknown"))
+            .ForMember(dest => dest.Avatar, opt => opt.MapFrom(src => src.User != null ? src.User.Image : null));
 
         CreateMap(typeof(PaginatedResponse<>), typeof(PaginatedResponse<>));
 
@@ -430,7 +433,6 @@ public class MappingProfile : Profile
         CreateMap<Notification, NotificationResponse>()
             .ForMember(dest => dest.Type, opt => opt.MapFrom(src => src.Type.Value ? "System" : "User"))
             .ForMember(dest => dest.SenderName, opt => opt.Ignore());
-
         CreateMap<TestExam, TeacherTestExamResponse>()
             .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
             .ForMember(dest => dest.DateOfExam, opt => opt.MapFrom(src =>
@@ -444,10 +446,6 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.SubjectName, opt => opt.MapFrom(src => src.Subject.SubjectName))
             .ForMember(dest => dest.Duration, opt => opt.MapFrom(src => src.Duration))
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.ExamScheduleStatus.Names));
-
-
-
-
     }
 
     private List<SubjectGroupSubject> MapSubjectGroupSubjects(List<int> subjectIds)

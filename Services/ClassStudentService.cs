@@ -67,7 +67,7 @@ namespace Project_LMS.Services
                 string base64Excel = Convert.ToBase64String(filebytes);
                 return new ApiResponse<object>(0, "Export excel success.")
                 {
-                    Data = await _cloudinaryService.UploadExcelAsync(base64Excel)
+                    Data = base64Excel
                 };
             }
 

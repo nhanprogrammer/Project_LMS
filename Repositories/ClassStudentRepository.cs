@@ -20,41 +20,43 @@ namespace Project_LMS.Repositories
         {
             // Lấy tất cả các bản ghi ClassStudent có UserId và IsActive = true
             var activeClasses = await _context.ClassStudents
-                .Where(cs => cs.UserId.HasValue && cs.UserId.Value == request.UserId && cs.IsActive == true && cs.IsDelete == false )
-                .ToListAsync();
+                .Where(cs => cs.UserId.HasValue && cs.UserId.Value == request.UserId && cs.ClassId != request.ClassId && cs.IsActive == true  && cs.IsDelete == false )
+                .FirstOrDefaultAsync();
 
-
-            // Chuyển tất cả các class hiện tại của User thành IsActive = false
-            foreach (var classSt in activeClasses)
+            if (activeClasses != null)
             {
-                classSt.IsActive = false;
+                activeClasses.IsActive = false;
+                if (activeClasses.IsClassTransitionStatus == false)
+                {
+                    activeClasses.IsClassTransitionStatus = true;
+                }
+                _context.ClassStudents.UpdateRange(activeClasses);
+
+                // Lưu thay đổi
+                await _context.SaveChangesAsync();
             }
-            _context.ClassStudents.UpdateRange(activeClasses);
 
-            // Lưu thay đổi
-            await _context.SaveChangesAsync();
-
-            //// Kiểm tra và lấy thông tin User
-            //var student = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.UserId)
-            //    ?? throw new ArgumentException("Student not found.");
-
-            //// Kiểm tra và lấy thông tin Class
-            //var classStudent = await _context.Classes.FirstOrDefaultAsync(c => c.Id == request.ClassId)
-            //    ?? throw new ArgumentException("Class not found.");
-
-            // Thêm bản ghi mới với IsActive = true
-            var classAdd = new ClassStudent()
+            var classStudent = await _context.ClassStudents.FirstOrDefaultAsync(cs =>cs.UserId == request.UserId && cs.ClassId == request.ClassId && cs.IsDelete == false);
+            if (classStudent != null) {
+                classStudent.IsDelete = false;
+                classStudent.IsActive = true;
+                classStudent.IsClassTransitionStatus = false;
+            } else
             {
-                UserId = request.UserId,
-                ClassId = request.ClassId,
-                //User = student,
-                //Class = classStudent,
-                IsDelete = false,
-                IsActive = true
-            };
+                var classAdd = new ClassStudent()
+                {
+                    UserId = request.UserId,
+                    ClassId = request.ClassId,
+                    //User = student,
+                    //Class = classStudent,
+                    IsDelete = false,
+                    IsActive = true,
+                    IsClassTransitionStatus = false
+                };
 
-            await _context.ClassStudents.AddAsync(classAdd);
-            await _context.SaveChangesAsync();
+                await _context.ClassStudents.AddAsync(classAdd);
+                await _context.SaveChangesAsync();
+            }
         }
 
 
@@ -111,6 +113,20 @@ namespace Project_LMS.Repositories
                 .Include(cs=>cs.User)
                 .Include(cs=>cs.Class)
                 .FirstOrDefaultAsync(cs => cs.UserId == studentId && cs.IsActive == true && cs.Class.IsDelete == false && cs.IsDelete == false && cs.User.IsDelete == false);
+        }
+
+        public async Task<List<ClassStudent>> FindStudentByStudentAcademic(int studentId, int academicId)
+        {
+            return await _context.ClassStudents
+                .Include(cs=>cs.User).ThenInclude(u=>u.Assignments).ThenInclude(asm=>asm.TestExam).ThenInclude(te=>te.TestExamType)
+                .Include(cs=>cs.Class)
+                .Include(cs=>cs.Class).ThenInclude(c=>c.AcademicYear)
+                .Include(cs=>cs.Class).ThenInclude(c=>c.Department)
+                .Include(cs=>cs.Class).ThenInclude(c=>c.User)
+                .Include(cs=>cs.Class).ThenInclude(c=>c.ClassSubjects).ThenInclude(cs=>cs.Subject)
+                .Include(cs=>cs.Class).ThenInclude(c=>c.TeachingAssignments).ThenInclude(t=>t.User)
+                
+                .Where(cs=>cs.UserId == studentId && cs.Class.AcademicYearId == academicId && cs.IsDelete == false && cs.Class.IsDelete == false && cs.Class.AcademicYear.IsDelete == false).ToListAsync();
         }
 
         public async Task<List<ClassStudent>> GetAllByClasses(List<int> ids, PaginationRequest request, string column, bool orderBy, string searchTerm = null)

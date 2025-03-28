@@ -26,7 +26,8 @@ namespace Project_LMS.Interfaces
         Task<ApiResponse<PaginatedResponse<ClassFutureResponse>>> GetClassFuture(int? userId, string? keyword, int? subjectId, bool future, int pageNumber = 1, int pageSize = 10);
         Task<ApiResponse<PaginatedResponse<ClassFutureStudentResponse>>> GetClassLessonStudent(int? userId, string? keyword, int? subjectId, int status, int pageNumber = 1, int pageSize = 10);
         Task<ApiResponse<TeachingAssignmentDetailResponse>> GetClassFutureDetail(int teachingAssignmentId);
+        Task<List<Class_UserResponse>> GetClassesByAcademicYear(int academicYearId);
         Task<ApiResponse<TeachingAssignmentDetailResponse>> GetClassLessonStudentDetail(int teachingAssignmentId);
-        Task<List<Class_UserResponse>> GetClassesByAcademicYearAndKeyword(int academicYearId, string keyword);
+
     }
 }

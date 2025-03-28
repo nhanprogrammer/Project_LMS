@@ -33,6 +33,8 @@ namespace Project_LMS.Models
             Topics = new HashSet<Topic>();
             UserTrainingRanks = new HashSet<UserTrainingRank>();
             Departments = new HashSet<Department>();
+            WorkProcesses = new HashSet<WorkProcess>();
+            EducationInformations = new HashSet<EducationInformation>();
         }
 
         public int Id { get; set; }
@@ -126,6 +128,9 @@ namespace Project_LMS.Models
         public virtual ICollection<Exemption> Exemptions { get; set; }
         public virtual ICollection<TeacherStatusHistory> TeacherStatusHistories { get; set; }
         public virtual ICollection<QuestionAnswerTopicView> QuestionAnswerTopicViews { get; set; }
+
+        public virtual ICollection<WorkProcess> WorkProcesses { get; set; }
+        public virtual ICollection<EducationInformation> EducationInformations { get; set; }
     }
 
     public class Jwt

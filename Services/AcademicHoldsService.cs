@@ -153,11 +153,28 @@ namespace Project_LMS.Services
                 errors.Add(new ValidationError { Field = "Reason", Error = "Lý do bảo lưu không được để trống. Vui lòng nhập lý do." });
 
             // Kiểm tra UserId và ClassId tồn tại
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.UserId && !(u.IsDelete ?? false));
-            if (user == null)
-                errors.Add(new ValidationError { Field = "User", Error = "Người dùng không tồn tại trong hệ thống. Vui lòng kiểm tra lại mã người dùng." });
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == request.UserId && !(u.IsDelete ?? false));
 
-            var classInfo = await _context.Classes.FirstOrDefaultAsync(c => c.Id == request.ClassId && !(c.IsDelete ?? false));
+            if (user == null)
+            {
+                errors.Add(new ValidationError { Field = "User", Error = "Người dùng không tồn tại trong hệ thống. Vui lòng kiểm tra lại mã người dùng." });
+            }
+            else
+            {
+                // Kiểm tra trạng thái của học viên
+                if (user.StudentStatusId != 1)
+                {
+                    errors.Add(new ValidationError
+                    {
+                        Field = "User",
+                        Error = "Học viên không ở trạng thái active. Không thể tạo bảo lưu cho học viên này."
+                    });
+                }
+            }
+
+            var classInfo = await _context.Classes
+                .FirstOrDefaultAsync(c => c.Id == request.ClassId && !(c.IsDelete ?? false));
             if (classInfo == null)
                 errors.Add(new ValidationError { Field = "Class", Error = "Lớp học không tồn tại hoặc đã bị xóa. Vui lòng kiểm tra lại mã lớp học." });
 
@@ -165,12 +182,12 @@ namespace Project_LMS.Services
             try
             {
                 semester = await GetSemesterByDateAsync(request.HoldDate.ToString("yyyy-MM-dd"));
-
             }
             catch (BadRequestException ex)
             {
-                errors.Add(new ValidationError { Field = "HoldDate", Error = ex.Message }); ;
+                errors.Add(new ValidationError { Field = "HoldDate", Error = ex.Message });
             }
+
             if (semester != null && semester.Id > 0)
             {
                 // Lấy StartDate và EndDate từ bảng Semesters
@@ -203,6 +220,7 @@ namespace Project_LMS.Services
                     });
                 }
             }
+
             if (errors.Any())
             {
                 throw new BadRequestException("Thêm bảo lưu thất bại do dữ liệu không hợp lệ.", errors);
@@ -227,12 +245,11 @@ namespace Project_LMS.Services
             _context.AcademicHolds.Add(newHold);
             if (user != null)
             {
-                user.StudentStatusId = 2;
+                user.StudentStatusId = 2; // Cập nhật trạng thái thành bảo lưu
                 _context.Users.Update(user);
             }
 
             await _context.SaveChangesAsync();
-
 
             return new AcademicHoldResponse
             {
@@ -244,6 +261,7 @@ namespace Project_LMS.Services
                 FileName = newHold.FileName
             };
         }
+
         public async Task<AcademicHoldResponse> UpdateAcademicHold(UpdateAcademicHoldRequest academicHold, int userId)
         {
             var errors = new List<ValidationError>();
@@ -353,23 +371,13 @@ namespace Project_LMS.Services
                 })
                 .ToListAsync();
         }
-        public async Task<List<User_AcademicHoldsResponse>> SearchUsersByCriteriaAsync(int classId, string keyword)
+        public async Task<List<User_AcademicHoldsResponse>> SearchUsersByCriteriaAsync(int classId)
         {
             var query = _context.ClassStudents
                 .Include(cs => cs.User)
                 .Include(cs => cs.Class)
                 .ThenInclude(c => c != null ? c.AcademicYear : null)
                 .Where(cs => cs.Class != null && cs.ClassId == classId && cs.IsDelete == false);
-
-            if (!string.IsNullOrWhiteSpace(keyword))
-            {
-                var searchKeyword = keyword.ToLower();
-                query = query.Where(cs =>
-            (cs.User != null && cs.User.FullName != null && cs.User.FullName.ToLower().Contains(searchKeyword)) ||
-            (cs.User != null && cs.User.UserCode != null && cs.User.UserCode.ToLower().Contains(searchKeyword)) ||
-            (cs.User != null && cs.User.Email != null && cs.User.Email.ToLower().Contains(searchKeyword))
-        );
-            }
 
             var users = await query
                 .Select(cs => new User_AcademicHoldsResponse

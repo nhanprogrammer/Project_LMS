@@ -8,8 +8,6 @@ namespace Project_LMS.DTOs.Request
 {
     public class TeacherRequest
     {
-        [JsonIgnore]
-        public int? Id { get; set; }
         public int? TeacherStatusId { get; set; }
         public int? SubjectGroupId { get; set; }
         public int? SubjectId { get; set; }
@@ -38,10 +36,6 @@ namespace Project_LMS.DTOs.Request
         public string? WardId { get; set; }
         public string? Alias { get; set; }
         public string? National { get; set; }
-        [JsonIgnore]
-        public DateTime? CreateAt { get; set; }
-        [JsonIgnore]
-        public DateTime? UpdateAt { get; set; }
         [JsonIgnore]
         public int? UserCreate { get; set; }
         [JsonIgnore]

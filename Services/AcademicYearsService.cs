@@ -99,6 +99,7 @@ namespace Project_LMS.Services
         public async Task<ApiResponse<AcademicYearResponse>> AddAcademicYear(CreateAcademicYearRequest request, int userId)
         {
             var user = await _userRepository.FindAsync(userId);
+
             if (user == null)
             {
                 return new ApiResponse<AcademicYearResponse>(1, "User không tồn tại.");
@@ -401,6 +402,23 @@ namespace Project_LMS.Services
             {
                 return new ApiResponse<AcademicYearResponse>(1, "Xóa niên khóa thất bại.", null);
             }
+        }
+
+        public async Task<List<AcademicYearNameResponse>> GetAcademicYearNamesAsync()
+        {
+            var academicYears = await _academicYearRepository.GetQueryable()
+                .Where(ay => ay.IsDelete == null || ay.IsDelete == false)
+                .ToListAsync();
+
+            var result = academicYears.Select(ay => new AcademicYearNameResponse
+            {
+                Id = ay.Id,
+                Name = ay.StartDate.HasValue && ay.EndDate.HasValue && ay.StartDate.Value.Year == ay.EndDate.Value.Year
+                    ? $"{ay.StartDate.Value.Year}"
+                    : $"{ay.StartDate?.Year}-{ay.EndDate?.Year}"
+            }).ToList();
+
+            return result;
         }
     }
 }

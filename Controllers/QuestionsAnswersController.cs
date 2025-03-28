@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Interfaces;
 using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers
@@ -11,10 +12,12 @@ namespace Project_LMS.Controllers
     public class QuestionsAnswersController : ControllerBase
     {
         private readonly IQuestionsAnswersService _questionsAnswersService;
+        private readonly IAuthService _authService;
 
-        public QuestionsAnswersController(IQuestionsAnswersService questionsAnswersService)
+        public QuestionsAnswersController(IQuestionsAnswersService questionsAnswersService, IAuthService authService)
         {
             _questionsAnswersService = questionsAnswersService;
+            _authService = authService;
         }
 
         /// <summary>
@@ -40,9 +43,13 @@ namespace Project_LMS.Controllers
         /// <response code="404">Không tìm thấy câu hỏi</response>
         /// <response code="400">Yêu cầu không hợp lệ</response>
         [HttpGet("{id:int}")]
-        public async Task<IActionResult> GetById(int id, [FromQuery] int? userId)
+        public async Task<IActionResult> GetById(int id)
         {
-            var result = await _questionsAnswersService.GetByIdWithViewAsync(id, userId);
+            var user = await _authService.GetUserAsync();
+            if (user == null)
+                return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+
+            var result = await _questionsAnswersService.GetByIdWithViewAsync(id, user.Id);
             if (result.Status == 1)
             {
                 return NotFound(result);
@@ -70,6 +77,11 @@ namespace Project_LMS.Controllers
                 return BadRequest(ModelState);
             }
 
+            var user = await _authService.GetUserAsync();
+            if (user == null)
+                return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+
+            request.UserId = user.Id;
             var result = await _questionsAnswersService.AddAsync(request);
 
             // Kiểm tra status từ ApiResponse để quyết định loại response
@@ -93,6 +105,11 @@ namespace Project_LMS.Controllers
         [HttpPut]
         public async Task<IActionResult> Update([FromBody] UpdateQuestionsAnswerRequest request)
         {
+            var user = await _authService.GetUserAsync();
+            if (user == null)
+                return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+
+            request.UserUpdate = user.Id;
             var result = await _questionsAnswersService.UpdateAsync(request);
             if (result.Status == 1)
             {
@@ -110,9 +127,13 @@ namespace Project_LMS.Controllers
         /// <response code="200">Xóa thành công</response>
         /// <response code="404">Không tìm thấy câu hỏi/câu trả lời để xóa</response>
         [HttpDelete("{id:int}")]
-        public async Task<IActionResult> Delete(int id, [FromQuery] int userId)
+        public async Task<IActionResult> Delete(int id)
         {
-            var result = await _questionsAnswersService.DeleteAsync(id, userId);
+            var user = await _authService.GetUserAsync();
+            if (user == null)
+                return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+
+            var result = await _questionsAnswersService.DeleteAsync(id, user.Id);
             if (!result.Data)
             {
                 return NotFound(result);
@@ -217,12 +238,15 @@ namespace Project_LMS.Controllers
         [HttpGet("by-tab")]
         public async Task<IActionResult> GetQuestionsAnswersByTab(
             [FromQuery] string tab,
-            [FromQuery] int teachingAssignmentId,
-            [FromQuery] int userId)
+            [FromQuery] int teachingAssignmentId)
         {
+            var user = await _authService.GetUserAsync();
+            if (user == null)
+                return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+
             // Gọi service để xử lý
             var result =
-                await _questionsAnswersService.GetQuestionsAnswersByTabAsync(userId, teachingAssignmentId, tab);
+                await _questionsAnswersService.GetQuestionsAnswersByTabAsync(user.Id, teachingAssignmentId, tab);
 
             if (result.Status == 0)
             {

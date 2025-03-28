@@ -6,6 +6,7 @@ using AutoMapper;
 using CloudinaryDotNet.Actions;
 using CloudinaryDotNet.Core;
 using Microsoft.EntityFrameworkCore;
+using OfficeOpenXml;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces.Repositories;
@@ -67,12 +68,12 @@ public class StudentService : IStudentService
         {
             valids.Add("Usercode không được để trống.");
         }
+
+        if (await _studentRepository.FindStudentByUserCode(request.UserCode) != null)
         {
-            if (await _studentRepository.FindStudentByUserCode(request.UserCode) != null)
-            {
-                valids.Add($"UserCode đã tồn tại.");
-            }
+            valids.Add($"UserCode đã tồn tại.");
         }
+
         if (valids.Count > 0) return new ApiResponse<object>(1, "Thêm học viên thất bại.")
         {
             Data = valids
@@ -226,93 +227,92 @@ public class StudentService : IStudentService
         if (cs?.Class == null) // Kiểm tra cả Class để tránh null reference
             return new ApiResponse<object>(1, "Không tìm thấy học viên trong lớp học");
         List<Task> tasks = new List<Task>();
-        try
+        //try
+        //{
+        // Khởi tạo workbook và worksheet
+        using var workbook = new Workbook();
+        Worksheet sheet1 = workbook.Worksheets[0];
+
+        tasks.Add(Task.Run(() =>
         {
-            // Khởi tạo workbook và worksheet
-            using var workbook = new Workbook();
-            Worksheet sheet1 = workbook.Worksheets[0];
+            // Định dạng tiêu đề chung
+            sheet1.Cells["A1"].PutValue("Thông tin chung");
+            sheet1.Cells.Merge(0, 0, 1, 9);
+            var titleStyle = sheet1.Cells["A1"].GetStyle();
+            titleStyle.IsTextWrapped = true;
+            titleStyle.HorizontalAlignment = TextAlignmentType.Center;
+            sheet1.Cells["A1"].SetStyle(titleStyle);
 
-            tasks.Add(Task.Run(() =>
+            // Tiêu đề cột
+            string[] headers = new[]
             {
-                // Định dạng tiêu đề chung
-                sheet1.Cells["A1"].PutValue("Thông tin chung");
-                sheet1.Cells.Merge(0, 0, 1, 9);
-                var titleStyle = sheet1.Cells["A1"].GetStyle();
-                titleStyle.IsTextWrapped = true;
-                titleStyle.HorizontalAlignment = TextAlignmentType.Center;
-                sheet1.Cells["A1"].SetStyle(titleStyle);
-
-                // Tiêu đề cột
-                string[] headers = new[]
-                {
             "Niên khóa", "Khoa - khối", "Mã lớp học", "Tên lớp học",
             "Giáo viên chủ nhiệm", "Số lượng học viên", "Loại lớp học",
             "Số lượng môn học", "Mô tả"
-        };
+    };
 
-                for (int i = 0; i < headers.Length; i++)
-                {
-                    sheet1.Cells[1, i].PutValue(headers[i]);
-                }
-            }));
-
-            // Dữ liệu hàng
-            var academicYear = cs.Class.AcademicYear;
-            tasks.Add(Task.Run(() =>
+            for (int i = 0; i < headers.Length; i++)
             {
-                sheet1.Cells[2, 0].PutValue(academicYear != null
-                    ? $"{academicYear.StartDate?.ToString("yyyy") ?? "N/A"} - {academicYear.EndDate?.ToString("yyyy") ?? "N/A"}"
-                    : "N/A");
-                sheet1.Cells[2, 1].PutValue(cs.Class.Department?.Name ?? "N/A");
-                sheet1.Cells[2, 2].PutValue(cs.Class.ClassCode ?? "N/A");
-                sheet1.Cells[2, 3].PutValue(cs.Class.Name ?? "N/A");
-                sheet1.Cells[2, 4].PutValue(cs.Class.User?.FullName ?? "N/A");
-                sheet1.Cells[2, 5].PutValue(cs.Class.ClassStudents?.Count ?? 0);
-                sheet1.Cells[2, 6].PutValue(cs.Class.ClassType?.Name ?? "N/A");
-                sheet1.Cells[2, 7].PutValue(cs.Class.ClassSubjects?.Count ?? 0);
-                sheet1.Cells[2, 8].PutValue(cs.Class.Description ?? "N/A");
-                // Tự động điều chỉnh độ rộng cột
-                sheet1.AutoFitColumns();
-            }));
-            //===========================================
-            //Sheet2 Kết quả học tập 
-            var student = await _studentRepository.FindStudentById(studentId);
+                sheet1.Cells[1, i].PutValue(headers[i]);
+            }
+        }));
 
-            Worksheet sheet2 = workbook.Worksheets.Add("Kết quả học tập");
-            // Khởi tạo worksheet và đặt tên
-            tasks.Add(Task.Run(() =>
-            {
-                // Định dạng tiêu đề chính
-                sheet2.Cells["A1"].PutValue("Kết quả học tập");
-                sheet2.Cells.Merge(0, 0, 1, 9);
-                var mainTitleStyle = sheet2.Cells["A1"].GetStyle();
-                mainTitleStyle.IsTextWrapped = true;
-                mainTitleStyle.HorizontalAlignment = TextAlignmentType.Center;
-                mainTitleStyle.Font.IsBold = true; // Thêm in đậm cho tiêu đề chính
-                sheet2.Cells["A1"].SetStyle(mainTitleStyle);
-            }));
+        // Dữ liệu hàng
+        var academicYear = cs.Class.AcademicYear;
+        tasks.Add(Task.Run(() =>
+        {
+            sheet1.Cells[2, 0].PutValue(academicYear != null
+                ? $"{academicYear.StartDate?.ToString("yyyy") ?? "N/A"} - {academicYear.EndDate?.ToString("yyyy") ?? "N/A"}"
+                : "N/A");
+            sheet1.Cells[2, 1].PutValue(cs.Class.Department?.Name ?? "N/A");
+            sheet1.Cells[2, 2].PutValue(cs.Class.ClassCode ?? "N/A");
+            sheet1.Cells[2, 3].PutValue(cs.Class.Name ?? "N/A");
+            sheet1.Cells[2, 4].PutValue(cs.Class.User?.FullName ?? "N/A");
+            sheet1.Cells[2, 5].PutValue(cs.Class.ClassStudents?.Count ?? 0);
+            sheet1.Cells[2, 6].PutValue(cs.Class.ClassType?.Name ?? "N/A");
+            sheet1.Cells[2, 7].PutValue(cs.Class.ClassSubjects?.Count ?? 0);
+            sheet1.Cells[2, 8].PutValue(cs.Class.Description ?? "N/A");
+            // Tự động điều chỉnh độ rộng cột
+            sheet1.AutoFitColumns();
+        }));
+        //===========================================
+        //Sheet2 Kết quả học tập 
+        var student = await _studentRepository.FindStudentById(studentId);
 
-            tasks.Add(Task.Run(() =>
-            {
-                // Định nghĩa và ghi tiêu đề học kỳ
-                string[] semesterHeaders = { "Học kỳ 1", "Học kỳ 2", "Cả năm" };
-                for (int colm = 0; colm < semesterHeaders.Length; colm++)
-                {
-                    int startColumn = colm * 3; // Cột đầu của từng học kỳ
-                    sheet2.Cells[1, startColumn].PutValue(semesterHeaders[colm]);
-                    sheet2.Cells.Merge(1, startColumn, 1, 3);
-
-                    var semesterStyle = sheet2.Cells[1, startColumn].GetStyle();
-                    semesterStyle.IsTextWrapped = true;
-                    semesterStyle.HorizontalAlignment = TextAlignmentType.Center;
-                    semesterStyle.Font.IsBold = true;
-                    sheet2.Cells[1, startColumn].SetStyle(semesterStyle);
-                }
-                sheet2.AutoFitColumns();
-            }));
+        Worksheet sheet2 = workbook.Worksheets.Add("Kết quả học tập");
+        // Khởi tạo worksheet và đặt tên
+        tasks.Add(Task.Run(() =>
+        {
+            // Định dạng tiêu đề chính
+            sheet2.Cells["A1"].PutValue("Kết quả học tập");
+            sheet2.Cells.Merge(0, 0, 1, 9);
+            var mainTitleStyle = sheet2.Cells["A1"].GetStyle();
+            mainTitleStyle.IsTextWrapped = true;
+            mainTitleStyle.HorizontalAlignment = TextAlignmentType.Center;
+            mainTitleStyle.Font.IsBold = true; // Thêm in đậm cho tiêu đề chính
+            sheet2.Cells["A1"].SetStyle(mainTitleStyle);
+        }));
 
 
-            tasks.Add(Task.Run(() =>
+        // Định nghĩa và ghi tiêu đề học kỳ
+        string[] semesterHeaders = { "Học kỳ 1", "Học kỳ 2", "Cả năm" };
+        for (int colm = 0; colm < semesterHeaders.Length; colm++)
+        {
+            int startColumn = colm * 3; // Cột đầu của từng học kỳ
+            sheet2.Cells[1, startColumn].PutValue(semesterHeaders[colm]);
+            sheet2.Cells.Merge(1, startColumn, 1, 3);
+
+            var semesterStyle = sheet2.Cells[1, startColumn].GetStyle();
+            semesterStyle.IsTextWrapped = true;
+            semesterStyle.HorizontalAlignment = TextAlignmentType.Center;
+            semesterStyle.Font.IsBold = true;
+            sheet2.Cells[1, startColumn].SetStyle(semesterStyle);
+        }
+        sheet2.AutoFitColumns();
+
+
+
+        tasks.Add(Task.Run(() =>
             {
                 string[] subHeaders = { "Học lực", "Hạnh kiểm", "Điểm trung bình" };
                 // Thêm sub-header
@@ -325,282 +325,282 @@ public class StudentService : IStudentService
                 }
                 sheet2.AutoFitColumns();
             }));
-            tasks.Add(Task.Run(() =>
+        tasks.Add(Task.Run(() =>
+        {
+            var assignments = student.Assignments.Where(a => a.TestExam.ClassId == classId).ToList();
+            double CalculateSemesterScore(string semesterName)
             {
-                var assignments = student.Assignments.Where(a => a.TestExam.ClassId == classId).ToList();
-                double CalculateSemesterScore(string semesterName)
-                {
-                    int count = 0;
-                    double score = assignments
-                        .Where(a => a.TestExam.Semesters.Name.ToLower().Contains(semesterName))
-                        .Sum(a =>
+                int count = 0;
+                double score = assignments
+                    .Where(a => a.TestExam.Semesters.Name.ToLower().Contains(semesterName))
+                    .Sum(a =>
+                    {
+                        if (a.TotalScore > 0 && a.TotalScore != null)
                         {
-                            if (a.TotalScore > 0 && a.TotalScore != null)
-                            {
-                                count += a.TestExam?.TestExamType?.Coefficient ?? 1;
-                                return (a.TotalScore * a.TestExam?.TestExamType?.Coefficient) ?? 0;
-                            }
-                            else
-                            {
-                                return 0;
-                            }
-                        });
-                    return (double)count > 0 ? score / count : score;
-                }
-                (string academicPerformance, string conduct, double score) EvaluatePerformance(double score) =>
-               score == 0
-                   ? ("Không có dữ liệu", "không có dữ liệu", 0)
-                   : (score switch
-                   {
-                       >= 8.0 => "Giỏi",
-                       >= 6.5 => "Khá",
-                       >= 5.0 => "Trung bình",
-                       _ => "Yếu"
-                   },
-                       score > 5 ? "Tốt" : "Khá",
-                       score);
-                var score1 = CalculateSemesterScore("học kỳ 1");
-                var score2 = CalculateSemesterScore("học kỳ 2");
-                var (perf1, cond1, avg1) = EvaluatePerformance(score1);
-                var (perf2, cond2, avg2) = EvaluatePerformance(score2);
-                var (perfYear, condYear, avgYear) = score1 == 0 || score2 == 0
-                    ? ("Không có dữ liệu", "không có dữ liệu", 0.0)
-                    : EvaluatePerformance((score2 * 2 + score1) / 3);
-                // Ghi dữ liệu
-                object[] data = { perf1, cond1, avg1, perf2, cond2, avg2, perfYear, condYear, avgYear };
-                for (int i = 0; i < data.Length; i++)
-                {
-                    sheet2.Cells[3, i].PutValue(data[i]);
-                    var cellStyle = sheet2.Cells[3, i].GetStyle();
-                    cellStyle.HorizontalAlignment = TextAlignmentType.Center;
-
-                }
-                sheet2.AutoFitColumns();
-            }));
-            // Tự động điều chỉnh độ rộng cột
-
-            // Sheet 3: Subject Scores by Semester
-            // Hàm lấy danh sách môn học
-            var classSubjects = await _classSubjectRepository.GetAllByClass(classId);
-            var subjects = classSubjects.Select(x => x.Subject).ToList();
-
-            var classOfStudent = await _classRepository.FindClassById(classId);
-            if (classOfStudent == null) return new ApiResponse<object>(1, "Không tìm thấy sinh viên trong lớp học");
-
-            var testExamTypesId = classOfStudent.TestExams?
-                .Where(te => te.TestExamTypeId.HasValue) // Loại bỏ null
-                .Select(te => te.TestExamTypeId.Value) // Chuyển về List<int>
-                .Distinct()
-                .ToList() ?? new List<int>();
-            var testExamTypes = await _testExamTypeRepository.GetAllByIds(testExamTypesId);
-            Worksheet sheet3 = workbook.Worksheets.Add("Bảng điểm học kỳ 1");
-            tasks.Add(Task.Run(() =>
+                            count += a.TestExam?.TestExamType?.Coefficient ?? 1;
+                            return (a.TotalScore * a.TestExam?.TestExamType?.Coefficient) ?? 0;
+                        }
+                        else
+                        {
+                            return 0;
+                        }
+                    });
+                return (double)count > 0 ? score / count : score;
+            }
+            (string academicPerformance, string conduct, double score) EvaluatePerformance(double score) =>
+           score == 0
+               ? ("Không có dữ liệu", "không có dữ liệu", 0)
+               : (score switch
+               {
+                   >= 8.0 => "Giỏi",
+                   >= 6.5 => "Khá",
+                   >= 5.0 => "Trung bình",
+                   _ => "Yếu"
+               },
+                   score > 5 ? "Tốt" : "Khá",
+                   score);
+            var score1 = CalculateSemesterScore("học kỳ 1");
+            var score2 = CalculateSemesterScore("học kỳ 2");
+            var (perf1, cond1, avg1) = EvaluatePerformance(score1);
+            var (perf2, cond2, avg2) = EvaluatePerformance(score2);
+            var (perfYear, condYear, avgYear) = score1 == 0 || score2 == 0
+                ? ("Không có dữ liệu", "không có dữ liệu", 0.0)
+                : EvaluatePerformance((score2 * 2 + score1) / 3);
+            // Ghi dữ liệu
+            object[] data = { perf1, cond1, avg1, perf2, cond2, avg2, perfYear, condYear, avgYear };
+            for (int i = 0; i < data.Length; i++)
             {
+                sheet2.Cells[3, i].PutValue(data[i]);
+                var cellStyle = sheet2.Cells[3, i].GetStyle();
+                cellStyle.HorizontalAlignment = TextAlignmentType.Center;
 
-                // Định dạng tiêu đề chính
-                sheet3.Cells["A1"].PutValue("Học kỳ 1");
-                sheet3.Cells.Merge(0, 0, 1, testExamTypes.Count + 2);
-                var titleStyle3 = sheet3.Cells["A1"].GetStyle();
-                titleStyle3.IsTextWrapped = true;
-                titleStyle3.HorizontalAlignment = TextAlignmentType.Center;
-                titleStyle3.Font.IsBold = true;
-                sheet3.Cells["A1"].SetStyle(titleStyle3);
-                sheet3.Cells[1, 0].PutValue("Môn học");
-            }));
-            Worksheet sheet4 = workbook.Worksheets.Add("Bảng điểm học kỳ 2");
-            tasks.Add(Task.Run(() =>
+            }
+            sheet2.AutoFitColumns();
+        }));
+        // Tự động điều chỉnh độ rộng cột
+
+        // Sheet 3: Subject Scores by Semester
+        // Hàm lấy danh sách môn học
+        var classSubjects = await _classSubjectRepository.GetAllByClass(classId);
+        var subjects = classSubjects.Select(x => x.Subject).ToList();
+
+        var classOfStudent = await _classRepository.FindClassById(classId);
+        if (classOfStudent == null) return new ApiResponse<object>(1, "Không tìm thấy sinh viên trong lớp học");
+
+        var testExamTypesId = classOfStudent.TestExams?
+            .Where(te => te.TestExamTypeId.HasValue) // Loại bỏ null
+            .Select(te => te.TestExamTypeId.Value) // Chuyển về List<int>
+            .Distinct()
+            .ToList() ?? new List<int>();
+        var testExamTypes = await _testExamTypeRepository.GetAllByIds(testExamTypesId);
+        Worksheet sheet3 = workbook.Worksheets.Add("Bảng điểm học kỳ 1");
+        tasks.Add(Task.Run(() =>
+        {
+
+            // Định dạng tiêu đề chính
+            sheet3.Cells["A1"].PutValue("Học kỳ 1");
+            sheet3.Cells.Merge(0, 0, 1, testExamTypes.Count + 2);
+            var titleStyle3 = sheet3.Cells["A1"].GetStyle();
+            titleStyle3.IsTextWrapped = true;
+            titleStyle3.HorizontalAlignment = TextAlignmentType.Center;
+            titleStyle3.Font.IsBold = true;
+            sheet3.Cells["A1"].SetStyle(titleStyle3);
+            sheet3.Cells[1, 0].PutValue("Môn học");
+        }));
+        Worksheet sheet4 = workbook.Worksheets.Add("Bảng điểm học kỳ 2");
+        tasks.Add(Task.Run(() =>
+        {
+
+            // Định dạng tiêu đề chính
+            sheet4.Cells["A1"].PutValue("Học kỳ 2");
+            sheet4.Cells.Merge(0, 0, 1, testExamTypes.Count + 2);
+            var titleStyle4 = sheet4.Cells["A1"].GetStyle();
+            titleStyle4.IsTextWrapped = true;
+            titleStyle4.HorizontalAlignment = TextAlignmentType.Center;
+            titleStyle4.Font.IsBold = true;
+            sheet4.Cells["A1"].SetStyle(titleStyle4);
+
+            sheet4.Cells[1, 0].PutValue("Môn học");
+        }));
+
+
+        tasks.Add(Task.Run(() =>
+        {
+            for (int row = 0; row < subjects.Count; row++)
             {
+                sheet3.Cells[row + 2, 0].PutValue(subjects[row].SubjectName);
+                sheet4.Cells[row + 2, 0].PutValue(subjects[row].SubjectName);
+            }
+        }));
 
-                // Định dạng tiêu đề chính
-                sheet4.Cells["A1"].PutValue("Học kỳ 2");
-                sheet4.Cells.Merge(0, 0, 1, testExamTypes.Count + 2);
-                var titleStyle4 = sheet4.Cells["A1"].GetStyle();
-                titleStyle4.IsTextWrapped = true;
-                titleStyle4.HorizontalAlignment = TextAlignmentType.Center;
-                titleStyle4.Font.IsBold = true;
-                sheet4.Cells["A1"].SetStyle(titleStyle4);
-
-                sheet4.Cells[1, 0].PutValue("Môn học");
-            }));
-
-
-            tasks.Add(Task.Run(() =>
+        tasks.Add(Task.Run(() =>
+        {
+            for (int col = 0; col < testExamTypes.Count; col++)
             {
-                for (int row = 0; row < subjects.Count; row++)
-                {
-                    sheet3.Cells[row + 2, 0].PutValue(subjects[row].SubjectName);
-                    sheet4.Cells[row + 2, 0].PutValue(subjects[row].SubjectName);
-                }
-            }));
+                sheet3.Cells[1, col + 1].PutValue(testExamTypes[col].PointTypeName);
+                sheet4.Cells[1, col + 1].PutValue(testExamTypes[col].PointTypeName);
+            }
+        }));
+        sheet3.Cells[1, testExamTypes.Count + 1].PutValue("Điểm trung bình");
 
-            tasks.Add(Task.Run(() =>
+        sheet4.Cells[1, testExamTypes.Count + 1].PutValue("Điểm trung bình");
+
+
+
+        tasks.Add(Task.Run(() =>
+        {
+            for (int row = 0; row < subjects.Count; row++)
             {
+                double totalScore = 0;
+                int totalCoefficient = 0;
                 for (int col = 0; col < testExamTypes.Count; col++)
                 {
-                    sheet3.Cells[1, col + 1].PutValue(testExamTypes[col].PointTypeName);
-                    sheet4.Cells[1, col + 1].PutValue(testExamTypes[col].PointTypeName);
-                }
-            }));
-            sheet3.Cells[1, testExamTypes.Count + 1].PutValue("Điểm trung bình");
-
-            sheet4.Cells[1, testExamTypes.Count + 1].PutValue("Điểm trung bình");
-
-
-
-            tasks.Add(Task.Run(() =>
-            {
-                for (int row = 0; row < subjects.Count; row++)
-                {
-                    int totalScore = 0;
-                    double totalCoefficient = 0;
-                    for (int col = 0; col < testExamTypes.Count; col++)
+                    int index = 0;
+                    var assignments = student.Assignments.Where(asm => asm.TestExam.Semesters.Name.ToLower().Contains("học kỳ 1")).ToList();
+                    foreach (Assignment asm in assignments)
                     {
-                        int index = 0;
-                        var assignments = student.Assignments.Where(asm => asm.TestExam.Semesters.Name.ToLower().Contains("học kỳ 1")).ToList();
-                        foreach (Assignment asm in assignments)
+                        if (asm.TestExam.SubjectId == subjects[row].Id && asm.TestExam.TestExamTypeId == testExamTypes[col].Id && asm.TotalScore > 0)
                         {
-                            if (asm.TestExam.SubjectId == subjects[row].Id && asm.TestExam.TestExamTypeId == testExamTypes[col].Id && asm.TotalScore > 0)
-                            {
-                                sheet3.Cells[row + 2, col + 1].PutValue(asm.TotalScore);
-                                totalScore += asm.TotalScore * asm.TestExam.TestExamType.Coefficient ?? 0;
-                                totalCoefficient += asm.TestExam.TestExamType.Coefficient ?? 1;
-                                index = 1;
-                            }
-                        }
-                        if (index == 0)
-                        {
-                            sheet3.Cells[row + 2, col + 1].PutValue("Chưa có điểm");
+                            sheet3.Cells[row + 2, col + 1].PutValue(asm.TotalScore);
+                            totalScore += asm.TotalScore * asm.TestExam.TestExamType.Coefficient ?? 0;
+                            totalCoefficient += asm.TestExam.TestExamType.Coefficient ?? 1;
+                            index = 1;
                         }
                     }
-                    sheet3.Cells[row + 2, testExamTypes.Count + 1].PutValue((double)totalScore / totalCoefficient);
-                }
-                sheet3.AutoFitColumns();
-            }));
-
-            tasks.Add(Task.Run(() =>
-            {
-                for (int row = 0; row < subjects.Count; row++)
-                {
-                    int totalScore = 0;
-                    double totalCoefficient = 0;
-                    for (int col = 0; col < testExamTypes.Count; col++)
+                    if (index == 0)
                     {
-                        int index = 0;
-
-                        var assignments = student.Assignments.Where(asm => asm.TestExam.Semesters.Name.ToLower().Contains("học kỳ 2")).ToList();
-                        foreach (var asm in assignments)
-                        {
-                            if (asm.TestExam.SubjectId == subjects[row].Id && asm.TestExam.TestExamTypeId == testExamTypes[col].Id && asm.TotalScore > 0)
-                            {
-                                sheet4.Cells[row + 2, col + 1].PutValue(asm.TotalScore);
-                                totalScore += asm.TotalScore * asm.TestExam.TestExamType.Coefficient ?? 0;
-                                totalCoefficient += asm.TestExam.TestExamType.Coefficient ?? 1;
-                                index = 1;
-
-                            }
-
-                        }
-                        if (index == 0)
-                        {
-                            sheet4.Cells[row + 2, col + 1].PutValue("Chưa có điểm");
-                        }
+                        sheet3.Cells[row + 2, col + 1].PutValue("Chưa có điểm");
                     }
-                    sheet4.Cells[row + 2, testExamTypes.Count + 1].PutValue((double)totalScore / totalCoefficient);
                 }
-                sheet4.AutoFitColumns();
-            }));
-            //sheet5
-            Worksheet sheet5 = workbook.Worksheets.Add("Danh sách khen thưởng");
-            tasks.Add(Task.Run(() =>
-            {
-                // Định dạng tiêu đề chính
-                sheet5.Cells["A1"].PutValue("Danh sách khen thưởng");
-                sheet5.Cells.Merge(0, 0, 1, 4);
-                var titleStyle5 = sheet5.Cells["A1"].GetStyle();
-                titleStyle5.IsTextWrapped = true;
-                titleStyle5.HorizontalAlignment = TextAlignmentType.Center;
-                titleStyle5.Font.IsBold = true;
-                sheet5.Cells["A1"].SetStyle(titleStyle5);
-            }));
-            tasks.Add(Task.Run(() =>
-            {
-                sheet5.Cells[1, 0].PutValue("STT");
-                sheet5.Cells[1, 1].PutValue("Nội dung khen thưởng");
-                sheet5.Cells[1, 2].PutValue("Quyết định khen thưởng");
-                sheet5.Cells[1, 3].PutValue("Ngày quyết định");
-            }));
-            //Thêm dữ liệu
-            var rewards = student.Rewards.ToList();
-            tasks.Add(Task.Run(() =>
-            {
-                for (int row = 0; row < student.Rewards.Count; row++)
-                {
-                    sheet5.Cells[row + 2, 0].PutValue(row + 1);
-                    sheet5.Cells[row + 2, 1].PutValue(rewards[row].RewardContent);
-                    sheet5.Cells[row + 2, 2].PutValue(rewards[row].RewardName);
-                    sheet5.Cells[row + 2, 3].PutValue(rewards[row].RewardDate?.ToString("dd/MM/yyyy") ?? "N/A");
-                }
-                sheet5.AutoFitColumns();
-            }));
+                sheet3.Cells[row + 2, testExamTypes.Count + 1].PutValue((double)totalScore / totalCoefficient);
+            }
+            sheet3.AutoFitColumns();
+        }));
 
-            //sheet5
-            Worksheet sheet6 = workbook.Worksheets.Add("Danh sách kỷ luật");
-            tasks.Add(Task.Run(() =>
-            {
-                // Định dạng tiêu đề chính
-                sheet6.Cells["A1"].PutValue("Danh sách kỷ luật");
-                sheet6.Cells.Merge(0, 0, 1, 4);
-                var titleStyle6 = sheet6.Cells["A1"].GetStyle();
-                titleStyle6.IsTextWrapped = true;
-                titleStyle6.HorizontalAlignment = TextAlignmentType.Center;
-                titleStyle6.Font.IsBold = true;
-                sheet6.Cells["A1"].SetStyle(titleStyle6);
-            }));
-            tasks.Add(Task.Run(() =>
-            {
-                sheet6.Cells[1, 0].PutValue("STT");
-                sheet6.Cells[1, 1].PutValue("Nội dung kỷ luật");
-                sheet6.Cells[1, 2].PutValue("Quyết định kỷ luật");
-                sheet6.Cells[1, 3].PutValue("Ngày quyết định");
-            }));
-            //Thêm dữ liệu
-            var disciplines = student.Disciplines.ToList();
-            tasks.Add(Task.Run(() =>
-            {
-                for (int row = 0; row < disciplines.Count; row++)
-                {
-                    sheet6.Cells[row + 2, 0].PutValue(row + 1);
-                    sheet6.Cells[row + 2, 1].PutValue(disciplines[row].DisciplineContent);
-                    sheet6.Cells[row + 2, 2].PutValue(disciplines[row].Name);
-                    sheet6.Cells[row + 2, 3].PutValue(disciplines[row].DisciplineDate?.ToString("dd/MM/yyyy") ?? "N/A");
-                }
-                sheet6.AutoFitColumns();
-            }));
-
-
-            await Task.WhenAll(tasks);
-
-
-            // Xuất file Excel
-            using var stream = new MemoryStream();
-            workbook.Save(stream, SaveFormat.Xlsx);
-            byte[] bytes = stream.ToArray();
-            string base64String = Convert.ToBase64String(bytes);
-
-            string url = await _cloudinaryService.UploadExcelAsync(base64String);
-            //string url ="";
-
-            return new ApiResponse<object>(0, "Xuất Excel thành công")
-            {
-                Data = url
-            };
-        }
-        catch (Exception ex)
+        tasks.Add(Task.Run(() =>
         {
-            // Xử lý lỗi và trả về thông báo
-            Console.WriteLine($"Error exporting Excel: {ex.Message}");
-            return new ApiResponse<object>(1, $"Lỗi khi xuất Excel: {ex.Message}");
-        }
+            for (int row = 0; row < subjects.Count; row++)
+            {
+                double totalScore = 0;
+                int totalCoefficient = 0;
+                for (int col = 0; col < testExamTypes.Count; col++)
+                {
+                    int index = 0;
+
+                    var assignments = student.Assignments.Where(asm => asm.TestExam.Semesters.Name.ToLower().Contains("học kỳ 2")).ToList();
+                    foreach (var asm in assignments)
+                    {
+                        if (asm.TestExam.SubjectId == subjects[row].Id && asm.TestExam.TestExamTypeId == testExamTypes[col].Id && asm.TotalScore > 0)
+                        {
+                            sheet4.Cells[row + 2, col + 1].PutValue(asm.TotalScore);
+                            totalScore += asm.TotalScore * asm.TestExam.TestExamType.Coefficient ?? 0;
+                            totalCoefficient += asm.TestExam.TestExamType.Coefficient ?? 1;
+                            index = 1;
+
+                        }
+
+                    }
+                    if (index == 0)
+                    {
+                        sheet4.Cells[row + 2, col + 1].PutValue("Chưa có điểm");
+                    }
+                }
+                sheet4.Cells[row + 2, testExamTypes.Count + 1].PutValue((double)totalScore / totalCoefficient);
+            }
+            sheet4.AutoFitColumns();
+        }));
+        //sheet5
+        Worksheet sheet5 = workbook.Worksheets.Add("Danh sách khen thưởng");
+        tasks.Add(Task.Run(() =>
+        {
+            // Định dạng tiêu đề chính
+            sheet5.Cells["A1"].PutValue("Danh sách khen thưởng");
+            sheet5.Cells.Merge(0, 0, 1, 4);
+            var titleStyle5 = sheet5.Cells["A1"].GetStyle();
+            titleStyle5.IsTextWrapped = true;
+            titleStyle5.HorizontalAlignment = TextAlignmentType.Center;
+            titleStyle5.Font.IsBold = true;
+            sheet5.Cells["A1"].SetStyle(titleStyle5);
+        }));
+        tasks.Add(Task.Run(() =>
+        {
+            sheet5.Cells[1, 0].PutValue("STT");
+            sheet5.Cells[1, 1].PutValue("Nội dung khen thưởng");
+            sheet5.Cells[1, 2].PutValue("Quyết định khen thưởng");
+            sheet5.Cells[1, 3].PutValue("Ngày quyết định");
+        }));
+        //Thêm dữ liệu
+        var rewards = student.Rewards.ToList();
+        tasks.Add(Task.Run(() =>
+        {
+            for (int row = 0; row < student.Rewards.Count; row++)
+            {
+                sheet5.Cells[row + 2, 0].PutValue(row + 1);
+                sheet5.Cells[row + 2, 1].PutValue(rewards[row].RewardContent);
+                sheet5.Cells[row + 2, 2].PutValue(rewards[row].RewardName);
+                sheet5.Cells[row + 2, 3].PutValue(rewards[row].RewardDate?.ToString("dd/MM/yyyy") ?? "N/A");
+            }
+            sheet5.AutoFitColumns();
+        }));
+
+        //sheet5
+        Worksheet sheet6 = workbook.Worksheets.Add("Danh sách kỷ luật");
+        tasks.Add(Task.Run(() =>
+        {
+            // Định dạng tiêu đề chính
+            sheet6.Cells["A1"].PutValue("Danh sách kỷ luật");
+            sheet6.Cells.Merge(0, 0, 1, 4);
+            var titleStyle6 = sheet6.Cells["A1"].GetStyle();
+            titleStyle6.IsTextWrapped = true;
+            titleStyle6.HorizontalAlignment = TextAlignmentType.Center;
+            titleStyle6.Font.IsBold = true;
+            sheet6.Cells["A1"].SetStyle(titleStyle6);
+        }));
+        tasks.Add(Task.Run(() =>
+        {
+            sheet6.Cells[1, 0].PutValue("STT");
+            sheet6.Cells[1, 1].PutValue("Nội dung kỷ luật");
+            sheet6.Cells[1, 2].PutValue("Quyết định kỷ luật");
+            sheet6.Cells[1, 3].PutValue("Ngày quyết định");
+        }));
+        //Thêm dữ liệu
+        var disciplines = student.Disciplines.ToList();
+        tasks.Add(Task.Run(() =>
+        {
+            for (int row = 0; row < disciplines.Count; row++)
+            {
+                sheet6.Cells[row + 2, 0].PutValue(row + 1);
+                sheet6.Cells[row + 2, 1].PutValue(disciplines[row].DisciplineContent);
+                sheet6.Cells[row + 2, 2].PutValue(disciplines[row].Name);
+                sheet6.Cells[row + 2, 3].PutValue(disciplines[row].DisciplineDate?.ToString("dd/MM/yyyy") ?? "N/A");
+            }
+            sheet6.AutoFitColumns();
+        }));
+
+
+        await Task.WhenAll(tasks);
+
+
+        // Xuất file Excel
+        using var stream = new MemoryStream();
+        workbook.Save(stream, SaveFormat.Xlsx);
+        byte[] bytes = stream.ToArray();
+        string base64String = Convert.ToBase64String(bytes);
+
+        //string url = await _cloudinaryService.UploadExcelAsync(base64String);
+        //string url ="";
+
+        return new ApiResponse<object>(0, "Xuất Excel thành công")
+        {
+            Data = base64String
+        };
+        //}
+        //catch (Exception ex)
+        //{
+        //    // Xử lý lỗi và trả về thông báo
+        //    Console.WriteLine($"Error exporting Excel: {ex.Message}");
+        //    return new ApiResponse<object>(1, $"Lỗi khi xuất Excel: {ex.Message}");
+        //}
     }
 
     public async Task<ApiResponse<StudentResponse>> FindStudentByUserCodeAsync(string userCode)
@@ -784,7 +784,7 @@ public class StudentService : IStudentService
                         return 0;
                     }
                 });
-            return (double)count > 0 ? score / count : score;
+            return (double)count > 0 ? score / count : 0;
         }
 
         (string academicPerformance, string conduct, double score) EvaluatePerformance(double score) =>
@@ -828,7 +828,7 @@ public class StudentService : IStudentService
                     .ToList();
 
                 var typeScores = new List<Dictionary<string, object>>();
-                int totalScore = 0;
+                double totalScore = 0;
                 int totalCoefficient = 0;
                 foreach (var item2 in assignmentOfSubject)
                 {
@@ -978,53 +978,51 @@ public class StudentService : IStudentService
             foreach (StudentRequest request in studentRequest)
             {
                 var valids = await ValidateStudentRequest(request);
+                if (request.UserCode == null)
+                {
+                    valids.Add("Usercode không được để trống.");
+                }
+
+                if (await _studentRepository.FindStudentByUserCode(request.UserCode) != null)
+                {
+                    valids.Add($"UserCode đã tồn tại.");
+                }
                 if (valids.Count > 0)
                 {
                     errors.Add($"Học viên có mã [{request.UserCode}] gặp lỗi", valids);
-
+                    Console.WriteLine("vào rồi ");
                 }
             }
+
             if (errors.Count > 0) return new ApiResponse<object>(1, "Thêm danh sách học viên thất bại.")
             {
                 Data = errors
             };
-            foreach (StudentRequest request in studentRequest)
-            {
-                var student = _mapper.Map<User>(request);
-                student.Username = await GeneratedUsername(request.Email);
-                student.IsDelete = false;
-                student.CreateAt = DateTime.Now;
-                string password = await GenerateSecurePassword(8);
-                student.Password = BCrypt.Net.BCrypt.HashPassword(password);
-
-                if (request.Image != null)
-                {
-                    string url = await _cloudinaryService.UploadImageAsync(request.Image);
-                    student.Image = url;
-                    Console.WriteLine("Url : " + request.Image);
-                }
-                var user = await _studentRepository.AddAsync(student);
-                Task.Run(async () =>
-                {
-                    await ExecuteEmail(user.Email, user.FullName, user.Username, password);
-                });
-                await _classStudentRepository.AddAsync(new ClassStudentRequest()
-                {
-                    UserId = user.Id,
-                    ClassId = request.ClassId
-                });
-            }
             //foreach (StudentRequest request in studentRequest)
             //{
-            //    Type type = request.GetType();
-            //    PropertyInfo[] properties = type.GetProperties();
+            //    var student = _mapper.Map<User>(request);
+            //    student.Username = await GeneratedUsername(request.Email);
+            //    student.IsDelete = false;
+            //    student.CreateAt = DateTime.Now;
+            //    string password = await GenerateSecurePassword(8);
+            //    student.Password = BCrypt.Net.BCrypt.HashPassword(password);
 
-            //    foreach (var property in properties)
+            //    if (request.Image != null)
             //    {
-            //        object value = property.GetValue(request);
-            //        string propertyName = property.Name;
-            //        Console.WriteLine(propertyName + ": " + value);
+            //        string url = await _cloudinaryService.UploadImageAsync(request.Image);
+            //        student.Image = url;
+            //        Console.WriteLine("Url : " + request.Image);
             //    }
+            //    var user = await _studentRepository.AddAsync(student);
+            //    Task.Run(async () =>
+            //    {
+            //        await ExecuteEmail(user.Email, user.FullName, user.Username, password);
+            //    });
+            //    await _classStudentRepository.AddAsync(new ClassStudentRequest()
+            //    {
+            //        UserId = user.Id,
+            //        ClassId = request.ClassId
+            //    });
             //}
 
             //Console.WriteLine("StudenRequest "+s)
@@ -1076,7 +1074,8 @@ public class StudentService : IStudentService
                 student.Username = await GeneratedUsername(request.Email);
                 string password = await GenerateSecurePassword(10);
                 student.Password = BCrypt.Net.BCrypt.HashPassword(password);
-                Task.Run(async () => {
+                Task.Run(async () =>
+                {
                     await ExecuteEmail(user.Email, user.FullName, user.Username, password);
 
                 });
@@ -1221,4 +1220,51 @@ public class StudentService : IStudentService
 
         return errors;
     }
+    public async Task<ApiResponse<object>> ExportSampleData()
+    {
+        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+
+        using (var package = new ExcelPackage())
+        {
+            // Tạo một worksheet mới
+            var worksheet = package.Workbook.Worksheets.Add("Dữ liệu mẫu");
+
+            // Danh sách cột (tiêu đề)
+            string[] headers = { "studentStatusId", "classId", "userCode", "fullName", "email", "startDate", "image", "gender", "ethnicity", "religion", "placeOfBirth", "birthDate", "studyMode", "phone", "address", "provinceId", "districtId", "wardId", "alias", "admissionType", "national", "fullnameFather", "birthFather", "workFather", "phoneFather", "fullnameMother", "birthMother", "workMother", "phoneMother", "fullnameGuardianship", "birthGuardianship", "workGuardianship", "phoneGuardianship", "userCreate", "userUpdate" };
+
+            // Ghi tiêu đề vào hàng 1 (bắt đầu từ A1)
+            for (int i = 0; i < headers.Length; i++)
+            {
+                worksheet.Cells[1, i + 1].Value = headers[i]; // A1, B1, C1...
+            }
+
+            // Dữ liệu mẫu cho một sinh viên
+            string[] students = { "1", "1", "SV001", "Dương Văn Kha", "kha1876543@gmail.com", "2025-03-20T06:19:01.279Z", "", "TRUE",
+                              "Kinh", "Không", "Hà Nội", "2003-05-15T00:00:00.000Z", "Chính quy", "0987654321", "123 Đường ABC, Hà Nội",
+                              "01", "001", "0001", "NgVanA", "Kỳ thi THPT Quốc gia", "Việt Nam",
+                              "Nguyễn Văn B", "1975-07-10T00:00:00.000Z", "Kỹ sư", "0987123456",
+                              "Trần Thị C", "1978-09-20T00:00:00.000Z", "Giáo viên", "0987234567",
+                              "Nguyễn Văn D", "1980-01-01T00:00:00.000Z", "Luật sư", "0987345678",
+                              "1001", "1002"};
+
+            // Ghi dữ liệu vào hàng 2 (bắt đầu từ A2)
+            for (int i = 0; i < students.Length; i++)
+            {
+                worksheet.Cells[2, i + 1].Value = students[i]; // A2, B2, C2...
+            }
+
+            // Tự động điều chỉnh kích thước cột
+            worksheet.Cells.AutoFitColumns();
+
+            // Xuất file Excel
+            var fileBytes = package.GetAsByteArray();
+            string base64Excel = Convert.ToBase64String(fileBytes);
+
+            return new ApiResponse<object>(0, "Xuất dữ liệu mẫu thành công")
+            {
+                Data = base64Excel
+            };
+        }
+    }
+
 }
