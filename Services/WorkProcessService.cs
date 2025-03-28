@@ -76,8 +76,13 @@ public class WorkProcessService : IWorkProcessService
     // Lấy tất cả WorkUnit không bao gồm các WorkUnit có Id trong chuỗi ids
     public async Task<IEnumerable<WorkUnitResponse>> GetWorkUnitExcluding(WorkUnitRequest request)
     {
-        var query = _context.WorkUnits
-            .Where(wpu => !request.Ids.Contains(wpu.Id.ToString()));
+        var query = _context.WorkUnits.AsQueryable(); // Khởi tạo query
+
+        // Nếu request.Ids không null và có phần tử thì mới lọc
+        if (request.Ids != null && request.Ids.Any())
+        {
+            query = query.Where(wpu => !request.Ids.Contains(wpu.Id.ToString()));
+        }
 
         return await query.Select(wpu => new WorkUnitResponse
         {
@@ -85,6 +90,7 @@ public class WorkProcessService : IWorkProcessService
             Name = wpu.Name
         }).ToListAsync();
     }
+
 
     // Thêm mới WorkProcess
     public async Task<bool> CreateAsync(WorkProcessCreateRequest request)

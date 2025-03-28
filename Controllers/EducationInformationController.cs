@@ -54,7 +54,7 @@ public class EducationInformationController : ControllerBase
         try
         {
             var result = await _educationInformationService.GetTrainingProgramsExcluding(request);
-            return Ok(new ApiResponse<IEnumerable<WorkUnitResponse>>(0, "Thành công", result));
+            return Ok(new ApiResponse<IEnumerable<TrainingProgramResponse>>(0, "Thành công", result));
         }
         catch (Exception ex)
         {
