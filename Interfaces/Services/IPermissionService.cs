@@ -10,9 +10,11 @@ namespace Project_LMS.Interfaces
         Task<GroupPermissionResponse> GetGroupPermissionById(int groupRoleId);
         Task<bool> DeleteGroupPermission(int groupRoleId);
         Task<PaginatedResponse<PermissionUserResponse>> GetPermissionUserList(string key, int pageNumber, int pageSize);
-       Task<PermissionUserRequest> GetUserPermission(int userId);
+        Task<PermissionUserRequest> GetUserPermission(int userId);
         Task<bool> SaveUserPermission(int userId, int groupId, bool disable);
         Task<bool> DeleteUser(int userId);
-       Task<List<string>> ListPermission(int userId);
+        Task<List<AvailablePermissionResponse>> GetAvailablePermissionsAsync();
+        Task<List<UnassignedUserResponse>> GetUnassignedUsersAsync();
+        Task<List<string>> ListPermission(int userId);
     }
 }
