@@ -60,16 +60,16 @@ namespace Project_LMS.Controllers
         {
             try
             {
-                var jsonString = schoolTransferRequest?.ToString();
-                if (string.IsNullOrEmpty(jsonString) || !JsonValidator.IsValidJson(jsonString))
-                {
-                    return BadRequest(new ApiResponse<string>(0, "Invalid JSON format", null));
-                }
+                //var jsonString = schoolTransferRequest?.ToString();
+                //if (string.IsNullOrEmpty(jsonString) || !JsonValidator.IsValidJson(jsonString))
+                //{
+                //    return BadRequest(new ApiResponse<string>(0, "Invalid JSON format", null));
+                //}
 
-                if (schoolTransferRequest == null)
-                {
-                    return BadRequest(new ApiResponse<string>(0, "Request body cannot be null", null));
-                }
+                //if (schoolTransferRequest == null)
+                //{
+                //    return BadRequest(new ApiResponse<string>(0, "Request body cannot be null", null));
+                //}
                 var schoolTransfer = await _schoolTransferService.CreateAsync(schoolTransferRequest);
                 return CreatedAtAction(nameof(GetById), new { id = schoolTransfer.Id }, new ApiResponse<SchoolTransferResponse>(1, "Tạo chuyển trường thành công", schoolTransfer));
             }

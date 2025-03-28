@@ -18,15 +18,14 @@ namespace Project_LMS.Services
         private readonly ISchoolTransferRepository _schoolTransferRepository;
         private readonly ISchoolBranchRepository _schoolBranchRepository;
         private readonly IMapper _mapper;
+        private readonly ICloudinaryService _cloudinaryService;
 
-        public SchoolTransferService(
-            ISchoolTransferRepository schoolTransferRepository,
-            ISchoolBranchRepository schoolBranchRepository,
-            IMapper mapper)
+        public SchoolTransferService(ISchoolTransferRepository schoolTransferRepository, ISchoolBranchRepository schoolBranchRepository, IMapper mapper, ICloudinaryService cloudinaryService)
         {
             _schoolTransferRepository = schoolTransferRepository;
             _schoolBranchRepository = schoolBranchRepository;
             _mapper = mapper;
+            _cloudinaryService = cloudinaryService;
         }
 
         public async Task<IEnumerable<SchoolTransferResponse>> GetAllAsync()
@@ -93,8 +92,18 @@ namespace Project_LMS.Services
             // {
             //     throw new NotFoundException("Không tìm thấy xã với ID đã cho");
             // }
-
             var transfer = _mapper.Map<SchoolTransfer>(transferRequest);
+            try
+            {
+                if (transferRequest.FileName != null)
+                {
+                    transfer.FileName = await _cloudinaryService.UploadDocAsync(transferRequest.FileName);
+                }
+            }
+            catch (Exception ex) {
+                     throw new NotFoundException("File name phải là base64");
+            }
+
             transfer.UserCreate = 1;
             transfer.IsDelete = false;
 
