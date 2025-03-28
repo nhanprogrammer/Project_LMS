@@ -20,17 +20,17 @@ namespace Project_LMS.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<IEnumerable<SchoolTransferResponse>>>> GetAll()
+        public async Task<ActionResult<ApiResponse<IEnumerable<SchoolTransferResponse>>>> GetAll(int academicId,[FromQuery] PaginationRequest request, bool isOrder, string column, string? searchItem)
         {
-            try
-            {
-                var schoolTransfers = await _schoolTransferService.GetAllAsync();
-                return Ok(new ApiResponse<IEnumerable<SchoolTransferResponse>>(1, "Lấy danh sách chuyển trường thành công", schoolTransfers));
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new ApiResponse<string>(0, "Đã xảy ra lỗi khi lấy danh sách chuyển trường", ex.Message));
-            }
+            //try
+            //{
+                var result = await _schoolTransferService.GetAllAsync(academicId,request,isOrder,column,searchItem);
+                return Ok(result);
+            //}
+            //catch (Exception ex)
+            //{
+            //    return StatusCode(500, new ApiResponse<string>(0, "Đã xảy ra lỗi khi lấy danh sách chuyển trường", ex.Message));
+            //}
         }
 
         [HttpGet("{id}")]
@@ -60,16 +60,6 @@ namespace Project_LMS.Controllers
         {
             try
             {
-                //var jsonString = schoolTransferRequest?.ToString();
-                //if (string.IsNullOrEmpty(jsonString) || !JsonValidator.IsValidJson(jsonString))
-                //{
-                //    return BadRequest(new ApiResponse<string>(0, "Invalid JSON format", null));
-                //}
-
-                //if (schoolTransferRequest == null)
-                //{
-                //    return BadRequest(new ApiResponse<string>(0, "Request body cannot be null", null));
-                //}
                 var schoolTransfer = await _schoolTransferService.CreateAsync(schoolTransferRequest);
                 return CreatedAtAction(nameof(GetById), new { id = schoolTransfer.Id }, new ApiResponse<SchoolTransferResponse>(1, "Tạo chuyển trường thành công", schoolTransfer));
             }
