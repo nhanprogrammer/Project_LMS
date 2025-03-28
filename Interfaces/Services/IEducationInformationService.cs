@@ -9,7 +9,7 @@ public interface IEducationInformationService
     Task<IEnumerable<EducationInformationsResponse>> GetAllAsync(EducationInformationRequest request);
     Task<EducationInformationResponse> GetById(EducationInformationDeleteRequest request);
     // Lấy tất cả TrainingProgram không bao gồm các TrainingProgram có Id trong chuỗi ids
-    Task<IEnumerable<WorkUnitResponse>> GetTrainingProgramsExcluding(TrainingProgramRequest request);
+    Task<IEnumerable<TrainingProgramResponse>> GetTrainingProgramsExcluding(TrainingProgramRequest request);
     // Thêm mới EducationInformation
     Task<bool> CreateAsync(EducationInformationCreateRequest request);
     // Cập nhật EducationInformation

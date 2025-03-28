@@ -77,17 +77,23 @@ public class EducationInformationService : IEducationInformationService
     }
 
     // Lấy tất cả TrainingProgram không bao gồm các TrainingProgram có Id trong chuỗi ids
-    public async Task<IEnumerable<WorkUnitResponse>> GetTrainingProgramsExcluding(TrainingProgramRequest request)
+    public async Task<IEnumerable<TrainingProgramResponse>> GetTrainingProgramsExcluding(TrainingProgramRequest request)
     {
-        var query = _context.TrainingPrograms
-            .Where(wpu => !request.Ids.Contains(wpu.Id.ToString()));
+        var query = _context.TrainingPrograms.AsQueryable(); // Khởi tạo query
 
-        return await query.Select(wpu => new WorkUnitResponse
+        // Nếu request.Ids không null và có phần tử thì mới lọc
+        if (request.Ids != null && request.Ids.Any())
+        {
+            query = query.Where(wpu => !request.Ids.Contains(wpu.Id.ToString()));
+        }
+
+        return await query.Select(wpu => new TrainingProgramResponse
         {
             Id = wpu.Id,
             Name = wpu.Name
         }).ToListAsync();
     }
+
 
     // Thêm mới EducationInformation
     public async Task<bool> CreateAsync(EducationInformationCreateRequest request)
