@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Project_LMS.Data;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
@@ -6,6 +7,7 @@ using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers;
 
+[Authorize(Policy = "DATA-MNG-VIEW")]
 [Route("api/[controller]")]
 [ApiController]
 public class SubjectGroupController : ControllerBase
@@ -34,6 +36,7 @@ public class SubjectGroupController : ControllerBase
         return Ok(new ApiResponse<PaginatedResponse<SubjectGroupResponse>>(response.Status, response.Message, response.Data));
     }
 
+    [Authorize(Policy = "DATA-MNG-INSERT")]
     [HttpPost]
     public async Task<IActionResult> CreateDepartment([FromBody] CreateSubjectGroupRequest createSubjectGroupRequest)
     {
@@ -61,6 +64,7 @@ public class SubjectGroupController : ControllerBase
         return Ok(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
     }
 
+
     [HttpPut]
     public async Task<IActionResult> UpdateDepartment([FromBody] UpdateSubjectGroupRequest updateSubjectGroupRequest)
     {
@@ -73,6 +77,7 @@ public class SubjectGroupController : ControllerBase
         return Ok(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
     }
 
+    [Authorize(Policy = "DATA-MNG-DELETE")]
     [HttpDelete("{id?}")]
     public async Task<IActionResult> DeleteDepartment(int id)
     {
@@ -85,12 +90,10 @@ public class SubjectGroupController : ControllerBase
         return Ok(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
     }
 
+    [Authorize(Policy = "DATA-MNG-DELETE")]
     [HttpDelete]
     public async Task<IActionResult> DeleteListSubject([FromBody] DeleteRequest deleteRequest)
     {
-        Console.WriteLine($"Received IDs: {string.Join(", ", deleteRequest)}");
-
-
         var response = await _subjectGroupService.DeleteSubjectGroupSubject(deleteRequest);
 
         if (response.Status == 1)

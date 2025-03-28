@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Project_LMS.DTOs.Request;
@@ -10,6 +11,7 @@ using Project_LMS.Services;
 
 namespace Project_LMS.Controllers
 {
+    [Authorize(Policy = "TEACHER-REC-VIEW")]
     [Route("api/[controller]")]
     [ApiController]
     public class TeachingAssignmentController : ControllerBase
@@ -27,19 +29,17 @@ namespace Project_LMS.Controllers
             var result = await _service.GetById(id);
             if (result == null)
             {
-                Console.WriteLine($"API GetById: Không tìm thấy TeachingAssignment với ID: {id}");
                 return NotFound(new ApiResponse<object>(1, $"Không tìm thấy phân công giảng dạy với ID: {id}"));
             }
             return Ok(new ApiResponse<object>(0, "Tìm thấy phân công giảng dạy thành công!", result));
         }
 
+        [Authorize(Policy = "TEACHER-REC-INSERT")]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] TeachingAssignmentRequestCreate request)
         {
             try
             {
-                //Console.WriteLine($"Bắt đầu tạo phân công: UserId={request.UserId}, ClassId={request.ClassId}, SubjectId={request.SubjectId}");
-
                 var response = await _service.Create(request);
                 if (response != null)
                 {
@@ -68,6 +68,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "TEACHER-REC-UPDATE")]
         [HttpPut]
         public async Task<IActionResult> UpdateById([FromBody] TeachingAssignmentRequestUpdate request)
         {
@@ -96,6 +97,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "TEACHER-REC-DELETE")]
         [HttpDelete]
         public async Task<IActionResult> Delete([FromBody] DeleteRequest request)
         {
@@ -146,8 +148,6 @@ namespace Project_LMS.Controllers
 
             return Ok(new ApiResponse<object>(0, "Lấy dữ liệu thành công!", topics));
         }
-
-      
     }
 }
 

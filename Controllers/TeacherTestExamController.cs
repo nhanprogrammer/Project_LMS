@@ -7,8 +7,6 @@ using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers;
 
-
-
 [Route("api/[controller]")]
 [ApiController]
 public class TeacherTestExamController : ControllerBase

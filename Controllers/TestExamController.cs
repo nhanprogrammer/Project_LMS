@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces.Services;
@@ -6,6 +7,7 @@ using Project_LMS.Models;
 
 namespace Project_LMS.Controllers
 {
+    [Authorize(Policy = "EXAM-VIEW")]
     [Route("api/[controller]")]
     [ApiController]
     public class TestExamController : ControllerBase
@@ -63,6 +65,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "EXAM-INSERT")]
         [HttpPost]
         public async Task<ActionResult<ApiResponse<TestExamResponse>>> Create([FromBody] CreateTestExamRequest request)
         {
@@ -83,6 +86,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "EXAM-UPDATE")]
         [HttpPut]
         public async Task<ActionResult<ApiResponse<TestExamResponse>>> Update
         (
@@ -105,6 +109,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "EXAM-DELETE")]
         [HttpDelete("{id:int}")]
         public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
         {

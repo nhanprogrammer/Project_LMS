@@ -7,6 +7,7 @@ using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers
 {
+    [Authorize(Policy = "DATA-MNG-VIEW")]
     [ApiController]
     [Route("api/[controller]")]
     public class SubjectController : ControllerBase
@@ -20,7 +21,6 @@ namespace Project_LMS.Controllers
             _authService = authService;
         }
 
-        [Authorize(Policy = "SUBJECT-VIEW")]
         [HttpGet]
         public async Task<ActionResult<ApiResponse<PaginatedResponse<SubjectResponse>>>> GetAll(
             [FromQuery] string? keyword = null,
@@ -42,7 +42,6 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "SUBJECT-VIEW")]
         [HttpGet("{id}")]
         public async Task<ActionResult<ApiResponse<SubjectResponse>>> GetById(int id)
         {
@@ -65,7 +64,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "SUBJECT-INSERT")]
+        [Authorize(Policy = "DATA-MNG-INSERT")]
         [HttpPost]
         public async Task<ActionResult<ApiResponse<SubjectResponse>>> Create([FromBody] SubjectRequest request)
         {
@@ -94,7 +93,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "SUBJECT-UPDATE")]
+        [Authorize(Policy = "DATA-MNG-UPDATE")]
         [HttpPut]
         public async Task<ActionResult<ApiResponse<SubjectResponse>>> Update([FromBody] SubjectRequest request)
         {
@@ -141,7 +140,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "SUBJECT-DELETE")]
+        [Authorize(Policy = "DATA-MNG-DELETE")]
         [HttpDelete]
         public async Task<ActionResult<ApiResponse<bool>>> DeleteMultiple([FromBody] DeleteMultipleRequest request)
         {

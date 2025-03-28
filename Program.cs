@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Project_LMS.Data;
-
 using Project_LMS.Interfaces.Services;
 using Project_LMS.Interfaces.Repositories;
 using Project_LMS.Services;
@@ -24,12 +23,10 @@ using Aspose.Cells.Charts;
 using Project_LMS.DTOs.Request;
 using FluentValidation.AspNetCore;
 using FluentValidation;
-
 using Project_LMS.Hubs;
 using Project_LMS.Middleware;
 using Hangfire;
 using Hangfire.PostgreSql;
-
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -39,17 +36,13 @@ builder.Services.AddCors(options =>
         policy =>
         {
             policy.WithOrigins("http://localhost:3000")
-                  .AllowAnyHeader()
-                  .AllowAnyMethod()
-                  .AllowCredentials();
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
         });
 });
 
-builder.Services.AddControllers(options =>
-{
-    options.Filters.Add<ValidationFilter>();
-
-});
+builder.Services.AddControllers(options => { options.Filters.Add<ValidationFilter>(); });
 
 // Tắt tự động kiểm tra ModelState trong API behavior để sử dụng ValidationFilter
 builder.Services.Configure<ApiBehaviorOptions>(options =>
@@ -58,10 +51,7 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 });
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Project_LMS", Version = "v1" });
-});
+builder.Services.AddSwaggerGen(c => { c.SwaggerDoc("v1", new OpenApiInfo { Title = "Project_LMS", Version = "v1" }); });
 builder.Services.AddHangfire(config => config
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
     .UseSimpleAssemblyNameTypeSerializer()
@@ -110,10 +100,10 @@ builder.Services.AddScoped<IDepartmentsService, DepartmentsService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IStudentStatusService, StudentStatusService>();
 builder.Services.AddScoped<IClassStudentService, ClassStudentService>();
-builder.Services.AddScoped<IClassService,ClassService>();
-builder.Services.AddScoped<IStudentService,StudentService>();
-builder.Services.AddScoped<IClassStudentService,ClassStudentService>();
-builder.Services.AddScoped<IExemptionService,ExemptionService>();
+builder.Services.AddScoped<IClassService, ClassService>();
+builder.Services.AddScoped<IStudentService, StudentService>();
+builder.Services.AddScoped<IClassStudentService, ClassStudentService>();
+builder.Services.AddScoped<IExemptionService, ExemptionService>();
 builder.Services.AddScoped<IRewardService, RewardService>();
 builder.Services.AddScoped<IDisciplinesService, DisciplinesService>();
 builder.Services.AddScoped<ITeacherService, TeacherService>();
@@ -127,7 +117,7 @@ builder.Services.AddScoped<ITranscriptService, TranscriptService>();
 //AddSingleton
 builder.Services.AddSingleton<ISupportService, SupportService>();
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-
+builder.Services.AddScoped<IGradeEntryService, GradeEntryService>();
 
 
 // Repositories
@@ -169,6 +159,7 @@ builder.Services.AddScoped<ITeachingAssignmentRepository, TeachingAssignmentRepo
 builder.Services.AddScoped<INotificationsRepository, NotificationsRepository>();
 builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
 builder.Services.AddScoped<ITeachingAssignmentService, TeachingAssignmentService>();
+builder.Services.AddScoped<IGradeEntryRepository, GradeEntryRepository>();
 
 builder.Services.AddScoped<ISubjectGroupRepository, SubjectGroupRepository>();
 
@@ -187,9 +178,9 @@ builder.Services.AddScoped<ITopicRepository, TopicRepository>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 // builder.Services.AddScoped<IDepartmentsService, Deparmen>();
-builder.Services.AddScoped <IClassRepository, ClassRepository>();
-builder.Services.AddScoped<IClassStudentRepository,ClassStudentRepository>();
-builder.Services.AddScoped<IClassSubjectRepository,ClassSubjectRepository>();
+builder.Services.AddScoped<IClassRepository, ClassRepository>();
+builder.Services.AddScoped<IClassStudentRepository, ClassStudentRepository>();
+builder.Services.AddScoped<IClassSubjectRepository, ClassSubjectRepository>();
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 
@@ -215,6 +206,8 @@ builder.Services.AddLogging(); // Đăng ký logging
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IMeetService, MeetService>(); // Đăng ký IMeetService với MeetService
+builder.Services.AddScoped<IWorkProcessService, WorkProcessService>(); 
+builder.Services.AddScoped<IEducationInformationService, EducationInformationService>();
 
 // Đọc cấu hình JWT từ appsettings.json
 var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -240,59 +233,57 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.Events = new JwtBearerEvents
         {
             OnMessageReceived = async context =>
+            {
+                var memoryCache = context.HttpContext.RequestServices.GetRequiredService<IMemoryCache>();
+                var token = context.Request.Cookies["AuthToken"];
+                Console.WriteLine($"Cookie AuthToken: {token}");
+
+                if (string.IsNullOrEmpty(token) && context.Request.Headers.ContainsKey("Authorization"))
                 {
-
-                    // Nếu không có HttpContext hoặc không có token trong Items, tiến hành lấy token
-                    var memoryCache = context.HttpContext.RequestServices.GetRequiredService<IMemoryCache>();
-                    var token = context.Request.Cookies["AuthToken"];
-                    Console.WriteLine($"Cookie AuthToken: {token}");
-
-                    if (string.IsNullOrEmpty(token) && context.Request.Headers.ContainsKey("Authorization"))
+                    var authHeader = context.Request.Headers["Authorization"].ToString();
+                    Console.WriteLine($"Authorization Header: {authHeader}");
+                    if (authHeader.StartsWith("Bearer "))
                     {
-                        var authHeader = context.Request.Headers["Authorization"].ToString();
-                        Console.WriteLine($"Authorization Header: {authHeader}");
-                        if (authHeader.StartsWith("Bearer "))
-                        {
-                            token = authHeader.Substring("Bearer ".Length).Trim();
-                        }
+                        token = authHeader.Substring("Bearer ".Length).Trim();
                     }
+                }
 
-                    Console.WriteLine($"Extracted Token: {token}");
+                Console.WriteLine($"Extracted Token: {token}");
 
-                    // Kiểm tra token trong blacklist
-                    if (!string.IsNullOrEmpty(token) && memoryCache.TryGetValue($"blacklist:{token}", out _))
-                    {
-                        Console.WriteLine($"Token {token} is blacklisted");
-                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                        context.Response.ContentType = "application/json";
-                        var response = new ApiResponse<string>(1, "Token đã bị vô hiệu hóa. Vui lòng đăng nhập lại.", null);
-                        await context.Response.WriteAsync(JsonSerializer.Serialize(response));
-                        return;
-                    }
-
-                    // Lưu token vào context nếu hợp lệ
-                    if (!string.IsNullOrEmpty(token))
-                    {
-                        context.HttpContext.Items["Token"] = token;
-                        context.Token = token;
-                    }
-                },
-            OnChallenge = context =>
+                // Kiểm tra token trong blacklist
+                if (!string.IsNullOrEmpty(token) && memoryCache.TryGetValue($"blacklist:{token}", out _))
                 {
-                    Console.WriteLine("OnChallenge");
-                    context.HandleResponse();
+                    Console.WriteLine($"Token {token} is blacklisted");
                     context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                     context.Response.ContentType = "application/json";
-                    var response = new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null);
-                    return context.Response.WriteAsync(JsonSerializer.Serialize(response));
-                },
+                    var response = new ApiResponse<string>(1, "Token đã bị vô hiệu hóa. Vui lòng đăng nhập lại.", null);
+                    await context.Response.WriteAsync(JsonSerializer.Serialize(response));
+                    return;
+                }
+
+                // Lưu token vào context nếu hợp lệ
+                if (!string.IsNullOrEmpty(token))
+                {
+                    context.HttpContext.Items["Token"] = token;
+                    context.Token = token;
+                }
+            },
+            OnChallenge = context =>
+            {
+                Console.WriteLine("OnChallenge");
+                context.HandleResponse();
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                context.Response.ContentType = "application/json";
+                var response = new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null);
+                return context.Response.WriteAsync(JsonSerializer.Serialize(response));
+            },
             OnForbidden = context =>
-               {
-                   context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                   context.Response.ContentType = "application/json";
-                   var response = new ApiResponse<string>(1, "Bạn không có quyền truy cập!", null);
-                   return context.Response.WriteAsync(JsonSerializer.Serialize(response));
-               }
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                context.Response.ContentType = "application/json";
+                var response = new ApiResponse<string>(1, "Bạn không có quyền truy cập!", null);
+                return context.Response.WriteAsync(JsonSerializer.Serialize(response));
+            }
         };
     });
 
@@ -345,7 +336,8 @@ app.UseExceptionHandler(errorApp =>
     {
         context.Response.StatusCode = 500;
         context.Response.ContentType = "application/json";
-        var error = new { Status = 1, Message = "Lỗi hệ thống không mong muốn.", Details = "Xem log để biết thêm chi tiết." };
+        var error = new
+            { Status = 1, Message = "Lỗi hệ thống không mong muốn.", Details = "Xem log để biết thêm chi tiết." };
         await context.Response.WriteAsync(JsonSerializer.Serialize(error));
     });
 });

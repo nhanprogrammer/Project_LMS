@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs.Request;
@@ -9,6 +10,7 @@ using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers
 {
+    [Authorize(Policy = "DATA-MNG-VIEW")]
     [Route("api/[controller]")]
     [ApiController]
     public class TestExamTypeController : ControllerBase
@@ -21,6 +23,7 @@ namespace Project_LMS.Controllers
             _service = service;
             _authService = authService;
         }
+        
         [HttpGet]
         public Task<ApiResponse<PaginatedResponse<TestExamTypeResponse>>> GetAll(
             [FromQuery, Range(1, int.MaxValue)] int pageNumber = 1,
@@ -43,6 +46,8 @@ namespace Project_LMS.Controllers
                 return StatusCode(500, new ApiResponse<string>(0, "Đã xảy ra lỗi khi lấy danh sách hệ số", ex.Message));
             }
         }
+
+        [Authorize(Policy = "DATA-MNG-INSERT")]
         [HttpPost]
         public async Task<ActionResult<ApiResponse<TestExamTypeResponse>>> Create(TestExamTypeRequest request)
         {
@@ -61,6 +66,8 @@ namespace Project_LMS.Controllers
                 : BadRequest(new ApiResponse<string>(1, response.Message, null));
 
         }
+
+        [Authorize(Policy = "DATA-MNG-UPDATE")]
         [HttpPut]
         public async Task<ActionResult<ApiResponse<TestExamTypeResponse>>> Update([FromBody] TestExamTypeRequest request)
         {
@@ -94,6 +101,7 @@ namespace Project_LMS.Controllers
 
         }
 
+        [Authorize(Policy = "DATA-MNG-DELETE")]
         [HttpDelete("{id}")]
         public Task<ApiResponse<TestExamTypeResponse>> Delete(int id)
         {
