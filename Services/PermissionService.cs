@@ -542,21 +542,28 @@ namespace Project_LMS.Services
                 return permissions;
             }
 
-            // Luôn thêm role vào danh sách quyền (trước khi kiểm tra các quyền khác)
+            // Luôn thêm role vào danh sách quyền
             if (!string.IsNullOrEmpty(user.Role?.Name))
             {
                 permissions.Add(user.Role.Name.ToUpper());
             }
 
             // Nếu user bị Disable hoặc không có quyền (GroupModulePermissonId = null), return ngay (chỉ có Role)
-            if (user.Disable == true || user.GroupModulePermissonId == null) return permissions;
+            if (user.Disable == true || user.GroupModulePermissonId == null)
+            {
+                return permissions;
+            }
+
+            // Nếu user có quyền, xóa Role cũ và thêm quyền ADMIN
+            permissions.Clear();
+            permissions.Add("ADMIN");
 
             // Lấy danh sách quyền theo GroupModulePermissonId
             var modulePermissions = await _context.ModulePermissions
                 .Where(m => m.GroupRoleId == user.GroupModulePermissonId)
                 .ToListAsync();
 
-            if (!modulePermissions.Any()) return permissions; // Nếu không có quyền nào, chỉ return Role
+            if (!modulePermissions.Any()) return permissions; // Nếu không có quyền nào, chỉ return ADMIN
 
             // Lấy danh sách module để tránh truy vấn nhiều lần
             var moduleIds = modulePermissions
@@ -584,6 +591,5 @@ namespace Project_LMS.Services
 
             return permissions;
         }
-
     }
 }
