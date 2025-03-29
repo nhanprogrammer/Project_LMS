@@ -85,10 +85,10 @@ namespace Project_LMS.Services
         public async Task<ApiResponse<List<int>>> GetCoefficients()
         {
             var coefficients = new List<int> { 1, 2, 3 };
-            return new ApiResponse<List<int>>(0, "Lấy danh sách hệ số thành công.")
+            return await Task.FromResult(new ApiResponse<List<int>>(0, "Lấy danh sách hệ số thành công.")
             {
                 Data = coefficients
-            };
+            });
         }
 
         public async Task<ApiResponse<TestExamTypeResponse>> Create(TestExamTypeRequest request, int userId)
