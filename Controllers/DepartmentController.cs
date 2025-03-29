@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces;
 
 namespace Project_LMS.Controllers
 {
+    [Authorize(Policy = "DATA-MNG-VIEW")]
     [ApiController]
     [Route("api/[controller]")]
     public class DepartmentController : ControllerBase
@@ -62,6 +64,7 @@ namespace Project_LMS.Controllers
             return Ok(listClass);
         }
 
+        [Authorize(Policy = "DATA-MNG-INSERT")]
         [HttpPost]
         public async Task<IActionResult> CreateDepartment([FromBody] CreateDepartmentRequest request)
         {
@@ -76,6 +79,7 @@ namespace Project_LMS.Controllers
             return Ok(new ApiResponse<DepartmentResponse>(response.Status, response.Message, response.Data));
         }
 
+        [Authorize(Policy = "DATA-MNG-UPDATE")]
         [HttpPut]
         public async Task<IActionResult> UpdateDepartment([FromBody] UpdateDepartmentRequest request)
         {
@@ -90,6 +94,7 @@ namespace Project_LMS.Controllers
             return Ok(new ApiResponse<DepartmentResponse>(response.Status, response.Message, response.Data));
         }
 
+        [Authorize(Policy = "DATA-MNG-DELETE")]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteDepartment(string id)
         {
@@ -104,6 +109,7 @@ namespace Project_LMS.Controllers
             return Ok(new ApiResponse<DepartmentResponse>(response.Status, response.Message, response.Data));
         }
 
+        [Authorize(Policy = "DATA-MNG-DELETE")]
         [HttpDelete("batch-delete")]
         public async Task<IActionResult> DeleteClasses([FromBody] DeleteRequest request)
         {

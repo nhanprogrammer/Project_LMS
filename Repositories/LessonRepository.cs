@@ -47,8 +47,19 @@ public class LessonRepository : ILessonRepository
         }
     }
 
-    public async Task<IQueryable<Lesson>> GetQueryable()
+    public async Task<List<Lesson>> GetByIdsAsync(List<int> ids)
     {
-        return await Task.FromResult(_context.Lessons.AsQueryable());
+        return await _context.Lessons.Where(l => ids.Contains(l.Id)).ToListAsync();
+    }
+
+    public async Task UpdateRangeAsync(List<Lesson> lessons)
+    {
+        _context.Lessons.UpdateRange(lessons);
+        await _context.SaveChangesAsync();
+    }
+
+    public Task<IQueryable<Lesson>> GetQueryable()
+    {
+        return Task.FromResult(_context.Lessons.AsQueryable());
     }
 }

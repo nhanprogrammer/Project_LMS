@@ -5,6 +5,7 @@ using Project_LMS.DTOs.Response;
 using Project_LMS.Exceptions;
 using Project_LMS.Helpers;
 using System.Text.Json;
+using Project_LMS.Interfaces;
 
 namespace Project_LMS.Controllers
 {
@@ -13,12 +14,14 @@ namespace Project_LMS.Controllers
     public class SchoolBranchController : ControllerBase
     {
         private readonly ISchoolBranchService _schoolBranchService;
+        private readonly IAuthService _authService;
 
-        public SchoolBranchController(ISchoolBranchService schoolBranchService)
+
+        public SchoolBranchController(ISchoolBranchService schoolBranchService, IAuthService authService)
         {
             _schoolBranchService = schoolBranchService;
+            _authService = authService;
         }
-
         [HttpGet]
         public async Task<ActionResult<ApiResponse<IEnumerable<SchoolBranchResponse>>>> GetAll()
         {
@@ -61,6 +64,9 @@ namespace Project_LMS.Controllers
         {
             try
             {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
                 string jsonString = JsonSerializer.Serialize(schoolBranchRequest);
 
                 if (!JsonValidator.IsValidJson(jsonString))
@@ -73,7 +79,7 @@ namespace Project_LMS.Controllers
                     return BadRequest(new ApiResponse<string>(1, "Request body cannot be null", null));
                 }
 
-                var schoolBranch = await _schoolBranchService.CreateAsync(schoolBranchRequest);
+                var schoolBranch = await _schoolBranchService.CreateAsync(schoolBranchRequest, user.Id);
                 return CreatedAtAction(nameof(GetById), new { id = schoolBranch.Id }, new ApiResponse<SchoolBranchResponse>(0, "Tạo chi nhánh trường thành công", schoolBranch));
             }
             catch (BadRequestException ex)
@@ -91,6 +97,9 @@ namespace Project_LMS.Controllers
         {
             try
             {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
                 string jsonString = JsonSerializer.Serialize(schoolBranchRequest);
 
                 if (!JsonValidator.IsValidJson(jsonString))
@@ -103,7 +112,7 @@ namespace Project_LMS.Controllers
                     return BadRequest(new ApiResponse<string>(1, "Request body hoặc Id không được để trống", null));
                 }
 
-                var schoolBranch = await _schoolBranchService.UpdateAsync(schoolBranchRequest.Id.Value, schoolBranchRequest);
+                var schoolBranch = await _schoolBranchService.UpdateAsync(schoolBranchRequest.Id, schoolBranchRequest, user.Id);
                 if (schoolBranch == null)
                 {
                     return NotFound(new ApiResponse<SchoolBranchResponse>(1, "Không tìm thấy chi nhánh trường"));

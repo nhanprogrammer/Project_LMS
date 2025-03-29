@@ -23,5 +23,6 @@ namespace Project_LMS.Interfaces
         Task<ApiResponse<NotificationResponse>> AddManualNotificationAsync(AddManualNotificationRequest request);
         Task<ApiResponse<bool>> DeleteNotificationAsync(DeleteRequest request, int userId); // Thêm phương thức xóa
         Task<ApiResponse<bool>> SelectIsReadAsync(DeleteRequest request, int userId); // Thêm phương thức
+        Task AddNotificationToUsersAsync(List<int> userIds, string subject, string content);
     }
 }

@@ -7,6 +7,7 @@ using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers
 {
+    [Authorize(Policy = "DATA-MNG-VIEW")]
     [Route("api/[controller]")]
     [ApiController]
     public class SystemSettingController : ControllerBase
@@ -18,35 +19,15 @@ namespace Project_LMS.Controllers
             _systemSettingService = systemSettingService;
         }
 
-        //[HttpGet("user/{id}")]
-        //public async Task<IActionResult> GetById(int id)
-        //{
-        //    try
-        //    {
-        //        var result = await _systemSettingService.GetById(id);
-        //        return Ok(new ApiResponse<object>(0, "Tìm thấy", result));
-        //    }
-        //    catch (KeyNotFoundException ex)
-        //    {
-        //        return NotFound(new ApiResponse<object>(1, ex.Message));
-        //    }
-        //}
+        // [HttpGet]
+        // public async Task<IActionResult> GetAll()
+        // {
+        //     var result = await _systemSettingService.GetAll();
+        //     return Ok(new ApiResponse<object>(0, "Tìm thấy", result));
+        // }
 
-        [HttpGet]
-        public async Task<IActionResult> GetAll()
-        {
-            var result = await _systemSettingService.GetAll();
-            return Ok(new ApiResponse<object>(0, "Tìm thấy", result));
-        }
-
-        //[HttpPut("user/{userId}")]
-        //public async Task<IActionResult> Update(int userId, [FromBody] SystemSettingRequest request)
-        //{
-        //    var result = await _systemSettingService.UpdateByUserId(userId, request);
-        //    return Ok(new ApiResponse<SystemSettingResponse>(0, "Cập nhật thành công!", result));
-        //}
-        [Authorize]
-        [HttpPut("update-setting")]
+        [Authorize(Policy = "DATA-MNG-INSERT")]
+        [HttpPut]
         public async Task<IActionResult> UpdateSetting([FromBody] SystemSettingRequest request)
         {
             var response = await _systemSettingService.UpdateByUserId(request);
@@ -54,7 +35,7 @@ namespace Project_LMS.Controllers
         }
 
         [Authorize(Policy = "DATA-MNG-VIEW")]
-        [HttpGet("user-setting")]
+        [HttpGet]
         public async Task<IActionResult> GetUserSetting()
         {
             try

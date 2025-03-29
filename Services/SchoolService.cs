@@ -17,13 +17,14 @@ namespace Project_LMS.Services
         private readonly IMapper _mapper;
         private readonly IServiceProvider _serviceProvider;
         private readonly ApplicationDbContext _context;
-
-        public SchoolService(ISchoolRepository schoolRepository, IMapper mapper, IServiceProvider serviceProvider, ApplicationDbContext context)
+        private readonly ICloudinaryService _cloudinaryService;
+        public SchoolService(ISchoolRepository schoolRepository, IMapper mapper, IServiceProvider serviceProvider, ApplicationDbContext context, ICloudinaryService cloudinaryService)
         {
             _schoolRepository = schoolRepository;
             _mapper = mapper;
             _serviceProvider = serviceProvider;
             _context = context;
+            _cloudinaryService = cloudinaryService;
         }
 
         public async Task<IEnumerable<SchoolResponse>> GetAllAsync()
@@ -78,18 +79,13 @@ namespace Project_LMS.Services
             school.IsDelete = false;
             if (!string.IsNullOrEmpty(schoolRequest.Image))
             {
-                var cloudinaryService = _serviceProvider.GetService<ICloudinaryService>();
-                if (cloudinaryService == null)
-                {
-                    throw new Exception("Cloudinary service not available");
-                }
-                school.Image = await cloudinaryService.UploadImageAsync(schoolRequest.Image);
+                school.Image = await _cloudinaryService.UploadImageAsync(schoolRequest.Image);
             }
             await _schoolRepository.AddAsync(school);
             return _mapper.Map<SchoolResponse>(school);
         }
 
-        public async Task<SchoolResponse> UpdateAsync(int id, SchoolRequest schoolRequest)
+        public async Task<SchoolResponse> UpdateAsync(int id, SchoolRequest schoolRequest, int userId)
         {
             var errors = new List<ValidationError>();
 
@@ -125,19 +121,31 @@ namespace Project_LMS.Services
                 throw new NotFoundException("Không tìm thấy trường");
             }
 
-            _mapper.Map(schoolRequest, school);
+
             school.UserUpdate = 1;
             if (!string.IsNullOrEmpty(schoolRequest.Image))
             {
-                var cloudinaryService = _serviceProvider.GetService<ICloudinaryService>();
-                if (cloudinaryService == null)
+                // Xóa file cũ nếu tồn tại
+                if (!string.IsNullOrEmpty(school.Image))
                 {
-                    throw new Exception("Cloudinary service not available");
+                    try
+                    {
+                        await _cloudinaryService.DeleteFileByUrlAsync(school.Image);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Lỗi khi xóa file cũ: {ex.Message}");
+                    }
                 }
-                school.Image = await cloudinaryService.UploadImageAsync(schoolRequest.Image);
-            }
-            await _schoolRepository.UpdateAsync(school);
 
+                // Upload file mới
+                school.Image = await _cloudinaryService.UploadImageAsync(schoolRequest.Image);
+            }
+
+            school.UserUpdate = userId;
+            _mapper.Map(schoolRequest, school);
+
+            await _schoolRepository.UpdateAsync(school);
             return _mapper.Map<SchoolResponse>(school);
         }
 

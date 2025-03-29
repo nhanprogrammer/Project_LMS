@@ -1,0 +1,16 @@
+meta {
+  name: GenerateStudentInformation
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{base_url}}api/Student/genneratestudentinformation?classId=1&studentId=3
+  body: none
+  auth: inherit
+}
+
+params:query {
+  classId: 1
+  studentId: 3
+}

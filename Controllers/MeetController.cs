@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs;
 using Project_LMS.DTOs.Request;
@@ -19,6 +20,7 @@ namespace Project_LMS.Controllers
         }
 
         // Tạo hoặc tham gia phòng cho giáo viên
+         // [Authorize(Policy = "DATA-MNG-VIEW")]
         [HttpPost("join-room-teacher")]
         public async Task<ActionResult<ApiResponse<ClassOnlineResponse>>> JoinOrCreateRoomTeacher([FromBody] CreateRoomRequest request)
         {
@@ -36,6 +38,7 @@ namespace Project_LMS.Controllers
                 }
                 return Ok(new ApiResponse<ClassOnlineResponse>(0, "Tạo hoặc tham gia phòng thành công!", room));
             }
+           
             catch (Exception ex)
             {
                 return StatusCode(500, new ApiResponse<ClassOnlineResponse>(1, $"Lỗi khi tạo/tham gia phòng cho giáo viên: {ex.Message}", null));

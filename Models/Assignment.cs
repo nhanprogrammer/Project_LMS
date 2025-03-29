@@ -15,7 +15,7 @@ namespace Project_LMS.Models
         public int? UserId { get; set; }
         public int? StatusAssignmentId { get; set; }
         public DateTime? SubmissionDate { get; set; }
-        public double? TotalScore { get; set; }
+        public Double? TotalScore { get; set; }
         public string? SubmissionFile { get; set; }
         public bool? IsSubmit { get; set; }
         public string? Comment { get; set; }

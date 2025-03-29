@@ -11,9 +11,9 @@ namespace Project_LMS.Authorization
             services.AddAuthorization(options =>
             {
                 var permissions = new List<string>
-                {   
+                {
                     //Khai báo dữ liệu
-                    "DATA-MNG-VIEW", 
+                    "DATA-MNG-VIEW",
                     "DATA-MNG-INSERT",
                     "DATA-MNG-UPDATE",
                     "DATA-MNG-DELETE",
@@ -41,7 +41,13 @@ namespace Project_LMS.Authorization
                     "SYS-SET-INSERT",
                     "SYS-SET-UPDATE",
                     "SYS-SET-DELETE",
-                    "SYS-SET-ENTERSCORE"
+                    "SYS-SET-ENTERSCORE",
+
+                    // Nhóm quyền mức dộ vai trò
+                    "SUPER-ADMIN",
+                    "TEACHER",
+                    "STUDENT"
+                   
                 };
 
                 foreach (var permission in permissions)

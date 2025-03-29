@@ -18,21 +18,34 @@ namespace Project_LMS.Services
         private readonly ISchoolTransferRepository _schoolTransferRepository;
         private readonly ISchoolBranchRepository _schoolBranchRepository;
         private readonly IMapper _mapper;
+        private readonly ICloudinaryService _cloudinaryService;
 
-        public SchoolTransferService(
-            ISchoolTransferRepository schoolTransferRepository,
-            ISchoolBranchRepository schoolBranchRepository,
-            IMapper mapper)
+        public SchoolTransferService(ISchoolTransferRepository schoolTransferRepository, ISchoolBranchRepository schoolBranchRepository, IMapper mapper, ICloudinaryService cloudinaryService)
         {
             _schoolTransferRepository = schoolTransferRepository;
             _schoolBranchRepository = schoolBranchRepository;
             _mapper = mapper;
+            _cloudinaryService = cloudinaryService;
         }
 
-        public async Task<IEnumerable<SchoolTransferResponse>> GetAllAsync()
+        public async Task<ApiResponse<List<object>>> GetAllAsync(int academicId, PaginationRequest request, bool isOrder, string column, string? searchItem)
         {
-            var schoolTransfers = await _schoolTransferRepository.GetAllAsync();
-            return _mapper.Map<IEnumerable<SchoolTransferResponse>>(schoolTransfers);
+            var schoolTransfers = await _schoolTransferRepository.GetAllAsync(academicId, request,isOrder,column,searchItem);
+            var schoolTransfersResponse = schoolTransfers.Select(s => (object)new
+            {
+                s.User?.UserCode,
+                s.User?.FullName,
+                s.User?.BirthDate,
+                gender = s.User?.Gender?.Length>0 ? s.User.Gender[0]: false,
+                s.TransferFrom,
+                s.Semester,
+                departmentName =s.User?.ClassStudents?.Where(cs=>cs.IsActive ==true &&s.IsDelete == false).FirstOrDefault()?.Class?.Department?.Name,
+                s.TransferDate
+            }).ToList();
+            return new ApiResponse<List<object>>(0,"Lấy danh sách chuyển trường thành công.")
+            {
+                Data = schoolTransfersResponse
+            };
         }
 
         public async Task<SchoolTransferResponse> GetByIdAsync(int id)
@@ -53,9 +66,6 @@ namespace Project_LMS.Services
             if (!IntValidator.IsValid(transferRequest.UserId.ToString() ?? ""))
                 errors.Add(new ValidationError { Field = "StudentId", Error = "StudentId phải là số nguyên" });
 
-            if (!IntValidator.IsValid(transferRequest.SchoolBranchesId.ToString() ?? ""))
-                errors.Add(new ValidationError { Field = "SchoolBranchesId", Error = "SchoolBranchesId phải là số nguyên" });
-
             if (!DateTimeValidator.IsValidDateTime(transferRequest.TransferDate.ToString() ?? ""))
                 errors.Add(new ValidationError { Field = "TransferDate", Error = "Ngày chuyển trường không hợp lệ" });
 
@@ -70,11 +80,6 @@ namespace Project_LMS.Services
             //     throw new NotFoundException("Không tìm thấy học sinh với ID đã cho");
             // }
 
-            var schoolBranch = await _schoolBranchRepository.GetByIdAsync(transferRequest.SchoolBranchesId ?? 0);
-            if (schoolBranch == null)
-            {
-                throw new NotFoundException("Không tìm thấy chi nhánh trường với ID đã cho");
-            }
 
             // var province = await _provinceRepository.GetByIdAsync(transferRequest.ProvinceId ?? 0);
             // if (province == null)
@@ -93,8 +98,18 @@ namespace Project_LMS.Services
             // {
             //     throw new NotFoundException("Không tìm thấy xã với ID đã cho");
             // }
-
             var transfer = _mapper.Map<SchoolTransfer>(transferRequest);
+            try
+            {
+                if (transferRequest.FileName != null)
+                {
+                    transfer.FileName = await _cloudinaryService.UploadDocAsync(transferRequest.FileName);
+                }
+            }
+            catch (Exception ex) {
+                     throw new NotFoundException("File name phải là base64");
+            }
+
             transfer.UserCreate = 1;
             transfer.IsDelete = false;
 
@@ -109,9 +124,6 @@ namespace Project_LMS.Services
 
             if (!IntValidator.IsValid(transferRequest.UserId.ToString() ?? ""))
                 errors.Add(new ValidationError { Field = "StudentId", Error = "StudentId phải là số nguyên" });
-
-            if (!IntValidator.IsValid(transferRequest.SchoolBranchesId.ToString() ?? ""))
-                errors.Add(new ValidationError { Field = "SchoolBranchesId", Error = "SchoolBranchesId phải là số nguyên" });
 
             if (!DateTimeValidator.IsValidDateTime(transferRequest.TransferDate.ToString() ?? ""))
                 errors.Add(new ValidationError { Field = "TransferDate", Error = "Ngày chuyển trường không hợp lệ" });
@@ -132,12 +144,6 @@ namespace Project_LMS.Services
             // {
             //     throw new NotFoundException("Không tìm thấy học sinh với ID đã cho");
             // }
-
-            var schoolBranch = await _schoolBranchRepository.GetByIdAsync(transferRequest.SchoolBranchesId ?? 0);
-            if (schoolBranch == null)
-            {
-                throw new NotFoundException("Không tìm thấy chi nhánh trường với ID đã cho");
-            }
 
             // var province = await _provinceRepository.GetByIdAsync(transferRequest.ProvinceId ?? 0);
             // if (province == null)

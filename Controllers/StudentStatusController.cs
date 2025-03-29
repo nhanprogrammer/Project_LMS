@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers
 {
+    [Authorize(Policy = "STUDENT-REC-VIEW")]
     [Route("api/[controller]")]
     [ApiController]
     public class StudentStatusController : ControllerBase
