@@ -46,6 +46,7 @@ namespace Project_LMS.Models
         public DateTime? ResetCodeExpiry { get; set; }
         public bool? PermissionChanged  { get; set; }
         public int? RoleId { get; set; }
+        public int? ReRoleId { get; set; }
         public int? StudentStatusId { get; set; }
         public int? TeacherStatusId { get; set; }
         public string? UserCode { get; set; }

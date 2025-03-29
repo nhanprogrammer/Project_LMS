@@ -142,13 +142,20 @@ namespace Project_LMS.Services
         {
             try
             {
+                // Kiểm tra xem đã tồn tại department với tên tương tự chưa
+                var existingDepartment = await _departmentRepository.GetByNameAsync(createDepartmentRequest.name);
+                if (existingDepartment != null)
+                {
+                    return new ApiResponse<DepartmentResponse>(1, "Department đã tồn tại", null);
+                }
+                
                 // Chuyển đổi dữ liệu từ DTO sang entity Department
                 var department = _mapper.Map<Department>(createDepartmentRequest);
 
                 // Cập nhật thời gian tạo và thông tin người tạo từ request
                 department.CreateAt = TimeHelper.NowUsingTimeZone;
                 department.UserCreate = createDepartmentRequest.userId;
-
+                
                 // Thêm phòng ban vào cơ sở dữ liệu thông qua repository
                 await _departmentRepository.AddAsync(department);
 
@@ -445,6 +452,21 @@ namespace Project_LMS.Services
                 var innerExceptionMessage = ex.InnerException?.Message ?? ex.Message;
                 return new ApiResponse<string>(1, $"Lỗi khi xóa lớp: {innerExceptionMessage}");
             }
+        }
+
+        public async Task<List<DepartmentDropdownResponse>> GetDepartmentDropdownAsync()
+        {
+            var departments = await _context.Departments
+                .Where(d => d.IsDelete == false)
+                .OrderBy(d => d.DepartmentCode) 
+                .Select(d => new DepartmentDropdownResponse
+                {
+                    Id = d.Id,
+                    Name = d.Name
+                })
+                .ToListAsync();
+
+            return departments;
         }
     }
 }

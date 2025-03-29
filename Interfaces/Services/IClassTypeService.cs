@@ -10,5 +10,6 @@ namespace Project_LMS.Interfaces
         Task<ApiResponse<ClassTypeResponse>> CreateClassTypeAsync(ClassTypeRequest request);
         Task<ApiResponse<ClassTypeResponse>> UpdateClassTypeAsync(ClassTypeRequest request);
         Task<ApiResponse<bool>> DeleteClassTypeAsync(List<int> id);
+        Task<List<ClassTypeDropdownResponse>> GetClassTypeDropdownAsync();
     }
 }

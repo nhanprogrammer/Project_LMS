@@ -10,5 +10,6 @@ namespace Project_LMS.Interfaces.Services
         Task<ApiResponse<SubjectTypeResponse>> CreateSubjectTypeAsync(SubjectTypeRequest request);
         Task<ApiResponse<SubjectTypeResponse>> UpdateSubjectTypeAsync(SubjectTypeRequest request);
         Task<ApiResponse<bool>> DeleteSubjectTypeAsync(List<int> ids);
+        Task<List<SubjectTypeDropdownResponse>> GetSubjectTypeDropdownAsync();
     }
 }

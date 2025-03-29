@@ -408,6 +408,7 @@ namespace Project_LMS.Services
         {
             var academicYears = await _academicYearRepository.GetQueryable()
                 .Where(ay => ay.IsDelete == null || ay.IsDelete == false)
+                .OrderBy(ay => ay.StartDate) 
                 .ToListAsync();
 
             var result = academicYears.Select(ay => new AcademicYearNameResponse
