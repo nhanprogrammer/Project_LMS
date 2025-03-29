@@ -7,7 +7,6 @@ public class LessonResponse
     public int? UserId { get; set; }
     public string? ClassLessonCode { get; set; }
     public string? Description { get; set; }
-    public string? PaswordLeassons { get; set; }
     public string? Topic { get; set; }
     public string? Duration { get; set; }
     public string? LessonLink { get; set; }
