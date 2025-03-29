@@ -108,6 +108,15 @@ namespace Project_LMS.Services
                 if (user == null)
                     return new ApiResponse<SubjectTypeResponse>(1, "Không có quyền truy cập", null);
 
+                // Kiểm tra trùng lặp tên SubjectType
+                var isDuplicate = await _context.SubjectTypes
+                    .AnyAsync(st => st.Name == request.Name && !(st.IsDelete ?? false));
+
+                if (isDuplicate)
+                {
+                    return new ApiResponse<SubjectTypeResponse>(1, $"Tên loại môn học '{request.Name}' đã tồn tại.", null);
+                }
+
                 var subjectType = _mapper.Map<SubjectType>(request);
                 subjectType.CreateAt = DateTime.UtcNow.ToLocalTime();
                 subjectType.IsDelete = false;
@@ -138,6 +147,15 @@ namespace Project_LMS.Services
 
                 if (existingSubjectType == null)
                     return new ApiResponse<SubjectTypeResponse>(1, "Không tìm thấy loại môn học", null);
+
+                // Kiểm tra trùng lặp tên SubjectType, ngoại trừ bản ghi hiện tại
+                var isDuplicate = await _context.SubjectTypes
+                    .AnyAsync(st => st.Name == request.Name && st.Id != request.Id && !(st.IsDelete ?? false));
+
+                if (isDuplicate)
+                {
+                    return new ApiResponse<SubjectTypeResponse>(1, $"Tên loại môn học '{request.Name}' đã tồn tại.", null);
+                }
 
                 _mapper.Map(request, existingSubjectType);
                 existingSubjectType.UpdateAt = DateTime.UtcNow.ToLocalTime();
@@ -185,6 +203,17 @@ namespace Project_LMS.Services
             {
                 return new ApiResponse<bool>(1, $"Lỗi khi xóa loại môn học: {ex.Message}", false);
             }
+        }
+        public async Task<List<SubjectTypeDropdownResponse>> GetSubjectTypeDropdownAsync()
+        {
+            return await _context.SubjectTypes
+                .Where(st => !(st.IsDelete ?? false) && (st.Status ?? false))
+                .Select(st => new SubjectTypeDropdownResponse
+                {
+                    Id = st.Id,
+                    Name = st.Name ?? string.Empty
+                })
+                .ToListAsync();
         }
     }
 }

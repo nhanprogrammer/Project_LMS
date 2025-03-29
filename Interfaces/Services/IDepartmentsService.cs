@@ -21,6 +21,7 @@ namespace Project_LMS.Interfaces
             string? sortDirection);
         Task<ApiResponse<IEnumerable<object>>> GetAllClassesAsync(int DeparmentId);
         Task<ApiResponse<string>> DeleteClassById(List<int> classId);
+        Task<List<DepartmentDropdownResponse>> GetDepartmentDropdownAsync();
 
     }
 }
