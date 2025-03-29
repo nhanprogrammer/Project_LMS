@@ -9,8 +9,8 @@ public class CreateLessonRequest
     [Required(ErrorMessage = "TeachingAssignmentId không được bỏ trống")]
     [Range(1, int.MaxValue, ErrorMessage = "TeachingAssignmentId phải lớn hơn 0")]
     public int? TeachingAssignmentId { get; set; }
-    [Required(ErrorMessage = "UserId không được bỏ trống")]
-    [Range(1, int.MaxValue, ErrorMessage = "UserId phải lớn hơn 0")]
+    [Required(ErrorMessage = "Mã người trợ giảng không được bỏ trống")]
+    [Range(1, int.MaxValue, ErrorMessage = "Mã người trợ giảng phải lớn hơn 0")]
     public int? UserId { get; set; }
     [Required(ErrorMessage = "Mã buổi học không được bỏ trống")]
     public string? ClassLessonCode { get; set; }
