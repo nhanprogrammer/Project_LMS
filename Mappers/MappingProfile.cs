@@ -52,10 +52,7 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate.ToDateTime(TimeOnly.MinValue)))
             .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate.ToDateTime(TimeOnly.MinValue)));
 
-        CreateMap<Semester, SemesterResponse>()
-            .ForMember(dest => dest.DateStart,
-                opt => opt.MapFrom(src => DateOnly.FromDateTime((DateTime)src.StartDate)))
-            .ForMember(dest => dest.DateEnd, opt => opt.MapFrom(src => DateOnly.FromDateTime((DateTime)src.EndDate)));
+        CreateMap<Semester, SemesterResponse>();
 
 
         CreateMap<CreateSemesterRequest, Semester>()

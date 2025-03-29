@@ -118,6 +118,10 @@ namespace Project_LMS.Services
                 if (request == null)
                     return new ApiResponse<LessonResponse>(1, "Dữ liệu không hợp lệ", null);
 
+                // Kiểm tra người trợ giảng không phải là người tạo buổi học
+                if (request.UserId == user.Id)
+                    return new ApiResponse<LessonResponse>(1, "Người trợ giảng không thể là người tạo buổi học", null);
+
                 // Validate ClassLessonCode uniqueness
                 if (!string.IsNullOrEmpty(request.ClassLessonCode))
                 {
@@ -138,7 +142,7 @@ namespace Project_LMS.Services
                 if (teachingAssignment == null)
                     return new ApiResponse<LessonResponse>(1, "Không tìm thấy phân công giảng dạy", null);
 
-                // Validate lesson time within TeachingAssignment time range
+                // Validate lesson time within TeachingAssignment time range 
                 if (request.StartDate < teachingAssignment.StartDate || request.EndDate > teachingAssignment.EndDate)
                 {
                     return new ApiResponse<LessonResponse>(1,
@@ -146,12 +150,34 @@ namespace Project_LMS.Services
                         $"({teachingAssignment.StartDate:dd/MM/yyyy HH:mm} - {teachingAssignment.EndDate:dd/MM/yyyy HH:mm})", null);
                 }
 
+                // Kiểm tra trùng lịch của người trợ giảng
+                var assistantScheduleConflict = await _context.Lessons
+                    .Where(l =>
+                        (!l.IsDelete.HasValue || !l.IsDelete.Value) &&
+                        (
+                            // Kiểm tra cả vai trò trợ giảng và giảng viên
+                            l.UserId == request.UserId || // Là trợ giảng
+                            l.TeachingAssignment.UserId == request.UserId // Là giảng viên
+                        ) &&
+                        (
+                            (request.StartDate >= l.StartDate && request.StartDate <= l.EndDate) ||
+                            (request.EndDate >= l.StartDate && request.EndDate <= l.EndDate) ||
+                            (request.StartDate <= l.StartDate && request.EndDate >= l.EndDate)
+                        )
+                    )
+                    .AnyAsync();
+
+                if (assistantScheduleConflict)
+                {
+                    return new ApiResponse<LessonResponse>(1,
+                        "Người trợ giảng đã có lịch dạy hoặc trợ giảng trong khung giờ này", null);
+                }
+
                 // Validate lesson time overlap with other lessons
                 var hasOverlap = teachingAssignment.Lessons.Any(l =>
-                    // Check if new lesson's time range overlaps with any existing lesson
-                    (request.StartDate >= l.StartDate && request.StartDate <= l.EndDate) || // New start within existing
-                    (request.EndDate >= l.StartDate && request.EndDate <= l.EndDate) || // New end within existing
-                    (request.StartDate <= l.StartDate && request.EndDate >= l.EndDate) // New lesson completely contains existing
+                    (request.StartDate >= l.StartDate && request.StartDate <= l.EndDate) ||
+                    (request.EndDate >= l.StartDate && request.EndDate <= l.EndDate) ||
+                    (request.StartDate <= l.StartDate && request.EndDate >= l.EndDate)
                 );
 
                 if (hasOverlap)
@@ -196,6 +222,10 @@ namespace Project_LMS.Services
                 if (user == null)
                     return new ApiResponse<LessonResponse>(1, "Không có quyền truy cập", null);
 
+                // Kiểm tra người trợ giảng không phải là người cập nhật buổi học
+                if (request.UserId == user.Id)
+                    return new ApiResponse<LessonResponse>(1, "Người trợ giảng không thể là người cập nhật buổi học", null);
+
                 var existingLesson = await _context.Lessons
                     .Include(l => l.TeachingAssignment)
                     .FirstOrDefaultAsync(l => l.Id == request.Id && (!l.IsDelete.HasValue || !l.IsDelete.Value));
@@ -233,13 +263,37 @@ namespace Project_LMS.Services
                         $"({teachingAssignment.StartDate:dd/MM/yyyy HH:mm} - {teachingAssignment.EndDate:dd/MM/yyyy HH:mm})", null);
                 }
 
+                // Kiểm tra trùng lịch của người trợ giảng (loại trừ buổi học hiện tại)
+                var assistantScheduleConflict = await _context.Lessons
+                    .Where(l =>
+                        l.Id != request.Id && // Loại trừ buổi học hiện tại
+                        (!l.IsDelete.HasValue || !l.IsDelete.Value) &&
+                        (
+                            // Kiểm tra cả vai trò trợ giảng và giảng viên
+                            l.UserId == request.UserId || // Là trợ giảng
+                            l.TeachingAssignment.UserId == request.UserId // Là giảng viên
+                        ) &&
+                        (
+                            (request.StartDate >= l.StartDate && request.StartDate <= l.EndDate) ||
+                            (request.EndDate >= l.StartDate && request.EndDate <= l.EndDate) ||
+                            (request.StartDate <= l.StartDate && request.EndDate >= l.EndDate)
+                        )
+                    )
+                    .AnyAsync();
+
+                if (assistantScheduleConflict)
+                {
+                    return new ApiResponse<LessonResponse>(1,
+                        "Người trợ giảng đã có lịch dạy hoặc trợ giảng trong khung giờ này", null);
+                }
+
                 // Validate lesson time overlap with other lessons (excluding the current lesson)
                 var hasOverlap = teachingAssignment.Lessons
-                    .Where(l => l.Id != request.Id) // Exclude current lesson
+                    .Where(l => l.Id != request.Id)
                     .Any(l =>
-                        (request.StartDate >= l.StartDate && request.StartDate <= l.EndDate) || // New start within existing
-                        (request.EndDate >= l.StartDate && request.EndDate <= l.EndDate) || // New end within existing
-                        (request.StartDate <= l.StartDate && request.EndDate >= l.EndDate) // New lesson completely contains existing
+                        (request.StartDate >= l.StartDate && request.StartDate <= l.EndDate) ||
+                        (request.EndDate >= l.StartDate && request.EndDate <= l.EndDate) ||
+                        (request.StartDate <= l.StartDate && request.EndDate >= l.EndDate)
                     );
 
                 if (hasOverlap)

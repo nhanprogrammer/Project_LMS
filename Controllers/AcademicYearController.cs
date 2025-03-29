@@ -103,7 +103,7 @@ namespace Project_LMS.Controllers
             return Ok(new ApiResponse<AcademicYearResponse>(response.Status, response.Message, response.Data));
         }
 
-        [HttpGet("names")]
+        [HttpGet("get-all-academic-years")]
         public async Task<ActionResult<ApiResponse<List<AcademicYearNameResponse>>>> GetAcademicYearNames()
         {
             var result = await _academicYearsService.GetAcademicYearNamesAsync();
