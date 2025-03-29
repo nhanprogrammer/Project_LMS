@@ -211,5 +211,16 @@ namespace Project_LMS.Services
                 return new ApiResponse<bool>(1, $"Lỗi khi xóa loại môn học: {ex.Message}", false);
             }
         }
+        public async Task<List<SubjectTypeDropdownResponse>> GetSubjectTypeDropdownAsync()
+        {
+            return await _context.SubjectTypes
+                .Where(st => !(st.IsDelete ?? false) && (st.Status ?? false))
+                .Select(st => new SubjectTypeDropdownResponse
+                {
+                    Id = st.Id,
+                    Name = st.Name ?? string.Empty
+                })
+                .ToListAsync();
+        }
     }
 }

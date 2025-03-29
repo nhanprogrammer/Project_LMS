@@ -10,6 +10,7 @@ public interface IAcademicHoldRepository : IRepository<AcademicHold>
     //Task UpdateAsync(AcademicHold question);
     //Task DeleteAsync(int id);
     IQueryable<AcademicHold> GetQueryable();
+    
 
 
 }

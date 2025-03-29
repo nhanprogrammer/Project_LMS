@@ -6,9 +6,5 @@ namespace Project_LMS.Interfaces.Services;
 
 public interface ISemesterService
 {
-    Task<IEnumerable<SemesterResponse>> GetAllAsync();
-    Task<SemesterResponse> GetByIdAsync(int id);
-    Task<ApiResponse<SemesterResponse>> CreateSemesters(List<CreateSemesterRequest> request, int academicYearId, int userId);
-    Task<ApiResponse<SemesterResponse>> UpdateSemesters(List<UpdateSemesterRequest> semesters, int academicYearId, int userId);
-    Task<SemesterResponse> DeleteAsync(int id);
+    Task<List<SemesterDropdownResponse>> GetSemestersByAcademicYearIdAsync(int academicYearId);
 }

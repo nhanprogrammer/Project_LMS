@@ -155,7 +155,7 @@ builder.Services.AddScoped<ITeacherRepository, TeacherRepository>();
 builder.Services.AddScoped<ITeacherClassSubjectRepository, TeacherClassSubjectRepository>();
 builder.Services.AddScoped<ITeacherStatusHistoryRepository, TeacherStatusHistoryRepository>();
 builder.Services.AddScoped<ITeachingAssignmentRepository, TeachingAssignmentRepository>();
-
+builder.Services.AddScoped<IAddressRepository, AddressRepository>();
 builder.Services.AddScoped<INotificationsRepository, NotificationsRepository>();
 builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
 builder.Services.AddScoped<ITeachingAssignmentService, TeachingAssignmentService>();
@@ -177,6 +177,7 @@ builder.Services.AddScoped<ITopicRepository, TopicRepository>();
 
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAddressService, AddressService>();
 // builder.Services.AddScoped<IDepartmentsService, Deparmen>();
 builder.Services.AddScoped<IClassRepository, ClassRepository>();
 builder.Services.AddScoped<IClassStudentRepository, ClassStudentRepository>();

@@ -156,7 +156,7 @@ namespace Project_LMS.Controllers
                 return StatusCode(500, $"Lỗi server: {ex.Message}");
             }
         }
-        [HttpGet("for-assignment")]
+        [HttpGet("get-all-teachers")]
         public async Task<ActionResult<ApiResponse<List<UserResponseTeachingAssignment>>>> GetTeachers()
         {
             try

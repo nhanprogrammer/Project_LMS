@@ -168,5 +168,24 @@ namespace Project_LMS.Controllers
                 return StatusCode(500, new ApiResponse<string>(1, $"Error deleting class types: {ex.Message}", null));
             }
         }
+        [HttpGet("get-all-classtypes")]
+        public async Task<ActionResult<ApiResponse<List<ClassTypeDropdownResponse>>>> GetClassTypeDropdown()
+        {
+            try
+            {
+                var classTypes = await _classTypeService.GetClassTypeDropdownAsync();
+
+                if (classTypes == null || !classTypes.Any())
+                {
+                    return Ok(new ApiResponse<List<ClassTypeDropdownResponse>>(1, "Không có loại lớp học nào!", null));
+                }
+
+                return Ok(new ApiResponse<List<ClassTypeDropdownResponse>>(0, "Lấy danh sách loại lớp học thành công!", classTypes));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, $"Lỗi hệ thống: {ex.Message}", null));
+            }
+        }
     }
 }

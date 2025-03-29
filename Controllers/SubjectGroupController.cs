@@ -104,7 +104,7 @@ public class SubjectGroupController : ControllerBase
         return Ok(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
     }
 
-    [HttpGet("names")]
+    [HttpGet("get-all-subject-groups")]
     public async Task<IActionResult> GetSubjectGroupDropdown()
     {
         var response = await _subjectGroupService.GetSubjectGroupDropdownAsync();
