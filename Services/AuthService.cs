@@ -36,12 +36,17 @@ namespace Project_LMS.Services
         public async Task<AuthUserLoginResponse> LoginAsync(string userName, string password)
         {
             var user = await _context.Users
-                .Include(u => u.Role) // Đảm bảo có Role khi trả về
-                .FirstOrDefaultAsync(u => u.Username == userName
-                    && u.IsDelete == false
-                    && ((u.StudentStatusId == 1 && u.TeacherStatusId == null)
-                        || (u.StudentStatusId == null && u.TeacherStatusId == 1)
-                        || u.RoleId == 1));
+                      .Include(u => u.Role)
+                      .FirstOrDefaultAsync(u =>
+                          u.Username == userName &&
+                          u.IsDelete == false &&
+                          (
+                              (u.StudentStatusId == 1 && u.TeacherStatusId == null) ||
+                              (u.StudentStatusId == null && u.TeacherStatusId == 1) ||
+                              u.RoleId == 1 ||
+                              u.RoleId == 5
+                          )
+                      );
 
             if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.Password))
                 throw new Exception("Username hoặc mật khẩu không đúng!");
@@ -51,14 +56,6 @@ namespace Project_LMS.Services
 
             // Lấy role từ DB
             string role = user.Role.Name.ToUpper();
-
-            // Nếu là TEACHER hoặc STUDENT và thỏa mãn điều kiện => set thành ADMIN
-            if ((role == "TEACHER" || role == "STUDENT")
-                && user.GroupModulePermissonId != null
-                && user.Disable == false)
-            {
-                role = "ADMIN";
-            }
 
             return new AuthUserLoginResponse(user.Username, user.FullName, token, role, permissions);
         }
