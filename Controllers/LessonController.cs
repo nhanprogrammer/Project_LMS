@@ -6,6 +6,7 @@ using Project_LMS.Interfaces;
 
 namespace Project_LMS.Controllers;
 
+[Authorize(Policy = "TEACHER")]
 [ApiController]
 [Route("api/[controller]")]
 public class LessonController : ControllerBase
@@ -19,7 +20,6 @@ public class LessonController : ControllerBase
         _authService = authService;
     }
 
-    [Authorize(Policy = "LESSON-VIEW")]
     [HttpGet]
     public async Task<ActionResult<ApiResponse<PaginatedResponse<LessonResponse>>>> GetAll(
         [FromQuery] string? keyword = null,
@@ -41,7 +41,6 @@ public class LessonController : ControllerBase
         }
     }
 
-    [Authorize(Policy = "LESSON-VIEW")] 
     [HttpGet("{id}")]
     public async Task<ActionResult<ApiResponse<LessonResponse>>> GetById(int id)
     {
@@ -64,7 +63,6 @@ public class LessonController : ControllerBase
         }
     }
 
-    [Authorize(Policy = "LESSON-INSERT")]
     [HttpPost]
     public async Task<ActionResult<ApiResponse<LessonResponse>>> Create([FromBody] CreateLessonRequest request)
     {
@@ -93,7 +91,6 @@ public class LessonController : ControllerBase
         }
     }
 
-    [Authorize(Policy = "LESSON-UPDATE")]
     [HttpPut]
     public async Task<ActionResult<ApiResponse<LessonResponse>>> Update([FromBody] CreateLessonRequest request)
     {
@@ -126,7 +123,6 @@ public class LessonController : ControllerBase
         }
     }
 
-    [Authorize(Policy = "LESSON-DELETE")]
     [HttpDelete]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteMultiple([FromBody] DeleteMultipleRequest request)
     {
