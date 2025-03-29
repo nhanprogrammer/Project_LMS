@@ -12,10 +12,12 @@ namespace Project_LMS.Controllers
     public class DepartmentController : ControllerBase
     {
         private readonly IDepartmentsService _departmentsService;
+        private readonly IAuthService _authService;
 
-        public DepartmentController(IDepartmentsService departmentsService)
+        public DepartmentController(IDepartmentsService departmentsService, IAuthService authService)
         {
             _departmentsService = departmentsService;
+            _authService = authService;
         }
 
         [HttpGet]
@@ -50,7 +52,7 @@ namespace Project_LMS.Controllers
             [FromQuery] int? pageNumber,
             [FromQuery] int? pageSize,
             [FromQuery] string? sortDirection
-           )
+        )
         {
             var search = await _departmentsService.SearchDepartmentsAsync(keyword, pageNumber, pageSize, sortDirection);
 
@@ -68,6 +70,8 @@ namespace Project_LMS.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateDepartment([FromBody] CreateDepartmentRequest request)
         {
+            var user = await _authService.GetUserAsync();
+            request.userId = user.Id;
             var response = await _departmentsService.CreateDepartmentAsync(request);
 
             if (response.Status == 1)
@@ -83,6 +87,8 @@ namespace Project_LMS.Controllers
         [HttpPut]
         public async Task<IActionResult> UpdateDepartment([FromBody] UpdateDepartmentRequest request)
         {
+            var user = await _authService.GetUserAsync();
+            request.userUpdate = user.Id;
             var response = await _departmentsService.UpdateDepartmentAsync(request);
 
             if (response.Status == 1)
@@ -116,6 +122,5 @@ namespace Project_LMS.Controllers
             var response = await _departmentsService.DeleteClassById(request.ids);
             return response.Status == 0 ? Ok(response) : BadRequest(response);
         }
-
     }
 }

@@ -142,13 +142,20 @@ namespace Project_LMS.Services
         {
             try
             {
+                // Kiểm tra xem đã tồn tại department với tên tương tự chưa
+                var existingDepartment = await _departmentRepository.GetByNameAsync(createDepartmentRequest.name);
+                if (existingDepartment != null)
+                {
+                    return new ApiResponse<DepartmentResponse>(1, "Department đã tồn tại", null);
+                }
+                
                 // Chuyển đổi dữ liệu từ DTO sang entity Department
                 var department = _mapper.Map<Department>(createDepartmentRequest);
 
                 // Cập nhật thời gian tạo và thông tin người tạo từ request
                 department.CreateAt = TimeHelper.NowUsingTimeZone;
                 department.UserCreate = createDepartmentRequest.userId;
-
+                
                 // Thêm phòng ban vào cơ sở dữ liệu thông qua repository
                 await _departmentRepository.AddAsync(department);
 

@@ -1,5 +1,7 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
+using OfficeOpenXml;
 using Project_LMS.Data;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
@@ -157,7 +159,6 @@ public class GradeEntryRepository : IGradeEntryRepository
             var assignments = await _context.Assignments
                 .Where(a => a.TestExamId == testId && a.IsDelete == false)
                 .ToListAsync();
-
             // Ghi log để kiểm tra bài nộp
             if (!assignments.Any())
             {
@@ -172,6 +173,10 @@ public class GradeEntryRepository : IGradeEntryRepository
                 }
             }
 
+            var submittedAssignments = await _context.Assignments
+                .Where(a => a.TestExamId == testId && a.IsDelete == false && a.IsSubmit == true)
+                .ToListAsync();
+
             // Tạo danh sách học sinh và điểm số
             var studentGrades = classStudents
                 .Where(cs => cs.UserId.HasValue)
@@ -179,6 +184,7 @@ public class GradeEntryRepository : IGradeEntryRepository
                     cs => cs.UserId.Value,
                     s => s.Id,
                     (cs, s) => new { ClassStudent = cs, Student = s })
+                .Where(joined => submittedAssignments.Any(a => a.UserId == joined.Student.Id))
                 .Select(joined => new StudentGradeResponse
                 {
                     StudentId = joined.Student.Id,
@@ -191,7 +197,13 @@ public class GradeEntryRepository : IGradeEntryRepository
                     Comment = assignments.FirstOrDefault(a => a.UserId == joined.Student.Id)?.Comment,
                     ClassStatus = joined.ClassStudent.IsActive == true && joined.ClassStudent.IsDelete == false
                         ? "Đang học"
-                        : "Đã rời lớp"
+                        : "Đã rời lớp",
+                    SubmissionDate = assignments
+                        .FirstOrDefault(a => a.UserId == joined.Student.Id && a.IsSubmit == true)?.SubmissionDate,
+                    SubmissionDuration = CalculateSubmissionDuration(
+                        test.StartDate,
+                        assignments.FirstOrDefault(a => a.UserId == joined.Student.Id)?.SubmissionDate
+                    )
                 }).ToList();
 
             // Chuyển đổi Duration từ định dạng "HH:mm:ss" sang TimeOnly
@@ -411,6 +423,7 @@ public class GradeEntryRepository : IGradeEntryRepository
                     assignment.Comment = grade.Comment;
                     assignment.UpdateAt = DateTime.UtcNow;
                     assignment.UserUpdate = teacherId;
+                    assignment.StatusAssignmentId = 3;
                 }
             }
 
@@ -456,17 +469,18 @@ public class GradeEntryRepository : IGradeEntryRepository
     {
         if (string.IsNullOrEmpty(fileUrl))
         {
-            return null;
+            return "Đường dẫn file không hợp lệ, vui lòng kiểm tra lại.";
         }
 
+        var fileExtension = Path.GetExtension(fileUrl).ToLower();
         try
         {
             // Kiểm tra định dạng file dựa trên phần mở rộng
-            var fileExtension = Path.GetExtension(fileUrl).ToLower();
-            if (fileExtension != ".doc" && fileExtension != ".docx")
+            if (fileExtension != ".doc" && fileExtension != ".docx" && fileExtension != ".xlsx" &&
+                fileExtension != ".xls")
             {
-                _logger.LogWarning($"Chỉ hỗ trợ định dạng .doc và .docx: {fileUrl}");
-                return "Chỉ hỗ trợ định dạng .doc và .docx.";
+                _logger.LogWarning($"Chỉ hỗ trợ định dạng .doc, .docx, .xlsx, và .xls: {fileUrl}");
+                return "Chỉ hỗ trợ định dạng file Word (.doc, .docx) hoặc Excel (.xlsx, .xls).";
             }
 
             using (var httpClient = new HttpClient())
@@ -474,19 +488,88 @@ public class GradeEntryRepository : IGradeEntryRepository
                 // Lấy byte array từ URL của file
                 byte[] fileBytes = await httpClient.GetByteArrayAsync(fileUrl);
 
-                // Sử dụng Spire.Doc để đọc file
-                using (MemoryStream stream = new MemoryStream(fileBytes))
+                // Xử lý file Word (.doc, .docx)
+                if (fileExtension == ".doc" || fileExtension == ".docx")
                 {
-                    Document document = new Document(stream);
-                    string content = document.GetText();
-                    return ExtractProposalTitle(content);
+                    using (MemoryStream stream = new MemoryStream(fileBytes))
+                    {
+                        Document document = new Document(stream);
+                        string content = document.GetText();
+                        if (string.IsNullOrEmpty(content))
+                        {
+                            return "Không có nội dung trong file Word để trích xuất.";
+                        }
+
+                        return ExtractProposalTitle(content);
+                    }
                 }
+                // Xử lý file Excel (.xlsx, .xls)
+                else if (fileExtension == ".xlsx" || fileExtension == ".xls")
+                {
+                    using (MemoryStream stream = new MemoryStream(fileBytes))
+                    {
+                        using (var package = new ExcelPackage(stream))
+                        {
+                            // Lấy sheet đầu tiên
+                            var worksheet = package.Workbook.Worksheets.FirstOrDefault();
+                            if (worksheet == null)
+                            {
+                                _logger.LogWarning($"File Excel không có sheet nào: {fileUrl}");
+                                return "File Excel không có dữ liệu, vui lòng kiểm tra lại.";
+                            }
+
+                            // Đọc nội dung từ các ô trong sheet
+                            StringBuilder contentBuilder = new StringBuilder();
+                            int rowCount = worksheet.Dimension?.Rows ?? 0;
+                            int colCount = worksheet.Dimension?.Columns ?? 0;
+
+                            if (rowCount == 0 || colCount == 0)
+                            {
+                                _logger.LogWarning($"File Excel không có dữ liệu: {fileUrl}");
+                                return "File Excel không có dữ liệu, vui lòng kiểm tra lại.";
+                            }
+
+                            // Duyệt qua từng ô trong sheet và ghép nội dung
+                            for (int row = 1; row <= rowCount; row++)
+                            {
+                                for (int col = 1; col <= colCount; col++)
+                                {
+                                    var cellValue = worksheet.Cells[row, col].Text?.Trim();
+                                    if (!string.IsNullOrEmpty(cellValue))
+                                    {
+                                        contentBuilder.AppendLine(cellValue);
+                                    }
+                                }
+                            }
+
+                            string content = contentBuilder.ToString();
+                            if (string.IsNullOrEmpty(content))
+                            {
+                                return "Không có nội dung trong file Excel để trích xuất.";
+                            }
+
+                            return ExtractProposalTitle(content);
+                        }
+                    }
+                }
+
+                // Trường hợp không xác định (dự phòng)
+                return "Không thể xác định định dạng file, vui lòng kiểm tra lại.";
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Lỗi khi đọc nội dung file từ URL {fileUrl}: {ex.Message}");
-            return "Không thể đọc nội dung file.";
+            if (fileExtension == ".doc" || fileExtension == ".docx")
+            {
+                return "Không thể đọc nội dung file Word, vui lòng thử lại sau.";
+            }
+            else if (fileExtension == ".xlsx" || fileExtension == ".xls")
+            {
+                return "Không thể đọc nội dung file Excel, vui lòng thử lại sau.";
+            }
+
+            return "Không thể đọc nội dung file, vui lòng thử lại sau.";
         }
     }
 
@@ -516,7 +599,7 @@ public class GradeEntryRepository : IGradeEntryRepository
                 var proposalTitle = match.Groups[1].Value.Trim();
                 if (string.IsNullOrEmpty(proposalTitle))
                 {
-                    return "Không tìm thấy tên đề bài.";
+                    return "Không tìm thấy tên đề bài trong file.";
                 }
 
                 return proposalTitle;
@@ -524,6 +607,41 @@ public class GradeEntryRepository : IGradeEntryRepository
         }
 
         // Nếu không tìm thấy dòng "Đề bài"
-        return "Không tìm thấy dòng Đề bài.";
+        return "Không tìm thấy dòng 'Đề bài' trong file.";
+    }
+
+    private string CalculateSubmissionDuration(DateTimeOffset? testStartTime, DateTimeOffset? submissionTime)
+    {
+        if (!testStartTime.HasValue || !submissionTime.HasValue)
+            return "N/A";
+
+        // So sánh trực tiếp DateTimeOffset mà không chuyển đổi
+        if (submissionTime.Value < testStartTime.Value)
+        {
+            _logger.LogWarning(
+                $"Thời gian nộp bài ({submissionTime}) sớm hơn thời gian bắt đầu ({testStartTime}). Vui lòng kiểm tra dữ liệu.");
+            return "0 giây";
+        }
+
+        TimeSpan duration = submissionTime.Value - testStartTime.Value;
+
+        if (duration.TotalDays >= 1)
+        {
+            int days = (int)Math.Floor(duration.TotalDays);
+            int hours = duration.Hours;
+            return $"{days} ngày {hours} giờ {duration.Minutes} phút";
+        }
+        else if (duration.TotalHours >= 1)
+        {
+            return $"{Math.Floor(duration.TotalHours)} giờ {duration.Minutes} phút";
+        }
+        else if (duration.TotalMinutes >= 1)
+        {
+            return $"{duration.Minutes} phút {duration.Seconds} giây";
+        }
+        else
+        {
+            return $"{duration.Seconds} giây";
+        }
     }
 }

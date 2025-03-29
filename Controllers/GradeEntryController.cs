@@ -46,7 +46,7 @@ public class GradeEntryController : ControllerBase
 
         if (response.Status == 0)
         {
-            return Ok("Đã chốt điểm thành công");
+            return Ok(new ApiResponse<object>(0, "Đã chốt điểm thành công!"));
         }
 
         return BadRequest(response);
