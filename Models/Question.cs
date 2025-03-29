@@ -14,7 +14,7 @@ namespace Project_LMS.Models
         public int? TestExamId { get; set; }
         public string? QuestionText { get; set; }
         public string? QuestionType { get; set; }
-        public int? Mark { get; set; }
+        public double? Mark { get; set; }
         public bool? IsDelete { get; set; }
         public DateTime? CreateAt { get; set; }
         public DateTime? UpdateAt { get; set; }

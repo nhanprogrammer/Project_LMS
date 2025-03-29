@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
 using CloudinaryDotNet;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Http;
+using Project_LMS.Config;
 using Project_LMS.Data;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
@@ -16,12 +18,15 @@ public class TeacherTestExamService : ITeacherTestExamService
     private readonly ApplicationDbContext _context;
     private readonly IServiceProvider _serviceProvider;
     private readonly IMapper _mapper;
+    private readonly IHttpClientFactory _httpClientFactory;
 
-    public TeacherTestExamService(ApplicationDbContext context, IServiceProvider serviceProvider, IMapper mapper)
+    public TeacherTestExamService(ApplicationDbContext context, IServiceProvider serviceProvider, IMapper mapper,
+        IHttpClientFactory httpClientFactory)
     {
         _context = context;
         _serviceProvider = serviceProvider;
         _mapper = mapper;
+        _httpClientFactory = httpClientFactory;
     }
 
 
@@ -129,7 +134,7 @@ public class TeacherTestExamService : ITeacherTestExamService
     }
 
 
-    public async Task<ApiResponse<object?>> CreateTeacherTestExamAsync(TeacherTestExamRequest request)
+    public async Task<ApiResponse<object?>> CreateTeacherTestExamAsync(int userId,TeacherTestExamRequest request)
     {
         // Tìm danh sách lớp dựa vào DepartmentId hoặc classIds
         List<int> classIds = new List<int>();
@@ -146,11 +151,78 @@ public class TeacherTestExamService : ITeacherTestExamService
             classIds = request.classIds;
         }
 
+
+       
+        // Convert Duration string thành kiểu TimeOnly nếu có
+        TimeOnly? duration = TimeOnly.TryParse(request.Duration, out var parsedDuration) ? parsedDuration : null;
+
+        var existingTestExam = await _context.TestExams
+            .FirstOrDefaultAsync(te => te.StartDate == request.StartDate);
+        
+        
+        if (existingTestExam != null)
+        {
+            return new ApiResponse<object?>(1, "Không được trùng " , null);
+        }
+
+        if (request.EndDate == request.StartDate)
+        {
+            return new ApiResponse<object?>(1, "Ngày bất đầu và ngày kết thúc không được trùng" , null);
+        }
+        
+        
+        
+        // Tạo đối tượng TestExam
+        var teacherTestExam = new TestExam
+        {
+            SubjectId = request.SubjectId,
+            DepartmentId = request.DepartmentId,
+            Topic = request.Topic,
+            Form = request.Form,
+            Duration = duration,
+            TestExamTypeId = request.TestExamType,
+            StartDate = request.StartDate.ToOffset(TimeSpan.FromHours(7)),
+            EndDate = request.EndDate.ToOffset(TimeSpan.FromHours(7)),
+            Description = request.Description,
+            IsAttachmentRequired = request.IsAttachmentRequired,
+            ScheduleStatusId = 2,
+            UserId = userId,
+        };
+        
+    
+        
+        // Xử lý file đính kèm nếu có
+        if (!string.IsNullOrEmpty(request.Attachment))
+        {
+            try
+            {
+                var cloudinaryService = _serviceProvider.GetService<ICloudinaryService>();
+                if (cloudinaryService == null)
+                {
+                    throw new Exception("Cloudinary service not available");
+                }
+
+                teacherTestExam.Attachment = await cloudinaryService.UploadDocxAsync(request.Attachment);
+            }
+            catch (Exception ex)
+            {
+                // Xử lý lỗi khi upload file
+                return new ApiResponse<object?>(1, "File upload failed: " + ex.Message);
+            }
+        }
+
+        // Lưu TestExam vào cơ sở dữ liệu
+        await _context.TestExams.AddAsync(teacherTestExam);
+        await _context.SaveChangesAsync(); // Lưu dữ liệu TestExam
+
+        
+
+        var afteraddtestExam = await _context.TestExams.FindAsync(teacherTestExam.Id);
         if (request.IsAttachmentRequired)
         {
             var fileFormat = new FileFormat
             {
-                TestExamId = request.Id,
+                TestExamId = teacherTestExam.Id,
                 IsDoc = request.IsDoc,
                 IsPowerpoint = request.IsPowerpoint,
                 IsXxls = request.IsXxls,
@@ -165,47 +237,49 @@ public class TeacherTestExamService : ITeacherTestExamService
             await _context.SaveChangesAsync();
         }
 
+        var fileProcessor = new FileProcessor(_httpClientFactory);
+        string fileUrl = afteraddtestExam.Attachment; // Lấy URL file từ TestExam
 
-        TimeOnly? duration = TimeOnly.TryParse(request.Duration, out var parsedDuration) ? parsedDuration : null;
+        // Đọc danh sách câu hỏi từ file
+        List<Question> questions = await fileProcessor.ReadQuestionsFromFileAsync(fileUrl);
+        var newAnswers = new List<Answer>();
 
-        var teacherTestExam = new TestExam
+        // Lưu câu hỏi và đáp án vào cơ sở dữ liệu
+
+        foreach (var question in questions)
         {
-            SubjectId = request.SubjectId,
-            DepartmentId = request.DepartmentId,
-            Topic = request.Topic,
-            Form = request.Form,
-            Duration = duration,
-            TestExamTypeId = request.TestExamType,
-            StartDate = request.StartDate.ToOffset(TimeSpan.FromHours(7)),
-            EndDate = request.EndDate.ToOffset(TimeSpan.FromHours(7)),
-            Description = request.Description,
-            IsAttachmentRequired = request.IsAttachmentRequired,
-        };
-        if (!string.IsNullOrEmpty(request.Attachment))
-        {
-            // Assuming the attachment is a base64 string
-            try
+    
+            var newQuestion = new Question
             {
-                var cloudinaryService = _serviceProvider.GetService<ICloudinaryService>();
-                if (cloudinaryService == null)
+                QuestionText = question.QuestionText,
+                QuestionType = question.QuestionType,
+                Mark = question.Mark,
+                TestExamId = teacherTestExam.Id // Liên kết với TestExam
+            };
+
+            await _context.Questions.AddAsync(newQuestion);
+            await _context.SaveChangesAsync(); // Lưu câu hỏi
+            
+            foreach (var answer in question.Answers)
+            {
+                var newAnswer = new Answer
                 {
-                    throw new Exception("Cloudinary service not available");
-                }
+                    Answer1 = answer.Answer1,
+                    IsCorrect = answer.IsCorrect,
+                    QuestionId = newQuestion.Id, // Liên kết với câu hỏi
+                    CreateAt = DateTime.Now,
+                    UpdateAt = DateTime.Now
+                };
 
-                teacherTestExam.Attachment = await cloudinaryService.UploadDocAsync(request.Attachment);
+                await _context.Answers.AddAsync(newAnswer);
             }
-            catch (Exception ex)
-            {
-                // Handle any errors that occur during file upload
-                return new ApiResponse<object?>(1, "File upload failed: " + ex.Message);
-            }
+
+            await _context.SaveChangesAsync();
+            
+            
         }
 
-
-        await _context.TestExams.AddAsync(teacherTestExam);
-        await _context.SaveChangesAsync();
-
-        // Thêm quan hệ vào bảng trung gian
+        // Thêm quan hệ vào bảng trung gian ClassTestExam
         var testExamClasses = classIds.Select(classId => new ClassTestExam
         {
             TestExamId = teacherTestExam.Id,
@@ -215,6 +289,7 @@ public class TeacherTestExamService : ITeacherTestExamService
         await _context.ClassTestExams.AddRangeAsync(testExamClasses);
         await _context.SaveChangesAsync();
 
+        // Tạo phản hồi với thông tin đã lưu
         var responseData = new
         {
             SubjectName = _context.Subjects
@@ -234,12 +309,11 @@ public class TeacherTestExamService : ITeacherTestExamService
             ClassIds = testExamClasses.Select(tc => tc.ClassId).ToList()
         };
 
-
         return new ApiResponse<object?>(0, "Tạo lịch kiểm tra thành công", responseData);
     }
 
 
-    public async Task<ApiResponse<object?>> UpdateTeacherTestExamAsync(TeacherTestExamRequest request)
+    public async Task<ApiResponse<object?>> UpdateTeacherTestExamAsync(int userId,TeacherTestExamRequest request)
     {
         var testExamId = request.Id;
         var teacherTestExam = await _context.TestExams.FindAsync(testExamId);
@@ -247,7 +321,16 @@ public class TeacherTestExamService : ITeacherTestExamService
         {
             return new ApiResponse<object?>(-1, "Không tìm thấy lịch thi", null);
         }
-
+        
+        var question = await _context.Questions.Where(qs => qs.TestExamId == testExamId).ToListAsync();
+        foreach (var anwer in question)
+        {
+            var answer = await _context.Answers.Where(a => a.QuestionId == anwer.Id).ToListAsync();
+            _context.Answers.RemoveRange(answer);
+        }
+        _context.Questions.RemoveRange(question);
+        await _context.SaveChangesAsync();
+        
         // Tìm danh sách lớp cần cập nhật
         List<int> classIds = new List<int>();
         if (request.SelectALL)
@@ -312,6 +395,7 @@ public class TeacherTestExamService : ITeacherTestExamService
         teacherTestExam.StartDate = request.StartDate.ToOffset(TimeSpan.FromHours(7));
         teacherTestExam.EndDate = request.EndDate.ToOffset(TimeSpan.FromHours(7));
         teacherTestExam.Description = request.Description;
+        teacherTestExam.UserId = userId;
         teacherTestExam.IsAttachmentRequired = request.IsAttachmentRequired;
 
 
@@ -448,7 +532,7 @@ public class TeacherTestExamService : ITeacherTestExamService
         return new ApiResponse<object?>(0, "Fill dữ liệu lịch kiểm tra thành công", responseData);
     }
 
-    
+
     public async Task<ApiResponse<object?>> GetFilterClass(int departmentId)
     {
         try

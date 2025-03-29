@@ -1287,6 +1287,8 @@ namespace Project_LMS.Data
                 entity.Property(e => e.Mark).HasColumnName("mark");
 
                 entity.Property(e => e.QuestionText).HasColumnName("question");
+                
+                entity.Property(e => e.QuestionType).HasColumnName("question_type");
 
                 entity.Property(e => e.TestExamId).HasColumnName("test_exam_id");
 
@@ -2289,7 +2291,10 @@ namespace Project_LMS.Data
                 entity.Property(e => e.TestExamTypeId).HasColumnName("test_exam_type_id");
                 entity.Property(e => e.SubjectId).HasColumnName("subject_id");
                 entity.Property(e => e.DepartmentId).HasColumnName("department_id");
-                entity.Property(e => e.ScheduleStatusId).HasColumnName("schedule_status_id");
+                modelBuilder.Entity<TestExam>()
+                    .Property(te => te.ScheduleStatusId)
+                    .HasColumnName("schedule_status_id")
+                    .IsRequired(false);
                 entity.Property(e => e.Topic)
                     .HasMaxLength(50)
                     .HasColumnName("topic");
