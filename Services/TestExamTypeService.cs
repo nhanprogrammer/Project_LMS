@@ -95,10 +95,21 @@ namespace Project_LMS.Services
         {
             try
             {
+                // Kiểm tra trùng lặp tên TestExamType
+                var isDuplicate = await _context.TestExamTypes
+                    .AnyAsync(t => t.PointTypeName == request.PointTypeName && t.IsDelete == false);
+
+                if (isDuplicate)
+                {
+                    throw new BadRequestException($"Tên loại bài kiểm tra '{request.PointTypeName}' đã tồn tại.");
+                }
+
+                // Thêm mới TestExamType
                 var testExamType = _mapper.Map<TestExamType>(request);
                 testExamType.UserCreate = userId;
                 await _context.TestExamTypes.AddAsync(testExamType);
                 var saved = await _context.SaveChangesAsync();
+
                 if (saved <= 0)
                 {
                     throw new BadRequestException("Không thể lưu loại bài kiểm tra vào cơ sở dữ liệu.");
@@ -109,6 +120,11 @@ namespace Project_LMS.Services
                 {
                     Data = response
                 };
+            }
+            catch (BadRequestException ex)
+            {
+                // Trả về lỗi nếu tên bị trùng
+                return new ApiResponse<TestExamTypeResponse>(1, ex.Message, null);
             }
             catch (Exception ex)
             {
@@ -121,14 +137,26 @@ namespace Project_LMS.Services
         {
             try
             {
+                // Tìm bản ghi cần cập nhật
                 var testExamType = await _context.TestExamTypes.FindAsync(id);
                 if (testExamType == null)
                 {
                     throw new NotFoundException("Loại bài kiểm tra không tồn tại.");
                 }
 
+                // Kiểm tra trùng lặp tên, ngoại trừ bản ghi hiện tại
+                var isDuplicate = await _context.TestExamTypes
+                    .AnyAsync(t => t.PointTypeName == request.PointTypeName && t.Id != id && t.IsDelete == false);
+
+                if (isDuplicate)
+                {
+                    throw new BadRequestException($"Tên loại bài kiểm tra '{request.PointTypeName}' đã tồn tại.");
+                }
+
+                // Cập nhật thông tin
                 _mapper.Map(request, testExamType);
                 testExamType.UserUpdate = userId;
+
                 var saved = await _context.SaveChangesAsync();
                 if (saved <= 0)
                 {
@@ -143,7 +171,7 @@ namespace Project_LMS.Services
             }
             catch (NotFoundException ex)
             {
-                throw; // Ném lại để controller xử lý
+                throw; 
             }
             catch (Exception ex)
             {

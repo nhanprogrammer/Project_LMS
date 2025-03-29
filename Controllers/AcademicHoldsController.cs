@@ -24,17 +24,26 @@ namespace Project_LMS.Controllers
 
         [Authorize(Policy = "STUDENT-REC-VIEW")]
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<PaginatedResponse<AcademicHoldResponse>>>> GetAll([FromQuery] PaginationRequest request)
+        public async Task<ActionResult<ApiResponse<PaginatedResponse<AcademicHoldResponse>>>> GetAll(
+    [FromQuery] PaginationRequest request,
+    [FromQuery] int? academicYearId)
         {
-
             try
             {
-                var result = await _academicHoldsService.GetPagedAcademicHolds(request);
+                var result = await _academicHoldsService.GetPagedAcademicHolds(request, academicYearId);
                 return Ok(new ApiResponse<PaginatedResponse<AcademicHoldResponse>>(0, "Lấy danh sách bảo lưu thành công", result));
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(new ApiResponse<PaginatedResponse<AcademicHoldResponse>>(1, ex.Message, null));
+            }
+            catch (BadRequestException ex)
+            {
+                return BadRequest(new ApiResponse<PaginatedResponse<AcademicHoldResponse>>(1, ex.Message, null));
             }
             catch (Exception ex)
             {
-                return BadRequest(new ApiResponse<PaginatedResponse<AcademicHoldResponse>>(1, "Lấy danh sách bảo lưu thất bại", null));
+                return StatusCode(500, new ApiResponse<PaginatedResponse<AcademicHoldResponse>>(1, "Lấy danh sách bảo lưu thất bại: " + ex.Message, null));
             }
         }
 
@@ -116,6 +125,10 @@ namespace Project_LMS.Controllers
             catch (BadRequestException ex)
             {
                 return BadRequest(new ApiResponse<string>(1, ex.Message, null));
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(new ApiResponse<string>(1, ex.Message, null));
             }
             catch (Exception ex)
             {

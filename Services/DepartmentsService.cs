@@ -446,5 +446,20 @@ namespace Project_LMS.Services
                 return new ApiResponse<string>(1, $"Lỗi khi xóa lớp: {innerExceptionMessage}");
             }
         }
+
+        public async Task<List<DepartmentDropdownResponse>> GetDepartmentDropdownAsync()
+        {
+            var departments = await _context.Departments
+                .Where(d => d.IsDelete == false)
+                .OrderBy(d => d.DepartmentCode) 
+                .Select(d => new DepartmentDropdownResponse
+                {
+                    Id = d.Id,
+                    Name = d.Name
+                })
+                .ToListAsync();
+
+            return departments;
+        }
     }
 }

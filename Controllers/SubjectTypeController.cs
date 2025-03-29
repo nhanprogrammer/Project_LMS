@@ -20,7 +20,6 @@ namespace Project_LMS.Controllers
             _authService = authService;
         }
 
-        [Authorize(Policy = "SUBJECT-TYPE-VIEW")]
         [HttpGet]
         public async Task<ActionResult<ApiResponse<PaginatedResponse<SubjectTypeResponse>>>> GetAll(
             [FromQuery] string? keyword = null,
@@ -42,7 +41,6 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "SUBJECT-TYPE-VIEW")]
         [HttpGet("{id}")]
         public async Task<ActionResult<ApiResponse<SubjectTypeResponse>>> GetById(int id)
         {
@@ -65,7 +63,6 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "SUBJECT-TYPE-INSERT")]
         [HttpPost]
         public async Task<ActionResult<ApiResponse<SubjectTypeResponse>>> Create([FromBody] SubjectTypeRequest request)
         {
@@ -84,7 +81,6 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "SUBJECT-TYPE-UPDATE")]
         [HttpPut()]
         public async Task<ActionResult<ApiResponse<SubjectTypeResponse>>> Update([FromBody] SubjectTypeRequest request)
         {
@@ -107,7 +103,6 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "SUBJECT-TYPE-DELETE")]
         [HttpDelete]
         public async Task<ActionResult<ApiResponse<bool>>> Delete([FromBody] DeleteMultipleRequest request)
         {
@@ -132,6 +127,25 @@ namespace Project_LMS.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new ApiResponse<bool>(1, $"Error deleting subject types: {ex.Message}", false));
+            }
+        }
+        [HttpGet("get-all-subject-types")]
+        public async Task<ActionResult<ApiResponse<List<SubjectTypeDropdownResponse>>>> GetSubjectTypeDropdown()
+        {
+            try
+            {
+                var subjectTypes = await _subjectTypeService.GetSubjectTypeDropdownAsync();
+
+                if (subjectTypes == null || !subjectTypes.Any())
+                {
+                    return Ok(new ApiResponse<List<SubjectTypeDropdownResponse>>(1, "Không có loại môn học nào!", null));
+                }
+
+                return Ok(new ApiResponse<List<SubjectTypeDropdownResponse>>(0, "Lấy danh sách loại môn học thành công!", subjectTypes));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, $"Lỗi hệ thống: {ex.Message}", null));
             }
         }
     }

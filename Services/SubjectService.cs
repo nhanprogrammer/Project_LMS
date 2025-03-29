@@ -283,7 +283,7 @@ namespace Project_LMS.Services
                              sgs.Subject != null)
                 .Select(sgs => new SubjectDropdownResponse
                 {
-                    Id = sgs.Subject!.Id, 
+                    Id = sgs.Subject!.Id,
                     Name = sgs.Subject!.SubjectName ?? string.Empty
                 })
                 .ToListAsync();
@@ -326,5 +326,33 @@ namespace Project_LMS.Services
                 return new List<SubjectResponseSearch>();
             }
         }
+
+
+        public async Task<List<SubjectDropdownResponse>> GetSubjectDropdownAsync()
+        {
+            var subjects = await _context.Subjects
+                .Where(s => s.IsDelete == null || s.IsDelete == false)
+                .Select(s => new SubjectDropdownResponse
+                {
+                    Id = s.Id,
+                    Name = s.SubjectName ?? string.Empty
+                })
+                .ToListAsync();
+
+            return subjects;
+        }
+
+        public async Task<List<SubjectTypeDropdownResponse>> GetSubjectTypeDropdownAsync()
+        {
+            return await _context.SubjectTypes
+                .Where(st => !(st.IsDelete ?? false))
+                .Select(st => new SubjectTypeDropdownResponse
+                {
+                    Id = st.Id,
+                    Name = st.Name ?? string.Empty
+                })
+                .ToListAsync();
+        }
+
     }
 }
