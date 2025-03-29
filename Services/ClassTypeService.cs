@@ -107,6 +107,18 @@ namespace Project_LMS.Services
                 if (user == null)
                     return new ApiResponse<ClassTypeResponse>(1, "Không có quyền truy cập", null);
 
+                if (request == null || string.IsNullOrEmpty(request.Name))
+                    return new ApiResponse<ClassTypeResponse>(1, "Tên loại lớp học không được để trống", null);
+
+                // Kiểm tra tên loại lớp học đã tồn tại chưa
+                var existingClassType = await _context.ClassTypes
+                    .FirstOrDefaultAsync(ct => ct.Name != null &&
+                        ct.Name.ToLower() == request.Name.ToLower() &&
+                        (!ct.IsDelete.HasValue || !ct.IsDelete.Value));
+
+                if (existingClassType != null)
+                    return new ApiResponse<ClassTypeResponse>(1, "Tên loại lớp học đã tồn tại", null);
+
                 var classType = _mapper.Map<ClassType>(request);
                 classType.CreateAt = DateTime.UtcNow.ToLocalTime();
                 classType.IsDelete = false;
@@ -132,11 +144,24 @@ namespace Project_LMS.Services
                 if (user == null)
                     return new ApiResponse<ClassTypeResponse>(1, "Không có quyền truy cập", null);
 
+                if (request == null || string.IsNullOrEmpty(request.Name))
+                    return new ApiResponse<ClassTypeResponse>(1, "Tên loại lớp học không được để trống", null);
+
                 var existingClassType = await _context.ClassTypes
                     .FirstOrDefaultAsync(ct => ct.Id == request.id && !(ct.IsDelete ?? false));
 
                 if (existingClassType == null)
                     return new ApiResponse<ClassTypeResponse>(1, "Không tìm thấy loại lớp học", null);
+
+                // Kiểm tra tên loại lớp học đã tồn tại chưa (loại trừ chính nó)
+                var duplicateName = await _context.ClassTypes
+                    .FirstOrDefaultAsync(ct => ct.Id != request.id
+                        && ct.Name != null
+                        && ct.Name.ToLower() == request.Name.ToLower()
+                        && (!ct.IsDelete.HasValue || !ct.IsDelete.Value));
+
+                if (duplicateName != null)
+                    return new ApiResponse<ClassTypeResponse>(1, "Tên loại lớp học đã tồn tại", null);
 
                 _mapper.Map(request, existingClassType);
                 existingClassType.UpdateAt = DateTime.UtcNow.ToLocalTime();

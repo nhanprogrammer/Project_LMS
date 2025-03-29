@@ -68,12 +68,29 @@ namespace Project_LMS.Controllers
         {
             try
             {
+                // Kiểm tra ModelState
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new ApiResponse<SubjectTypeResponse>(1, "Dữ liệu không hợp lệ", null));
+                }
+
+                // Kiểm tra request
+                if (request == null)
+                {
+                    return BadRequest(new ApiResponse<SubjectTypeResponse>(1, "Dữ liệu không được để trống", null));
+                }
+
                 var user = await _authService.GetUserAsync();
                 if (user == null)
                     return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
 
                 var result = await _subjectTypeService.CreateSubjectTypeAsync(request);
-                return CreatedAtAction(nameof(GetById), new { id = result.Data.Id }, result);
+                if (result.Status != 0) // Kiểm tra kết quả trả về
+                {
+                    return BadRequest(result);
+                }
+
+                return CreatedAtAction(nameof(GetById), new { id = result.Data?.Id }, result);
             }
             catch (Exception ex)
             {
@@ -86,15 +103,33 @@ namespace Project_LMS.Controllers
         {
             try
             {
+                // Kiểm tra ModelState
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new ApiResponse<SubjectTypeResponse>(1, "Dữ liệu không hợp lệ", null));
+                }
+
+                // Kiểm tra request
+                if (request == null)
+                {
+                    return BadRequest(new ApiResponse<SubjectTypeResponse>(1, "Dữ liệu không được để trống", null));
+                }
+
+                if (string.IsNullOrEmpty(request.Name))
+                {
+                    return BadRequest(new ApiResponse<SubjectTypeResponse>(1, "Tên loại môn học không được để trống", null));
+                }
+
                 var user = await _authService.GetUserAsync();
                 if (user == null)
                     return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
 
                 var result = await _subjectTypeService.UpdateSubjectTypeAsync(request);
-                if (result.Data == null)
+                if (result.Status != 0)
                 {
-                    return NotFound(new ApiResponse<SubjectTypeResponse>(1, "SubjectType not found", null));
+                    return BadRequest(result);
                 }
+
                 return Ok(result);
             }
             catch (Exception ex)
