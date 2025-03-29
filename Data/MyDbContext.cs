@@ -2622,6 +2622,8 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.RoleId).HasColumnName("role_id");
 
+                entity.Property(e => e.ReRoleId).HasColumnName("re_role_id");
+
                 entity.Property(e => e.StartDate)
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("start_date");
