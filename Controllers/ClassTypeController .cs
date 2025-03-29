@@ -7,6 +7,7 @@ using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers
 {
+    [Authorize(Policy = "DATA-MNG-VIEW")]
     [ApiController]
     [Route("api/[controller]")]
     public class ClassTypeController : ControllerBase
@@ -20,7 +21,6 @@ namespace Project_LMS.Controllers
             _authService = authService;
         }
 
-        [Authorize(Policy = "CLASS-TYPE-VIEW")]
         [HttpGet]
         public async Task<ActionResult<ApiResponse<PaginatedResponse<ClassTypeResponse>>>> GetAll(
             [FromQuery] string? keyword = null,
@@ -42,7 +42,6 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "CLASS-TYPE-VIEW")]
         [HttpGet("{id}")]
         public async Task<ActionResult<ApiResponse<ClassTypeResponse>>> GetById(int id)
         {
@@ -65,7 +64,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "CLASS-TYPE-INSERT")]
+        [Authorize(Policy = "DATA-MNG-INSERT")]
         [HttpPost]
         public async Task<ActionResult<ApiResponse<ClassTypeResponse>>> Create([FromBody] ClassTypeRequest request)
         {
@@ -84,7 +83,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "CLASS-TYPE-UPDATE")]
+        [Authorize(Policy = "DATA-MNG-UPDATE")]
         [HttpPut()]
         public async Task<ActionResult<ApiResponse<ClassTypeResponse>>> Update([FromBody] ClassTypeRequest request)
         {
@@ -107,7 +106,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "CLASS-TYPE-DELETE")]
+        [Authorize(Policy = "DATA-MNG-DELETE")]
         [HttpDelete]
         public async Task<ActionResult<ApiResponse<bool>>> Delete([FromBody] DeleteMultipleRequest request)
         {

@@ -69,6 +69,14 @@ namespace Project_LMS.Data
         public virtual DbSet<User> Users { get; set; } = null!;
         public virtual DbSet<UserTrainingRank> UserTrainingRanks { get; set; } = null!;
         public virtual DbSet<ExamScheduleStatus> ExamScheduleStatusEnumerable { get; set; } = null!;
+        public virtual DbSet<WorkProcess> WorkProcesses { get; set; } = null!;
+        public virtual DbSet<EducationInformation> EducationInformations { get; set; } = null!;
+        public virtual DbSet<WorkUnit> WorkUnits { get; set; } = null!;
+        public virtual DbSet<TrainingProgram> TrainingPrograms { get; set; } = null!;
+        public virtual DbSet<WorkProcessUnit> WorkProcessUnits { get; set; } = null!;
+        public virtual DbSet<EducationProgram> EducationPrograms { get; set; } = null!;
+        public virtual DbSet<Position> Positions { get; set; } = null!;
+
         public virtual DbSet<Exemption> Exemptions { get; set; } = null!;
         public virtual DbSet<TeacherStatusHistory> TeacherStatusHistories { get; set; } = null!;
 
@@ -77,7 +85,7 @@ namespace Project_LMS.Data
             if (!optionsBuilder.IsConfigured)
             {
                 optionsBuilder.UseNpgsql(
-                    "Host=dpg-cv6l940gph6c73dnr7hg-a.oregon-postgres.render.com;Port=5432;Database=lms_rvdc;Username=lms_rvdc_user;Password=GJKc4tITIEh9s1MXQ97tH94RTR8xia8G",
+                    "Host=db.khadv28.io.vn;Port=5051;Database=isc_be1;Username=admin;Password=123456",
                     npgsqlOptions => npgsqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery) // ⚡ Tối ưu hóa truy vấn
                 );
             }
@@ -1643,8 +1651,6 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.Reason).HasColumnName("reason");
 
-                entity.Property(e => e.SchoolBranchesId).HasColumnName("school_branches_id");
-
                 entity.Property(e => e.Semester)
                     .HasMaxLength(50)
                     .HasColumnName("semester");
@@ -2614,6 +2620,8 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.RoleId).HasColumnName("role_id");
 
+                entity.Property(e => e.ReRoleId).HasColumnName("re_role_id");
+
                 entity.Property(e => e.StartDate)
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("start_date");
@@ -2736,6 +2744,253 @@ namespace Project_LMS.Data
                     .WithOne(e => e.ExamScheduleStatus)
                     .HasForeignKey(e => e.ScheduleStatusId)
                     .HasConstraintName("fk_test_exams_schedule_status");
+            });
+            modelBuilder.Entity<WorkProcess>(entity =>
+            {
+                entity.ToTable("work_processes");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+
+                entity.Property(e => e.OrganizationUnit)
+                    .HasColumnName("organization_unit")
+                    .HasMaxLength(255);
+
+                entity.Property(e => e.DepartmentId)
+                    .HasColumnName("department_id");
+
+
+                entity.Property(e => e.PositionId)
+                    .HasColumnName("position_id");
+
+
+                entity.Property(e => e.StartDate)
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("start_date");
+
+                entity.Property(e => e.EndDate)
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("end_date");
+
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("create_at")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(e => e.UpdatedAt)
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("update_at")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(e => e.CreatedBy).HasColumnName("user_create");
+
+                entity.Property(e => e.UpdatedBy).HasColumnName("user_update");
+
+                entity.Property(e => e.IsDeleted)
+                    .HasColumnName("is_delete")
+                    .HasDefaultValueSql("false");
+                entity.HasOne(d => d.Position)
+                    .WithMany(p => p.WorkProcesses)
+                    .HasForeignKey(d => d.PositionId)
+                    .HasConstraintName("fk_workprocess_position");
+                entity.HasOne(d => d.Department)
+                    .WithMany(p => p.WorkProcesses)
+                    .HasForeignKey(d => d.DepartmentId)
+                    .HasConstraintName("fk_workprocess_department");
+
+                entity.Property(e => e.UserId).HasColumnName("user_id");
+                entity.HasOne(d => d.User)
+                    .WithMany(p => p.WorkProcesses)
+                    .HasForeignKey(d => d.UserId)
+                    .HasConstraintName("fk_workprocess_user_teacher");
+            });
+            modelBuilder.Entity<EducationInformation>(entity =>
+            {
+                entity.ToTable("education_informations");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+
+                entity.Property(e => e.TrainingInstitution)
+                    .HasColumnName("training_institution")
+                    .HasMaxLength(255);
+
+                entity.Property(e => e.Major)
+                    .HasColumnName("major")
+                    .HasMaxLength(255);
+
+                entity.Property(e => e.StartDate)
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("start_date");
+
+                entity.Property(e => e.EndDate)
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("end_date");
+
+                entity.Property(e => e.TrainingForm)
+                    .HasColumnName("training_form")
+                    .HasMaxLength(255);
+
+                entity.Property(e => e.CertifiedDegree)
+                    .HasColumnName("certified_degree")
+                    .HasMaxLength(255);
+
+                entity.Property(e => e.AttachedFile)
+                    .HasColumnName("attached_file")
+                    .HasMaxLength(255);
+
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("create_at")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(e => e.UpdatedAt)
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("update_at")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(e => e.CreatedBy).HasColumnName("user_create");
+
+                entity.Property(e => e.UpdatedBy).HasColumnName("user_update");
+
+                entity.Property(e => e.IsDeleted)
+                    .HasColumnName("is_delete")
+                    .HasDefaultValueSql("false");
+                entity.Property(e => e.UserId).HasColumnName("user_id");
+                entity.HasOne(d => d.User)
+                    .WithMany(p => p.EducationInformations)
+                    .HasForeignKey(d => d.UserId)
+                    .HasConstraintName("fk_education_informations_user_teacher");
+            });
+            modelBuilder.Entity<WorkUnit>(entity =>
+            {
+                entity.ToTable("work_units");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+
+                entity.Property(e => e.Name)
+                    .HasColumnName("name")
+                    .HasMaxLength(255)
+                    .IsRequired();
+
+                entity.Property(e => e.Description)
+                    .HasColumnName("description");
+
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("create_at")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(e => e.UpdatedAt)
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("update_at")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(e => e.CreatedBy).HasColumnName("user_create");
+                entity.Property(e => e.UpdatedBy).HasColumnName("user_update");
+
+                entity.Property(e => e.IsDeleted)
+                    .HasColumnName("is_delete")
+                    .HasDefaultValueSql("false");
+            });
+
+            modelBuilder.Entity<TrainingProgram>(entity =>
+            {
+                entity.ToTable("training_programs");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+
+                entity.Property(e => e.Name)
+                    .HasColumnName("name")
+                    .HasMaxLength(255)
+                    .IsRequired();
+
+                entity.Property(e => e.Description)
+                    .HasColumnName("description");
+
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("create_at")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(e => e.UpdatedAt)
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("update_at")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(e => e.CreatedBy).HasColumnName("user_create");
+                entity.Property(e => e.UpdatedBy).HasColumnName("user_update");
+
+                entity.Property(e => e.IsDeleted)
+                    .HasColumnName("is_delete")
+                    .HasDefaultValueSql("false");
+            });
+
+            modelBuilder.Entity<WorkProcessUnit>(entity =>
+            {
+                entity.ToTable("work_process_units");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+
+                entity.Property(e => e.WorkProcessId).HasColumnName("work_process_id");
+                entity.Property(e => e.WorkUnitId).HasColumnName("work_unit_id");
+
+                entity.HasOne(d => d.WorkProcess)
+                    .WithMany(p => p.WorkProcessUnits)
+                    .HasForeignKey(d => d.WorkProcessId)
+                    .HasConstraintName("fk_work_process");
+
+                entity.HasOne(d => d.WorkUnit)
+                    .WithMany(p => p.WorkProcessUnits)
+                    .HasForeignKey(d => d.WorkUnitId)
+                    .HasConstraintName("fk_work_unit");
+            });
+
+            modelBuilder.Entity<EducationProgram>(entity =>
+            {
+                entity.ToTable("education_programs");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+
+                entity.Property(e => e.EducationId).HasColumnName("education_id");
+                entity.Property(e => e.TrainingProgramId).HasColumnName("training_program_id");
+
+                entity.HasOne(d => d.Education)
+                    .WithMany(p => p.EducationPrograms)
+                    .HasForeignKey(d => d.EducationId)
+                    .HasConstraintName("fk_education");
+
+                entity.HasOne(d => d.TrainingProgram)
+                    .WithMany(p => p.EducationPrograms)
+                    .HasForeignKey(d => d.TrainingProgramId)
+                    .HasConstraintName("fk_training_program");
+            });
+
+            modelBuilder.Entity<Position>(entity =>
+            {
+                entity.ToTable("positions");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+
+                entity.Property(e => e.Name)
+                    .HasColumnName("name")
+                    .HasMaxLength(255);
+
+                entity.Property(e => e.CreateAt)
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("create_at")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(e => e.UpdateAt)
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("update_at")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(e => e.UserCreate).HasColumnName("user_create");
+
+                entity.Property(e => e.UserUpdate).HasColumnName("user_update");
+
+                entity.Property(e => e.IsDelete)
+                    .HasColumnName("is_delete")
+                    .HasDefaultValueSql("false");
             });
 
 

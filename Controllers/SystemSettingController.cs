@@ -7,6 +7,7 @@ using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers
 {
+    [Authorize(Policy = "DATA-MNG-VIEW")]
     [Route("api/[controller]")]
     [ApiController]
     public class SystemSettingController : ControllerBase
@@ -25,7 +26,7 @@ namespace Project_LMS.Controllers
         //     return Ok(new ApiResponse<object>(0, "Tìm thấy", result));
         // }
 
-        [Authorize]
+        [Authorize(Policy = "DATA-MNG-INSERT")]
         [HttpPut]
         public async Task<IActionResult> UpdateSetting([FromBody] SystemSettingRequest request)
         {

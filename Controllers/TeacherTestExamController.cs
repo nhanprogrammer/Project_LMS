@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Project_LMS.Data;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
@@ -7,8 +8,7 @@ using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers;
 
-
-
+[Authorize(Policy = "TEACHER")]
 [Route("api/[controller]")]
 [ApiController]
 public class TeacherTestExamController : ControllerBase
