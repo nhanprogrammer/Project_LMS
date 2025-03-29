@@ -139,8 +139,18 @@ public class SubjectGroupService : ISubjectGroupService
     public async Task<ApiResponse<SubjectGroupResponse>> CreateSubjectGroupAsync(
         CreateSubjectGroupRequest createSubjectGroupRequest)
     {
+        var exitingSubjectGroup = await _context.SubjectGroups.FirstOrDefaultAsync(c=>c.Name==createSubjectGroupRequest.Name);
+        if (exitingSubjectGroup != null)
+        {
+            return new ApiResponse<SubjectGroupResponse>
+            (
+                1, "Subject Group đã tồn tại", null
+            );
+        }
         var subjectGroup = _mapper.Map<SubjectGroup>(createSubjectGroupRequest);
 
+        
+        
         await _subjectGroupRepository.AddAsync(subjectGroup);
 
         var createdSubjectGroup = await _subjectGroupRepository

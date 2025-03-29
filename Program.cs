@@ -24,7 +24,7 @@ using Project_LMS.Hubs;
 using Project_LMS.Middleware;
 using Hangfire;
 using Hangfire.PostgreSql;
-
+using Project_LMS.Controllers;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -110,8 +110,9 @@ builder.Services.AddScoped<INotificationsService, NotificationsService>();
 builder.Services.AddScoped<ITeacherTestExamService, TeacherTestExamService>();
 builder.Services.AddSingleton<ISupportService, SupportService>();
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-
-
+builder.Services.AddScoped<IStudentTestExamService, StudentTestExamService>();
+builder.Services.AddScoped<ITestExamScheduleService, TestExamScheduleService>();
+// builder.Services.AddHostedService<TestExamStatusUpdater>();
 // Repositories
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<ISchoolRepository, SchoolRepository>();
@@ -144,7 +145,7 @@ builder.Services.AddScoped<IJwtReponsitory, JwtReponsitory>();
 builder.Services.AddScoped<INotificationsRepository, NotificationsRepository>();
 builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
 builder.Services.AddScoped<ITeachingAssignmentService, TeachingAssignmentService>();
-
+builder.Services.AddHttpClient();
 builder.Services.AddScoped<ISubjectGroupRepository, SubjectGroupRepository>();
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -299,6 +300,7 @@ app.UseExceptionHandler(errorApp =>
 app.UseCors("AllowAll");
 app.UseHttpsRedirection();
 app.MapHub<RealtimeHub>("/realtimeHub");
+app.MapHub<TestExamHub>("/testExamHub"); 
 app.UseAuthentication();
 app.UseAuthorization();
 
