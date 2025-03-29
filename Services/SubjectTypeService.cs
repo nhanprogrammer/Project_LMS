@@ -108,14 +108,17 @@ namespace Project_LMS.Services
                 if (user == null)
                     return new ApiResponse<SubjectTypeResponse>(1, "Không có quyền truy cập", null);
 
-                // Kiểm tra trùng lặp tên SubjectType
-                var isDuplicate = await _context.SubjectTypes
-                    .AnyAsync(st => st.Name == request.Name && !(st.IsDelete ?? false));
+                if (request == null || string.IsNullOrEmpty(request.Name))
+                    return new ApiResponse<SubjectTypeResponse>(1, "Tên loại môn học không được để trống", null);
 
-                if (isDuplicate)
-                {
-                    return new ApiResponse<SubjectTypeResponse>(1, $"Tên loại môn học '{request.Name}' đã tồn tại.", null);
-                }
+                // Kiểm tra tên loại môn học đã tồn tại chưa
+                var existingSubjectType = await _context.SubjectTypes
+                    .FirstOrDefaultAsync(st => st.Name != null &&
+                        st.Name.ToLower() == request.Name.ToLower() &&
+                        (!st.IsDelete.HasValue || !st.IsDelete.Value));
+
+                if (existingSubjectType != null)
+                    return new ApiResponse<SubjectTypeResponse>(1, "Tên loại môn học đã tồn tại", null);
 
                 var subjectType = _mapper.Map<SubjectType>(request);
                 subjectType.CreateAt = DateTime.UtcNow.ToLocalTime();
@@ -142,20 +145,24 @@ namespace Project_LMS.Services
                 if (user == null)
                     return new ApiResponse<SubjectTypeResponse>(1, "Không có quyền truy cập", null);
 
+                if (request == null || string.IsNullOrEmpty(request.Name))
+                    return new ApiResponse<SubjectTypeResponse>(1, "Tên loại môn học không được để trống", null);
+
                 var existingSubjectType = await _context.SubjectTypes
                     .FirstOrDefaultAsync(st => st.Id == request.Id && !(st.IsDelete ?? false));
 
                 if (existingSubjectType == null)
                     return new ApiResponse<SubjectTypeResponse>(1, "Không tìm thấy loại môn học", null);
 
-                // Kiểm tra trùng lặp tên SubjectType, ngoại trừ bản ghi hiện tại
-                var isDuplicate = await _context.SubjectTypes
-                    .AnyAsync(st => st.Name == request.Name && st.Id != request.Id && !(st.IsDelete ?? false));
+                // Kiểm tra tên loại môn học đã tồn tại chưa (loại trừ chính nó)
+                var duplicateName = await _context.SubjectTypes
+                    .FirstOrDefaultAsync(st => st.Id != request.Id
+                        && st.Name != null
+                        && st.Name.ToLower() == request.Name.ToLower()
+                        && (!st.IsDelete.HasValue || !st.IsDelete.Value));
 
-                if (isDuplicate)
-                {
-                    return new ApiResponse<SubjectTypeResponse>(1, $"Tên loại môn học '{request.Name}' đã tồn tại.", null);
-                }
+                if (duplicateName != null)
+                    return new ApiResponse<SubjectTypeResponse>(1, "Tên loại môn học đã tồn tại", null);
 
                 _mapper.Map(request, existingSubjectType);
                 existingSubjectType.UpdateAt = DateTime.UtcNow.ToLocalTime();
