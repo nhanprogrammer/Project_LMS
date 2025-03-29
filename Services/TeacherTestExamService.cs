@@ -134,7 +134,7 @@ public class TeacherTestExamService : ITeacherTestExamService
     }
 
 
-    public async Task<ApiResponse<object?>> CreateTeacherTestExamAsync(TeacherTestExamRequest request)
+    public async Task<ApiResponse<object?>> CreateTeacherTestExamAsync(int userId,TeacherTestExamRequest request)
     {
         // Tìm danh sách lớp dựa vào DepartmentId hoặc classIds
         List<int> classIds = new List<int>();
@@ -185,7 +185,8 @@ public class TeacherTestExamService : ITeacherTestExamService
             EndDate = request.EndDate.ToOffset(TimeSpan.FromHours(7)),
             Description = request.Description,
             IsAttachmentRequired = request.IsAttachmentRequired,
-            ScheduleStatusId = 2
+            ScheduleStatusId = 2,
+            UserId = userId,
         };
         
     
@@ -312,7 +313,7 @@ public class TeacherTestExamService : ITeacherTestExamService
     }
 
 
-    public async Task<ApiResponse<object?>> UpdateTeacherTestExamAsync(TeacherTestExamRequest request)
+    public async Task<ApiResponse<object?>> UpdateTeacherTestExamAsync(int userId,TeacherTestExamRequest request)
     {
         var testExamId = request.Id;
         var teacherTestExam = await _context.TestExams.FindAsync(testExamId);
@@ -394,6 +395,7 @@ public class TeacherTestExamService : ITeacherTestExamService
         teacherTestExam.StartDate = request.StartDate.ToOffset(TimeSpan.FromHours(7));
         teacherTestExam.EndDate = request.EndDate.ToOffset(TimeSpan.FromHours(7));
         teacherTestExam.Description = request.Description;
+        teacherTestExam.UserId = userId;
         teacherTestExam.IsAttachmentRequired = request.IsAttachmentRequired;
 
 
