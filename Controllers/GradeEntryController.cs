@@ -37,7 +37,7 @@ public class GradeEntryController : ControllerBase
         return BadRequest(response);
     }
 
-    [HttpPost("save")]
+    [HttpPut("save")]
     public async Task<IActionResult> SaveGrades([FromBody] SaveGradesRequest request)
     {
         // Lấy teacherId từ token JWT
@@ -48,7 +48,7 @@ public class GradeEntryController : ControllerBase
 
         if (response.Status == 0)
         {
-            return Ok(response);
+            return Ok(new ApiResponse<object>(0, "Đã chốt điểm thành công!"));
         }
 
         return BadRequest(response);
