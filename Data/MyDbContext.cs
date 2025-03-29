@@ -259,7 +259,7 @@ namespace Project_LMS.Data
                 entity.Property(e => e.StatusAssignmentId).HasColumnName("status_assignment_id");
 
                 entity.Property(e => e.SubmissionDate)
-                    .HasColumnType("timestamp without time zone")
+                    .HasColumnType("timestamp with time zone")
                     .HasColumnName("submission_date");
 
                 entity.Property(e => e.SubmissionFile)

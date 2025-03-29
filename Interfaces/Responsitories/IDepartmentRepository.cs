@@ -9,4 +9,5 @@ public interface IDepartmentRepository : IRepository<Department>
     public Task AddAsync(Department entity);
     public Task UpdateAsync(Department entity);
     public Task DeleteAsync(int id);
+    Task<Department> GetByNameAsync(string name);
 }

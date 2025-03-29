@@ -48,5 +48,11 @@ namespace Project_LMS.Repositories
                 await _context.SaveChangesAsync();
             }
         }
+
+        public async Task<Department> GetByNameAsync(string name)
+        {
+            return await _context.Departments
+                .FirstOrDefaultAsync(d => d.Name == name && d.IsDelete.Value == false);
+        }
     }
 }
