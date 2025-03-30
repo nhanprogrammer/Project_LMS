@@ -1,4 +1,5 @@
 ﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
@@ -7,6 +8,7 @@ using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers;
 
+[Authorize(Policy = "TEACHER")]
 [Route("api/[controller]")]
 [ApiController]
 public class GradeEntryController : ControllerBase
@@ -19,7 +21,7 @@ public class GradeEntryController : ControllerBase
         _gradeEntryService = gradeEntryService;
         _authService = authService;
     }
-
+        [Authorize(Policy = "TEACHER")]
     [HttpGet("test/{testId}")]
     public async Task<IActionResult> GetGradingData(int testId)
     {
@@ -35,7 +37,7 @@ public class GradeEntryController : ControllerBase
         return BadRequest(response);
     }
 
-    [HttpPost("save")]
+    [HttpPut("save")]
     public async Task<IActionResult> SaveGrades([FromBody] SaveGradesRequest request)
     {
         // Lấy teacherId từ token JWT
@@ -46,7 +48,7 @@ public class GradeEntryController : ControllerBase
 
         if (response.Status == 0)
         {
-            return Ok(response);
+            return Ok(new ApiResponse<object>(0, "Đã chốt điểm thành công!"));
         }
 
         return BadRequest(response);

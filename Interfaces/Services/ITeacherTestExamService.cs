@@ -9,8 +9,8 @@ public interface ITeacherTestExamService
         int? pageSize,
         string? sortDirection
         ,string? topicName, string? subjectName, string? department,string? startDate);
-    Task<ApiResponse<object?>> CreateTeacherTestExamAsync(TeacherTestExamRequest request);
-    Task<ApiResponse<object?>> UpdateTeacherTestExamAsync(TeacherTestExamRequest request);
+    Task<ApiResponse<object?>> CreateTeacherTestExamAsync(int userId,TeacherTestExamRequest request);
+    Task<ApiResponse<object?>> UpdateTeacherTestExamAsync(int userId,TeacherTestExamRequest request);
     
     Task<ApiResponse<object?>> GetTeacherTestExamById(int id);
     Task<ApiResponse<object?>> GetFilterClass(int departmentId);

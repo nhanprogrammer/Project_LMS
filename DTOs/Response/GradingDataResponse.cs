@@ -13,7 +13,7 @@
         public string Form { get; set; }
         public string Description { get; set; }
         public string Attachment { get; set; }
-        public bool IsExam { get; set; } 
+        public bool IsExam { get; set; }
         public string? ProposalContent { get; set; }
         public List<StudentGradeResponse> StudentGrades { get; set; }
     }
@@ -27,5 +27,7 @@
         public string SubmissionFile { get; set; }
         public string Comment { get; set; }
         public string ClassStatus { get; set; }
+        public DateTimeOffset? SubmissionDate { get; set; }
+        public string SubmissionDuration { get; set; }
     }
 }

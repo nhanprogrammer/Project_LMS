@@ -14,7 +14,6 @@ namespace Project_LMS.Repositories
         private readonly IConfiguration _config;
         private readonly ApplicationDbContext _context;
 
-
         public JwtReponsitory(IConfiguration config, ApplicationDbContext context)
         {
             _config = config;
