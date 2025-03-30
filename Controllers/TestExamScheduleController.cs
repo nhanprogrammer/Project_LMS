@@ -42,6 +42,32 @@ public class TestExamScheduleController : ControllerBase
         }
     }
     
+    
+    [HttpGet("student-teacher")]
+    public async Task<IActionResult> GetAllDisciplineTesAsync(
+        DateTimeOffset? mount, bool week , int? departmentId
+    )
+    {
+        try
+        {
+            var result = await _testExamScheduleService.GetExamScheduleStudentAndTeacherAsync(mount, week, departmentId);
+            if (result.Status == 1)
+            {
+                return BadRequest(result);
+            }
+
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { Status = 1, Message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { Status = 1, Message = $"Có lỗi xảy ra: {ex.Message}" });
+        }
+    }
+    
     [HttpGet ("detail")]
     public async Task<IActionResult> GetAllDisciplinDetal(
         DateTimeOffset startDate
@@ -50,6 +76,31 @@ public class TestExamScheduleController : ControllerBase
         try
         {
             var result = await _testExamScheduleService.GetExamScheduleDetailAsync(startDate);
+            if (result.Status == 1)
+            {
+                return BadRequest(result);
+            }
+
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { Status = 1, Message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { Status = 1, Message = $"Có lỗi xảy ra: {ex.Message}" });
+        }
+    }
+    
+    [HttpGet ("detail/student-teacher")]
+    public async Task<IActionResult> GetDetailForStudentAndTeacher(
+        DateTimeOffset startDate
+    )
+    {
+        try
+        {
+            var result = await _testExamScheduleService.GetExamScheduleDetailForStudentAndTeacherAsync(startDate);
             if (result.Status == 1)
             {
                 return BadRequest(result);

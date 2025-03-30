@@ -162,12 +162,12 @@ public class TeacherTestExamService : ITeacherTestExamService
         
         if (existingTestExam != null)
         {
-            return new ApiResponse<object?>(1, "Không được trùng " , null);
+            return new ApiResponse<object?>(1, "Không được trùng lịch kiểm tra " , null);
         }
 
-        if (request.EndDate == request.StartDate)
+        if (request.EndDate <= request.StartDate)
         {
-            return new ApiResponse<object?>(1, "Ngày bất đầu và ngày kết thúc không được trùng" , null);
+            return new ApiResponse<object?>(1, "Ngày kết thúc phải lớn hơn ngày bắt đầu.", null);
         }
         
         
