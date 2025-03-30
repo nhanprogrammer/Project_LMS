@@ -118,15 +118,14 @@ namespace Project_LMS.Repositories
         public async Task<List<ClassStudent>> FindStudentByStudentAcademic(int studentId, int academicId)
         {
             return await _context.ClassStudents
-                .Include(cs=>cs.User).ThenInclude(u=>u.Assignments).ThenInclude(asm=>asm.TestExam).ThenInclude(te=>te.TestExamType)
-                .Include(cs=>cs.Class)
-                .Include(cs=>cs.Class).ThenInclude(c=>c.AcademicYear)
-                .Include(cs=>cs.Class).ThenInclude(c=>c.Department)
-                .Include(cs=>cs.Class).ThenInclude(c=>c.User)
-                .Include(cs=>cs.Class).ThenInclude(c=>c.ClassSubjects).ThenInclude(cs=>cs.Subject)
-                .Include(cs=>cs.Class).ThenInclude(c=>c.TeachingAssignments).ThenInclude(t=>t.User)
-                
-                .Where(cs=>cs.UserId == studentId && cs.Class.AcademicYearId == academicId && cs.IsDelete == false && cs.Class.IsDelete == false && cs.Class.AcademicYear.IsDelete == false).ToListAsync();
+                 .Include(cs => cs.User).ThenInclude(u => u.Assignments).ThenInclude(asm => asm.TestExam).ThenInclude(te => te.TestExamType)
+                 .Include(cs => cs.Class)
+                 .Include(cs => cs.Class).ThenInclude(c => c.AcademicYear)
+                 .Include(cs => cs.Class).ThenInclude(c => c.Department)
+                 .Include(cs => cs.Class).ThenInclude(c => c.User)
+                 .Include(cs => cs.Class).ThenInclude(c => c.ClassSubjects).ThenInclude(cs => cs.Subject)
+                 .Include(cs => cs.Class).ThenInclude(c => c.TeachingAssignments).ThenInclude(t => t.User)
+                 .Where(cs => cs.UserId == studentId && cs.IsDelete == false && cs.Class.IsDelete == false).ToListAsync();
         }
 
         public async Task<List<ClassStudent>> GetAllByClasses(List<int> ids, PaginationRequest request, string column, bool orderBy, string searchTerm = null)

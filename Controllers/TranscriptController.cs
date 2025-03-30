@@ -47,6 +47,14 @@ namespace Project_LMS.Controllers
             return Ok(result);
         }
 
+        [HttpGet("transcriptbyteacher")]
+        public async Task<IActionResult> GetTranscriptByTeacherAsync([FromQuery] TranscriptTeacherRequest request)
+        {
+
+            var result = await _transcriptService.GetTranscriptByTeacherAsync(request);
+            return Ok(result);
+        }
+
 
     }
 }

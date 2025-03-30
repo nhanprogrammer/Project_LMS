@@ -9,6 +9,7 @@ using Project_LMS.Interfaces.Repositories;
 using Project_LMS.Interfaces.Responsitories;
 using Project_LMS.Interfaces.Services;
 using Project_LMS.Models;
+using Twilio.Rest.Api.V2010.Account;
 
 namespace Project_LMS.Services
 {
@@ -18,25 +19,25 @@ namespace Project_LMS.Services
         private readonly IStudentRepository _studentRepository;
         private readonly ITestExamTypeRepository _testExamTypeRepository;
         private readonly ICloudinaryService _cloudinaryService;
+        private readonly IAssignmentRepository _assignmentRepository;
 
-        public TranscriptService(IClassStudentRepository classStudentRepository, IStudentRepository studentRepository, ITestExamTypeRepository testExamTypeRepository, ICloudinaryService cloudinaryService)
+        public TranscriptService(IClassStudentRepository classStudentRepository, IStudentRepository studentRepository, ITestExamTypeRepository testExamTypeRepository, ICloudinaryService cloudinaryService, IAssignmentRepository assignmentRepository)
         {
             _classStudentRepository = classStudentRepository;
             _studentRepository = studentRepository;
             _testExamTypeRepository = testExamTypeRepository;
             _cloudinaryService = cloudinaryService;
+            _assignmentRepository = assignmentRepository;
         }
 
         public async Task<ApiResponse<object>> ExportExcelTranscriptAsync(TranscriptRequest request)
         {
-            if (string.IsNullOrWhiteSpace(request.UserCode))
-                return new ApiResponse<object>(1, "UserCode không được bỏ trống.");
 
-            var student = await _studentRepository.FindStudentByUserCode(request.UserCode);
+            var student = await _studentRepository.FindStudentById(request.studentId);
             if (student == null)
                 return new ApiResponse<object>(1, "Học viên không tồn tại.");
 
-            var classStudents = await _classStudentRepository.FindStudentByStudentAcademic(student.Id, (int)request.AcademicYearId);
+            var classStudents = await _classStudentRepository.FindStudentByStudentAcademic(student.Id, (int)request.DepartmentId);
             var classStudent = classStudents.FirstOrDefault(cs => cs.IsClassTransitionStatus == false);
             //if (classStudent == null)
             //    return new ApiResponse<object>(1, "Không tìm thấy lớp học của học viên.");
@@ -58,21 +59,21 @@ namespace Project_LMS.Services
                 worksheet1.Cells["A1"].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
                 worksheet1.Cells["A1"].Style.Font.Bold = true;
 
-                worksheet1.Cells[2, 1].Value = "Họ và tên"; 
-                worksheet1.Cells[2, 2].Value = "Giới tính"; 
-                worksheet1.Cells[2, 3].Value = "Ngày sinh"; 
-                worksheet1.Cells[2, 4].Value = "Email"; 
-                worksheet1.Cells[2, 5].Value = "Lớp"; 
-                worksheet1.Cells[2, 6].Value = "GVCN"; 
-                worksheet1.Cells[2, 7].Value = "Niên khóa"; 
+                worksheet1.Cells[2, 1].Value = "Họ và tên";
+                worksheet1.Cells[2, 2].Value = "Giới tính";
+                worksheet1.Cells[2, 3].Value = "Ngày sinh";
+                worksheet1.Cells[2, 4].Value = "Email";
+                worksheet1.Cells[2, 5].Value = "Lớp";
+                worksheet1.Cells[2, 6].Value = "GVCN";
+                worksheet1.Cells[2, 7].Value = "Niên khóa";
 
-                worksheet1.Cells[3, 1].Value = classStudent?.User?.FullName; 
-                worksheet1.Cells[3, 2].Value = classStudent?.User?.Gender?.Length >0 ? (classStudent?.User.Gender[0] == true?"Nam":"Nữ"):"Chưa có dữ liệu" ; 
-                worksheet1.Cells[3, 3].Value = classStudent?.User?.BirthDate?.ToString("dd/MM/yyyy"); 
-                worksheet1.Cells[3, 4].Value = classStudent?.User?.Email; 
-                worksheet1.Cells[3, 5].Value = classStudent?.Class?.Name; 
-                worksheet1.Cells[3, 6].Value = classStudent?.Class?.User?.FullName; 
-                worksheet1.Cells[3, 7].Value = $"{classStudent?.Class?.AcademicYear?.StartDate?.ToString("yyyy")} - {classStudent?.Class?.AcademicYear?.EndDate?.ToString("yyyy")}"; 
+                worksheet1.Cells[3, 1].Value = classStudent?.User?.FullName;
+                worksheet1.Cells[3, 2].Value = classStudent?.User?.Gender?.Length > 0 ? (classStudent?.User.Gender[0] == true ? "Nam" : "Nữ") : "Chưa có dữ liệu";
+                worksheet1.Cells[3, 3].Value = classStudent?.User?.BirthDate?.ToString("dd/MM/yyyy");
+                worksheet1.Cells[3, 4].Value = classStudent?.User?.Email;
+                worksheet1.Cells[3, 5].Value = classStudent?.Class?.Name;
+                worksheet1.Cells[3, 6].Value = classStudent?.Class?.User?.FullName;
+                worksheet1.Cells[3, 7].Value = $"{classStudent?.Class?.AcademicYear?.StartDate?.ToString("yyyy")} - {classStudent?.Class?.AcademicYear?.EndDate?.ToString("yyyy")}";
 
                 var worksheet2 = package.Workbook.Worksheets.Add("Danh sách học viên");
                 // Gộp 5 cột đầu tiên ở hàng 1 mà không dùng Range
@@ -103,8 +104,7 @@ namespace Project_LMS.Services
                     foreach (var testExamType in testExamTypes)
                     {
                         colmn++;
-                        var assignment = assignments.FirstOrDefault(a => a.TestExam?.TestExamTypeId == testExamType.Id && a.TestExam.SubjectId == subject?.Id);
-
+                        var assignment = classStudent?.User?.Assignments.FirstOrDefault(a => a.TestExam?.TestExamTypeId == testExamType.Id && a.TestExam.SubjectId == subject?.Id && a.TestExam.SemestersId == request.SemesterId && a.TestExam?.DepartmentId == request.DepartmentId);
                         if (assignment != null)
                         {
                             worksheet2.Cells[row + 2, colmn].Value = assignment.TotalScore;
@@ -124,14 +124,14 @@ namespace Project_LMS.Services
                     var teachingAssignment = classStudent?.Class?.TeachingAssignments?
                         .FirstOrDefault(ta => ta?.Subject?.Id == subject?.Id && ta?.IsDelete == false);
 
-                    worksheet2.Cells[row+2,1].Value = row;
-                    worksheet2.Cells[row+2,2].Value = subject?.SubjectName;
-                    worksheet2.Cells[row+2,3].Value = teachingAssignment?.User?.FullName??"Chưa có dữ liệu";
-                    worksheet2.Cells[row+2,colmn+1].Value = averageScore;
-                    worksheet2.Cells[row+2,colmn+2].Value = averageScore>=5?"Đạt":"Chưa đạt";
+                    worksheet2.Cells[row + 2, 1].Value = row;
+                    worksheet2.Cells[row + 2, 2].Value = subject?.SubjectName;
+                    worksheet2.Cells[row + 2, 3].Value = teachingAssignment?.User?.FullName ?? "Chưa có dữ liệu";
+                    worksheet2.Cells[row + 2, colmn + 1].Value = averageScore;
+                    worksheet2.Cells[row + 2, colmn + 2].Value = averageScore >= 5 ? "Đạt" : "Chưa đạt";
                     worksheet2.Cells[row + 2, colmn + 3].Value =
                         teachingAssignment?.UpdateAt?.ToString("dddd, dd/MM/yyyy HH:mm")
-                        ?? teachingAssignment?.CreateAt?.ToString("dddd, dd/MM/yyyy HH:mm")??"Chưa có dữ liệu";
+                        ?? teachingAssignment?.CreateAt?.ToString("dddd, dd/MM/yyyy HH:mm") ?? "Chưa có dữ liệu";
 
 
                 }
@@ -139,36 +139,33 @@ namespace Project_LMS.Services
                 worksheet2.Cells.AutoFitColumns();
                 var filebytes = package.GetAsByteArray();
                 string base64Excel = Convert.ToBase64String(filebytes);
-                return new ApiResponse<object>(0,"Xuất excel thành công.") { Data = base64Excel };
+                return new ApiResponse<object>(0, "Xuất excel thành công.") { Data = base64Excel };
             }
         }
 
         public async Task<ApiResponse<object>> GetTranscriptAsync(TranscriptRequest request)
         {
-            if (string.IsNullOrWhiteSpace(request.UserCode))
-                return new ApiResponse<object>(1, "UserCode không được bỏ trống.");
+            //if (string.IsNullOrWhiteSpace(request.UserCode))
+            //    return new ApiResponse<object>(1, "UserCode không được bỏ trống.");
 
-            var student = await _studentRepository.FindStudentByUserCode(request.UserCode);
+            var student = await _studentRepository.FindStudentById(request.studentId);
             if (student == null)
                 return new ApiResponse<object>(1, "Học viên không tồn tại.");
 
-            var classStudents = await _classStudentRepository.FindStudentByStudentAcademic(student.Id, (int)request.AcademicYearId);
+            var classStudents = await _classStudentRepository.FindStudentByStudentAcademic(student.Id, (int)request.DepartmentId);
             var classStudent = classStudents.FirstOrDefault(cs => cs.IsClassTransitionStatus == false);
-            //if (classStudent == null)
-            //    return new ApiResponse<object>(1, "Không tìm thấy lớp học của học viên.");
+
 
             var subjects = classStudent?.Class?.ClassSubjects?.Select(cs => cs.Subject).ToList() ?? new List<Subject?>();
-            var assignments = classStudent?.User?.Assignments?
-                .Where(asm => asm?.TestExam?.SemestersId == request.SemesterId)
-                .ToList() ?? new List<Assignment>();
 
             var testExamTypes = await _testExamTypeRepository.GetAllAsync();
             var transcript = new List<object>();
 
 
-
+            Console.WriteLine("subjects out " + subjects.Count);
             foreach (var subject in subjects)
             {
+                Console.WriteLine("subjects in " + subjects.Count);
                 double totalScore = 0;
                 int totalCoefficient = 0;
                 var testExamTypeItems = new List<Dictionary<string, object>>();
@@ -176,17 +173,17 @@ namespace Project_LMS.Services
                 foreach (var testExamType in testExamTypes)
                 {
                     var testExamTypeItem = new Dictionary<string, object>();
-                    var assignment = assignments.FirstOrDefault(a => a.TestExam?.TestExamTypeId == testExamType.Id && a.TestExam.SubjectId == subject?.Id);
+                    var assignment = classStudent?.User?.Assignments.FirstOrDefault(a => a.TestExam?.TestExamTypeId == testExamType.Id && a.TestExam.SubjectId == subject?.Id && a.TestExam.SemestersId == request.SemesterId && a.TestExam?.DepartmentId == request.DepartmentId);
 
                     if (assignment != null)
                     {
-                        testExamTypeItem[testExamType.PointTypeName??"N/A"] = assignment.TotalScore ?? 0;
+                        testExamTypeItem[testExamType.PointTypeName ?? "N/A"] = assignment.TotalScore ?? 0;
                         totalScore += assignment.TotalScore * testExamType.Coefficient ?? 0;
                         totalCoefficient += testExamType.Coefficient ?? 1;
                     }
                     else
                     {
-                        testExamTypeItem[testExamType.PointTypeName??"N/A"] = "Chưa có dữ liệu";
+                        testExamTypeItem[testExamType.PointTypeName ?? "N/A"] = "Chưa có dữ liệu";
                     }
 
                     testExamTypeItems.Add(testExamTypeItem);
@@ -226,7 +223,73 @@ namespace Project_LMS.Services
             };
         }
 
+        public async Task<ApiResponse<object>> GetTranscriptByTeacherAsync(TranscriptTeacherRequest request)
+        {
+            var assignments = await _assignmentRepository.GetAllByClassAndSubjectAndSemesterAndSearch(request.ClassId, request.SubjectId, request.SemesterId, request.searchItem);
+            var users = assignments.GroupBy(x => new
+            {
+                x.User.Id,
+                x.User.FullName,
+                x.User.BirthDate,
+                x.User.UpdateAt
+            }).ToList();
+            var transcripts = new List<object>();
+            var testExamTypes = await _testExamTypeRepository.GetAllAsync();
+            foreach (var user in users)
+            {
+                var pointTypeNames = new List<Dictionary<string, object>>();
+                double totalScore = 0;
+                int totalCoefficient = 0;
+                foreach (TestExamType test in testExamTypes)
+                {
+                    var pointTypeName = new Dictionary<string, object>();
+                    foreach (Assignment asm in assignments.Where(asm => asm.UserId == user.Key.Id).ToList())
+                    {
+                        if (asm.TestExamId == test.Id)
+                        {
+                            pointTypeName.Add(test.PointTypeName, asm.TotalScore);
+                            totalScore += (double)asm.TotalScore * asm.TestExam.TestExamType.Coefficient ?? 1;
+                            totalCoefficient += asm.TestExam.TestExamType.Coefficient ?? 0;
+                        }
+                        else
+                        {
+                            pointTypeName.Add(test.PointTypeName, "Chưa có dữ liệu");
+                        }
+                    }
+                    pointTypeNames.Add(pointTypeName);
+                }
+                pointTypeNames.Add(new Dictionary<string, object>{
+                    {
+                        "avgScore", totalScore / (totalCoefficient > 0?totalCoefficient:1)
+                    }
+                });
 
+                transcripts.Add(new
+                {
+                    fullName = user.Key.FullName,
+                    birthDate = user.Key.BirthDate,
+                    scores = pointTypeNames,
+                    avgScoreYear = await _assignmentRepository.AvgScoreByStudentAndClassAndSubjectAndSearch(user.Key.Id, request.ClassId, request.SubjectId),
+                    updateDate = user.Key.UpdateAt
+                });
+            }
+            return new ApiResponse<object>(0, "Lấy danh sách bảng điểm thành công.")
+            {
+                Data = new
+                {
+                    info = new
+                    {
+                        subjectName = assignments.Count > 0 ? assignments[0].TestExam.Subject.SubjectName : "Không có dữ liệu",
+                        className = assignments.Count > 0 ? assignments[0].TestExam.Class.Name : "Không có dữ liệu",
+                        classCode = assignments.Count > 0 ? assignments[0].TestExam.Class.ClassCode : "Không có dữ liệu",
+                        startDate = assignments.Count > 0 ? assignments[0].TestExam.Class.StartDate.ToString() : "Không có dữ liệu",
+
+                    },
+                    transcripts
+                }
+            };
+
+        }
     }
 }
 

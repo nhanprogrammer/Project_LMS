@@ -125,8 +125,6 @@ namespace Project_LMS.Services
             if (!IntValidator.IsValid(transferRequest.UserId.ToString() ?? ""))
                 errors.Add(new ValidationError { Field = "StudentId", Error = "StudentId phải là số nguyên" });
 
-            if (!IntValidator.IsValid(transferRequest.SchoolBranchesId.ToString() ?? ""))
-                errors.Add(new ValidationError { Field = "SchoolBranchesId", Error = "SchoolBranchesId phải là số nguyên" });
 
             if (!DateTimeValidator.IsValidDateTime(transferRequest.TransferDate.ToString() ?? ""))
                 errors.Add(new ValidationError { Field = "TransferDate", Error = "Ngày chuyển trường không hợp lệ" });
@@ -148,11 +146,6 @@ namespace Project_LMS.Services
             //     throw new NotFoundException("Không tìm thấy học sinh với ID đã cho");
             // }
 
-            var schoolBranch = await _schoolBranchRepository.GetByIdAsync(transferRequest.SchoolBranchesId ?? 0);
-            if (schoolBranch == null)
-            {
-                throw new NotFoundException("Không tìm thấy chi nhánh trường với ID đã cho");
-            }
 
             // var province = await _provinceRepository.GetByIdAsync(transferRequest.ProvinceId ?? 0);
             // if (province == null)
