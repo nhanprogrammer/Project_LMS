@@ -16,7 +16,7 @@ public class TestExamScheduleService : ITestExamScheduleService
     }
 
     public async Task<ApiResponse<List<TestExamScheduleResponse>>> GetExamScheduleAsync(DateTimeOffset? mount,
-        bool week)
+        bool week,int? departmentId)
     {
         DateTimeOffset now = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7));
 
@@ -43,12 +43,14 @@ public class TestExamScheduleService : ITestExamScheduleService
             .Include(te => te.Class)
             .Include(te => te.Department)
             .Where(te =>
-                (week && te.StartDate.HasValue && te.StartDate.Value >= startOfWeek &&
-                 te.StartDate.Value <= endOfWeek) ||
-                (!week && te.StartDate.HasValue && te.StartDate.Value >= startOfMonth &&
-                 te.StartDate.Value <= endOfMonth) ||
-                // Xử lý trường hợp StartDate là null
-                (!week && !te.StartDate.HasValue)
+                (
+                    (week && te.StartDate.HasValue && te.StartDate.Value >= startOfWeek && te.StartDate.Value <= endOfWeek) ||
+                    (!week && te.StartDate.HasValue && te.StartDate.Value >= startOfMonth && te.StartDate.Value <= endOfMonth) ||
+                    // Xử lý trường hợp StartDate là null
+                    (!week && !te.StartDate.HasValue)
+                ) &&
+                // Apply department filter only if departmentId is not null
+                (!departmentId.HasValue || te.DepartmentId == departmentId)
             )
             .ToListAsync();
 
@@ -91,86 +93,7 @@ public class TestExamScheduleService : ITestExamScheduleService
 
         return new ApiResponse<List<TestExamScheduleResponse>>(0, "Lấy danh sách thành công!", response);
     }
-
-    public async Task<ApiResponse<List<TestExamScheduleResponse>>> GetExamScheduleStudentAndTeacherAsync(DateTimeOffset? mount,
-        bool week, int? departmentId)
-{
-    DateTimeOffset now = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7));
-
-    // Nếu 'mount' có giá trị thì lấy start và end của tháng, nếu không lấy tháng hiện tại
-    DateTimeOffset startOfMonth = mount.HasValue
-        ? new DateTimeOffset(mount.Value.Year, mount.Value.Month, 1, 0, 0, 0, TimeSpan.FromHours(7))
-        : new DateTimeOffset(now.Year, now.Month, 1, 0, 0, 0, TimeSpan.FromHours(7));
-
-    DateTimeOffset endOfMonth = startOfMonth.AddMonths(1).AddSeconds(-1);
-
-    // Nếu lọc theo tuần, lấy tuần của tháng hiện tại
-    DateTimeOffset startOfWeek = now.Date;
-    DateTimeOffset endOfWeek = startOfWeek.AddDays(6).AddSeconds(59);
-
-    if (week)
-    {
-        startOfWeek = now.Date;
-        endOfWeek = startOfWeek.AddDays(6).AddSeconds(59);
-    }
-
-    // Lọc dữ liệu từ database, xử lý khi StartDate có thể null
-    var testExams = await _context.TestExams
-        .Include(te => te.Subject)
-        .Include(te => te.Class)
-        .Include(te => te.Department)
-        .Where(te =>
-            (
-                (week && te.StartDate.HasValue && te.StartDate.Value >= startOfWeek && te.StartDate.Value <= endOfWeek) ||
-                (!week && te.StartDate.HasValue && te.StartDate.Value >= startOfMonth && te.StartDate.Value <= endOfMonth) ||
-                // Xử lý trường hợp StartDate là null
-                (!week && !te.StartDate.HasValue)
-            ) &&
-            // Apply department filter only if departmentId is not null
-            (!departmentId.HasValue || te.DepartmentId == departmentId)
-        )
-        .ToListAsync();
-
-    var response = testExams.Select(te =>
-    {
-        var durationTimeSpan = te.Duration.HasValue
-            ? te.Duration.Value.ToTimeSpan()
-            : TimeSpan.Zero; // Sử dụng TimeSpan.Zero nếu Duration không có giá trị
-
-        var hours = durationTimeSpan.Hours;
-        var minutes = durationTimeSpan.Minutes;
-
-        string durationString;
-        if (hours > 0 && minutes > 0)
-        {
-            durationString = $"{hours} giờ {minutes} phút";
-        }
-        else if (hours > 0)
-        {
-            durationString = $"{hours} giờ";
-        }
-        else
-        {
-            durationString = $"{minutes} phút";
-        }
-
-        var classes = _context.ClassTestExams
-            .Where(cte => cte.TestExamId == te.Id)
-            .Select(cte => cte.Class.Name)
-            .ToList();
-
-        return new TestExamScheduleResponse
-        {
-            SubjectAndDuration = $"{te.Subject.SubjectName} - {durationString}",
-            ClassName = string.Join(", ", classes),
-            DepartmentName = te.Department.Name,
-            StartDate = te.StartDate
-        };
-    }).ToList();
-
-    return new ApiResponse<List<TestExamScheduleResponse>>(0, "Lấy danh sách thành công!", response);
-}
-
+    
 
     public async Task<ApiResponse<List<TestExamScheduleDetailResponse>>> GetExamScheduleDetailAsync(
         DateTimeOffset startdate)

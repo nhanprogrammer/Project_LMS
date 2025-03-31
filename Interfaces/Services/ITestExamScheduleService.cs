@@ -4,7 +4,7 @@ namespace Project_LMS.Interfaces.Services
 {
     public interface ITestExamScheduleService
     {
-        Task<ApiResponse<List<TestExamScheduleResponse>>> GetExamScheduleAsync(DateTimeOffset? mount, bool week);
+        Task<ApiResponse<List<TestExamScheduleResponse>>> GetExamScheduleAsync(DateTimeOffset? mount, bool week,int? departmentid);
 
         Task<ApiResponse<List<TestExamScheduleDetailResponse>>> GetExamScheduleDetailAsync(
             DateTimeOffset startdate);
@@ -13,9 +13,7 @@ namespace Project_LMS.Interfaces.Services
             GetExamScheduleDetailForStudentAndTeacherAsync(
                 DateTimeOffset startdate);
 
-        Task<ApiResponse<List<TestExamScheduleResponse>>> GetExamScheduleStudentAndTeacherAsync(DateTimeOffset? mount,
-            bool week, int? departmentId);
-        
+
          Task<ApiResponse<Object>> DeleteExamScheduleDetailByIdAsync(int id);
     }
 }
