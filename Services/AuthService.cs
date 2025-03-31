@@ -52,12 +52,13 @@ namespace Project_LMS.Services
                 throw new Exception("Username hoặc mật khẩu không đúng!");
 
             var permissions = await _permissionService.ListPermission(user.Id);
-            var token = await GenerateJwtToken(user);
+            var accessToken = await GenerateJwtToken(user);
+            var refreshToken = await GenerateJwtToken(user);
 
             // Lấy role từ DB
             string role = user.Role.Name.ToUpper();
 
-            return new AuthUserLoginResponse(user.Username, user.FullName, token, role, permissions);
+            return new AuthUserLoginResponse(user.Username, user.FullName, accessToken, refreshToken, role, permissions);
         }
 
 
@@ -77,7 +78,8 @@ namespace Project_LMS.Services
             }
 
             // Xóa cookie chứa token
-            context.Response.Cookies.Delete("AuthToken");
+            context.Response.Cookies.Delete("AccessToken");
+            context.Response.Cookies.Delete("RefreshToken");
 
             // Xóa token trong context
             context.Items.Remove("Token");

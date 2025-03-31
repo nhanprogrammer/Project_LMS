@@ -235,8 +235,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             OnMessageReceived = async context =>
             {
                 var memoryCache = context.HttpContext.RequestServices.GetRequiredService<IMemoryCache>();
-                var token = context.Request.Cookies["AuthToken"];
-                Console.WriteLine($"Cookie AuthToken: {token}");
+                var token = context.Request.Cookies["AccessToken"];
+                Console.WriteLine($"Cookie AccessToken: {token}");
 
                 if (string.IsNullOrEmpty(token) && context.Request.Headers.ContainsKey("Authorization"))
                 {
