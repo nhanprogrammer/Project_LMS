@@ -92,6 +92,10 @@ public class WorkProcessController : ControllerBase
         {
             return NotFound(new ApiResponse<string>(1, ex.Message, null));
         }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new ApiResponse<string>(1, ex.Message, null));
+        }
         catch (ArgumentException ex)
         {
             return BadRequest(new ApiResponse<string>(1, ex.Message, null));

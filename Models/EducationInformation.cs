@@ -21,8 +21,8 @@ namespace Project_LMS.Models
         public string? AttachedFile { get; set; }
         public DateTime? CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
-        public int? CreatedBy { get; set; }
-        public int? UpdatedBy { get; set; }
+        public int? UserCreate { get; set; }
+        public int? UserUpdate { get; set; }
         public bool? IsDeleted { get; set; }
         public virtual ICollection<EducationProgram> EducationPrograms { get; set; } = new HashSet<EducationProgram>();
         public virtual User User { get; set; }

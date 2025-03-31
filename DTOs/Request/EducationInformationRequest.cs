@@ -7,8 +7,8 @@ namespace Project_LMS.DTOs.Request
         [Required(ErrorMessage = "UserId không được bỏ trống")]
         [Range(1, int.MaxValue, ErrorMessage = "UserId không hợp lệ")]
         public int UserId { get; set; }
-        public int AcademicYearId { get; set; }
-        public int ClassId { get; set; }
+        public int? AcademicYearId { get; set; }
+        public int? ClassId { get; set; }
         public string? Search { get; set; }
     }
     public class EducationInformationsResponse
@@ -67,9 +67,8 @@ namespace Project_LMS.DTOs.Request
      public class EducationInformationUpdateRequest
     {
         [Required(ErrorMessage = "Id không được bỏ trống")]
-        [Range(1, int.MaxValue, ErrorMessage = "Id không hợp lệ")]
         public int Id { get; set; }
-          [Required(ErrorMessage = "UserId không được bỏ trống")]
+        [Required(ErrorMessage = "UserId không được bỏ trống")]
         [Range(1, int.MaxValue, ErrorMessage = "UserId không hợp lệ")]
         public int UserId { get; set; }
         [Required(ErrorMessage = "TrainingInstitution không được bỏ trống")]
@@ -90,10 +89,9 @@ namespace Project_LMS.DTOs.Request
 
     }
 
-      public class EducationInformationDeleteRequest
+    public class EducationInformationDeleteRequest
     {
         [Required(ErrorMessage = "Id không được bỏ trống")]
-        [Range(1, int.MaxValue, ErrorMessage = "Id không hợp lệ")]
         public int Id { get; set; }
 
     }

@@ -20,37 +20,56 @@ namespace Project_LMS.Controllers
             _authService = authService;
         }
 
-     [HttpPost("login")]
-public async Task<IActionResult> Login([FromBody] AuthLoginRequest request)
-{
-    try
-    {
-        var userResponse = await _authService.LoginAsync(request.UserName, request.Password);
-
-        // Lưu Access Token vào cookie (thời hạn ngắn,  1 ngày)
-        Response.Cookies.Append("AccessToken", userResponse.AccessToken, new CookieOptions
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] AuthLoginRequest request)
         {
-            HttpOnly = true,
-            Secure = false, // Tắt tạm thời nếu frontend không có HTTPS
-            Expires = DateTime.Now.AddHours(24)
-        });
+            try
+            {
+                var userResponse = await _authService.LoginAsync(request.UserName, request.Password);
 
-        // Lưu Refresh Token vào cookie (thời hạn dài hơn,  6 tháng)
-        Response.Cookies.Append("RefreshToken", userResponse.RefreshToken, new CookieOptions
+                // Lưu Access Token vào cookie (thời hạn ngắn,  1 ngày)
+                Response.Cookies.Append("AccessToken", userResponse.AccessToken, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = false, // Tắt tạm thời nếu frontend không có HTTPS
+                    Expires = DateTime.Now.AddHours(24)
+                });
+
+                // Lưu Refresh Token vào cookie (thời hạn dài hơn,  6 tháng)
+                Response.Cookies.Append("RefreshToken", userResponse.RefreshToken, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = false,
+                    Expires = DateTime.Now.AddMonths(6)
+                });
+
+                return Ok(new ApiResponse<AuthUserLoginResponse>(0, "Đăng nhập thành công!", userResponse));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<string>(1, ex.Message, null));
+            }
+        }
+
+
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
         {
-            HttpOnly = true,
-            Secure = false,
-            Expires = DateTime.Now.AddMonths(6)
-        });
+            try
+            {
+                var newAccessToken = await _authService.RefreshAccessTokenAsync(request.RefreshToken);
 
-        return Ok(new ApiResponse<AuthUserLoginResponse>(0, "Đăng nhập thành công!", userResponse));
-    }
-    catch (Exception ex)
-    {
-        return BadRequest(new ApiResponse<string>(1, ex.Message, null));
-    }
-}
-
+                return Ok(new ApiResponse<string>(0, "Làm mới token thành công!", newAccessToken));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new ApiResponse<string>(1, ex.Message, null));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<string>(2, "Lỗi hệ thống", null));
+            }
+        }
 
         [HttpPost("logout")]
         public async Task<IActionResult> Logout()
