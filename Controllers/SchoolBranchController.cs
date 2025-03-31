@@ -6,9 +6,11 @@ using Project_LMS.Exceptions;
 using Project_LMS.Helpers;
 using System.Text.Json;
 using Project_LMS.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Project_LMS.Controllers
 {
+    [Authorize(Policy = "SYS-SET-VIEW")]
     [ApiController]
     [Route("api/[controller]")]
     public class SchoolBranchController : ControllerBase
@@ -59,6 +61,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "SYS-SET-INSERT")]
         [HttpPost]
         public async Task<ActionResult<ApiResponse<SchoolBranchResponse>>> Create(SchoolBranchRequest schoolBranchRequest)
         {
@@ -92,6 +95,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "SYS-SET-UPDATE")]
         [HttpPut]
         public async Task<ActionResult<ApiResponse<SchoolBranchResponse>>> Update([FromBody] SchoolBranchRequest schoolBranchRequest)
         {
@@ -133,6 +137,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "SYS-SET-DELETE")]
         [HttpDelete("{id}")]
         public async Task<ActionResult<ApiResponse<SchoolBranchResponse>>> Delete(int id)
         {

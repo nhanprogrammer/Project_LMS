@@ -128,8 +128,7 @@ namespace Project_LMS.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in Create TestExamType: {ex.Message} | {ex.StackTrace}");
-                throw new BadRequestException("Đã xảy ra lỗi khi tạo loại bài kiểm tra: " + ex.Message);
+                throw new BadRequestException(ex.Message, null);
             }
         }
 
@@ -158,10 +157,6 @@ namespace Project_LMS.Services
                 testExamType.UserUpdate = userId;
 
                 var saved = await _context.SaveChangesAsync();
-                if (saved <= 0)
-                {
-                    throw new BadRequestException("Không thể cập nhật loại bài kiểm tra vào cơ sở dữ liệu.");
-                }
 
                 var response = _mapper.Map<TestExamTypeResponse>(testExamType);
                 return new ApiResponse<TestExamTypeResponse>(0, "Cập nhật loại bài kiểm tra thành công.")
@@ -171,16 +166,15 @@ namespace Project_LMS.Services
             }
             catch (NotFoundException ex)
             {
-                throw; 
+                throw; // Ném lại để controller xử lý
             }
             catch (Exception ex)
             {
                 // Ghi log lỗi (nếu có logger)
                 Console.WriteLine($"Error in Update TestExamType: {ex.Message} | {ex.StackTrace}");
-                throw new BadRequestException("Đã xảy ra lỗi khi cập nhật loại bài kiểm tra: " + ex.Message);
+                throw new BadRequestException(ex.Message);
             }
         }
-
 
         public async Task<ApiResponse<TestExamTypeResponse>> Delete(int id)
         {
@@ -191,7 +185,7 @@ namespace Project_LMS.Services
             }
             if (testExamType.IsDelete == true)
             {
-                return new ApiResponse<TestExamTypeResponse>(1, "Loại bài kiểm tra đã bị xóa.");
+                return new ApiResponse<TestExamTypeResponse>(1, "Loại bài kiểm tra này đã được xóa trước đó.");
             }
             testExamType.IsDelete = true;
             await _context.SaveChangesAsync();

@@ -20,11 +20,12 @@ namespace Project_LMS.Controllers
             _authService = authService;
         }
 
+        [Authorize(Policy = "SYS-SET-VIEW")]
         [HttpGet]
         public async Task<ActionResult<ApiResponse<PaginatedResponse<SubjectTypeResponse>>>> GetAll(
-            [FromQuery] string? keyword = null,
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 10)
+        [FromQuery] string? keyword = null,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10)
         {
             try
             {
@@ -41,6 +42,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+            [Authorize(Policy = "SYS-SET-VIEW")]
         [HttpGet("{id}")]
         public async Task<ActionResult<ApiResponse<SubjectTypeResponse>>> GetById(int id)
         {
@@ -63,6 +65,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+[Authorize(Policy = "SYS-SET-INSERT")]
         [HttpPost]
         public async Task<ActionResult<ApiResponse<SubjectTypeResponse>>> Create([FromBody] SubjectTypeRequest request)
         {
@@ -98,6 +101,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "SYS-SET-UPDATE")]
         [HttpPut()]
         public async Task<ActionResult<ApiResponse<SubjectTypeResponse>>> Update([FromBody] SubjectTypeRequest request)
         {
@@ -138,6 +142,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "SYS-SET-DELETE")]
         [HttpDelete]
         public async Task<ActionResult<ApiResponse<bool>>> Delete([FromBody] DeleteMultipleRequest request)
         {
@@ -164,6 +169,7 @@ namespace Project_LMS.Controllers
                 return StatusCode(500, new ApiResponse<bool>(1, $"Error deleting subject types: {ex.Message}", false));
             }
         }
+
         [HttpGet("get-all-subject-types")]
         public async Task<ActionResult<ApiResponse<List<SubjectTypeDropdownResponse>>>> GetSubjectTypeDropdown()
         {
