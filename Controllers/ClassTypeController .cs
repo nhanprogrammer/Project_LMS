@@ -7,7 +7,7 @@ using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers
 {
-    [Authorize(Policy = "DATA-MNG-VIEW")]
+
     [ApiController]
     [Route("api/[controller]")]
     public class ClassTypeController : ControllerBase
@@ -21,11 +21,12 @@ namespace Project_LMS.Controllers
             _authService = authService;
         }
 
+        [Authorize(Policy = "SYS-SET-VIEW")]
         [HttpGet]
         public async Task<ActionResult<ApiResponse<PaginatedResponse<ClassTypeResponse>>>> GetAll(
-            [FromQuery] string? keyword = null,
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 10)
+        [FromQuery] string? keyword = null,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10)
         {
             try
             {
@@ -42,6 +43,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "SYS-SET-VIEW")]
         [HttpGet("{id}")]
         public async Task<ActionResult<ApiResponse<ClassTypeResponse>>> GetById(int id)
         {
@@ -64,7 +66,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "DATA-MNG-INSERT")]
+        [Authorize(Policy = "SYS-SET-INSERT")]
         [HttpPost]
         public async Task<ActionResult<ApiResponse<ClassTypeResponse>>> Create([FromBody] ClassTypeRequest request)
         {
@@ -100,7 +102,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "DATA-MNG-UPDATE")]
+        [Authorize(Policy = "SYS-SET-UPDATE")]
         [HttpPut()]
         public async Task<ActionResult<ApiResponse<ClassTypeResponse>>> Update([FromBody] ClassTypeRequest request)
         {
@@ -141,7 +143,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "DATA-MNG-DELETE")]
+        [Authorize(Policy = "SYS-SET-DELETE")]
         [HttpDelete]
         public async Task<ActionResult<ApiResponse<bool>>> Delete([FromBody] DeleteMultipleRequest request)
         {
@@ -168,6 +170,7 @@ namespace Project_LMS.Controllers
                 return StatusCode(500, new ApiResponse<string>(1, $"Error deleting class types: {ex.Message}", null));
             }
         }
+
         [HttpGet("get-all-classtypes")]
         public async Task<ActionResult<ApiResponse<List<ClassTypeDropdownResponse>>>> GetClassTypeDropdown()
         {

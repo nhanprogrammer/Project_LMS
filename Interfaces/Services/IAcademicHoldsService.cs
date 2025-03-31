@@ -15,5 +15,6 @@ namespace Project_LMS.Interfaces
         Task<List<User_AcademicHoldsResponse>> GetAllUserName();
         Task<SemesterResponse?> GetSemesterByDateAsync(string dateString);
         Task<List<User_AcademicHoldsResponse>> SearchUsersByCriteriaAsync(int classId);
+        
     }
 }

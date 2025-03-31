@@ -8,6 +8,7 @@ using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers;
 
+
 [Authorize(Policy = "TEACHER")]
 [Route("api/[controller]")]
 [ApiController]

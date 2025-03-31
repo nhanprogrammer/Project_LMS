@@ -10,9 +10,11 @@ using OfficeOpenXml;
 using System.ComponentModel.DataAnnotations;
 using Project_LMS.Services;
 using Project_LMS.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Project_LMS.Controllers
 {
+    [Authorize(Policy = "SYS-SET-VIEW")]
     [ApiController]
     [Route("api/[controller]")]
     [ServiceFilter(typeof(ValidationFilter))]
@@ -82,6 +84,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "SYS-SET-INSERT")]
         [HttpPost]
         public async Task<ActionResult<ApiResponse<SchoolResponse>>> Create([FromBody] SchoolRequest schoolRequest)
         {
@@ -112,6 +115,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "SYS-SET-UPDATE")]
         [HttpPut]
         public async Task<ActionResult<ApiResponse<SchoolResponse>>> Update([FromBody] SchoolRequest schoolRequest)
         {
@@ -153,6 +157,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "SYS-SET-DELETE")]
         [HttpDelete("{id}")]
         public async Task<ActionResult<ApiResponse<SchoolResponse>>> Delete(int id)
         {
@@ -175,6 +180,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        
         [HttpPost("export-excel")]
         public async Task<ActionResult<ApiResponse<string>>> ExportExcel([FromBody] ExportSchoolExcelRequest request)
         {
@@ -196,7 +202,9 @@ namespace Project_LMS.Controllers
 
                 var base64String = await _excelService.ExportSchoolAndBranchesToExcelAsync(school, request.SchoolId);
 
-                return Ok(new ApiResponse<string>(0, "Xuất Excel thành công", base64String));
+                var fileUrl = await _cloudinaryService.UploadExcelAsync(base64String);
+
+                return Ok(new ApiResponse<string>(0, "Xuất Excel thành công", fileUrl));
             }
             catch (NotFoundException ex)
             {
