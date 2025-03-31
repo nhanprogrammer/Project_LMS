@@ -56,7 +56,7 @@ public class AssignmentRepository : IAssignmentRepository
             .Where(asm => asm.IsDelete == false && asm.TestExam.SemestersId == semesterId && asm.TestExam.ClassId == classId && asm.TestExam.SubjectId == subjectId && asm.TotalScore >= 0 && asm.TestExam.IsDelete == false && asm.User.IsDelete == false);
         if (!string.IsNullOrWhiteSpace(searchItem))
         {
-            query.Where
+            query=  query.Where
                 (asm =>
                 asm.User.UserCode.ToLower().Contains(searchItem.ToLower()) ||
                 asm.User.FullName.ToLower().Contains(searchItem.ToLower())
