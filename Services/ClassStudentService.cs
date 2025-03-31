@@ -65,9 +65,9 @@ namespace Project_LMS.Services
                 worksheet.Cells.AutoFitColumns();
                 var filebytes = package.GetAsByteArray();
                 string base64Excel = Convert.ToBase64String(filebytes);
-                return new ApiResponse<object>(0, "Export excel success.")
+                return new ApiResponse<object>(0, "Xuất excel thành công.")
                 {
-                    Data = base64Excel
+                    Data = await _cloudinaryService.UploadExcelAsync(base64Excel)
                 };
             }
 

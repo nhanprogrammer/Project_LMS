@@ -187,14 +187,14 @@ public class TeacherService : ITeacherService
             {
                 var subjects = await _teacherClassSubjectRepository.GetAllByTeacher(teacher.Id);
 
-                    foreach (var item in subjects)
+                foreach (var item in subjects)
+                {
+                    if (!request.TeacherSubjectIds.Contains(item.Id))
                     {
-                        if (!request.TeacherSubjectIds.Contains(item.Id))
-                        {
-                            await _teacherClassSubjectRepository.DeleteAsync(item);
-                        }
+                        await _teacherClassSubjectRepository.DeleteAsync(item);
                     }
-         
+                }
+
                 Task task2 = Task.Run(async () =>
                 {
                     foreach (int item in request.TeacherSubjectIds)
@@ -366,13 +366,13 @@ public class TeacherService : ITeacherService
             string base64Excel = Convert.ToBase64String(filebytes);
             return new ApiResponse<object>(0, "Export excel success.")
             {
-                Data = base64Excel
+                Data = await _cloudinaryService.UploadExcelAsync(base64Excel)
             };
         }
     }
 
-public async Task<List<UserResponseTeachingAssignment>> GetTeachersAsync()
-{
-    return await _teacherRepository.GetTeachersAsync();
-}
+    public async Task<List<UserResponseTeachingAssignment>> GetTeachersAsync()
+    {
+        return await _teacherRepository.GetTeachersAsync();
+    }
 }

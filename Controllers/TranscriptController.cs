@@ -8,7 +8,7 @@ using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers
 {
-    [Authorize(Policy = "STUDENT")]
+    //[Authorize(Policy = "STUDENT")]
     [ApiController]
     [Route("api/[controller]")]
     public class TranscriptController : ControllerBase
@@ -32,6 +32,28 @@ namespace Project_LMS.Controllers
         public async Task<IActionResult> ExportExcelTranscriptAsync([FromQuery]TranscriptRequest transcriptRequest)
         {
             var result = await _transcriptService.ExportExcelTranscriptAsync(transcriptRequest);
+            return Ok(result);
+        }
+
+        [HttpGet("transcriptbyteacher")]
+        public async Task<IActionResult> GetTranscriptByTeacherAsync([FromQuery] TranscriptTeacherRequest request)
+        {
+
+            var result = await _transcriptService.GetTranscriptByTeacherAsync(request);
+            return Ok(result);
+        }
+        [HttpGet("exportexceltranscriptbyteacher")]
+        public async Task<IActionResult> ExportExcelTranscriptByTeacherAsync([FromQuery] TranscriptTeacherRequest request)
+        {
+
+            var result = await _transcriptService.ExportExcelTranscriptByTeacherAsync(request);
+            return Ok(result);
+        }
+        [HttpGet("exportpdftranscriptbyteacher")]
+        public async Task<IActionResult> ExportPDFTranscriptByTeacherAsync([FromQuery] TranscriptTeacherRequest request)
+        {
+
+            var result = await _transcriptService.ExportPdfTranscriptByTeacherAsync(request);
             return Ok(result);
         }
 

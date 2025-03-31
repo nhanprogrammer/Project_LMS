@@ -1656,6 +1656,7 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.Reason).HasColumnName("reason");
 
+
                 entity.Property(e => e.Semester)
                     .HasMaxLength(50)
                     .HasColumnName("semester");
