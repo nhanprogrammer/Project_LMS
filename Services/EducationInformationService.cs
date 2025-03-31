@@ -18,31 +18,64 @@ public class EducationInformationService : IEducationInformationService
     // Lấy tất cả EducationInformation
     public async Task<IEnumerable<EducationInformationsResponse>> GetAllAsync(EducationInformationRequest request)
     {
-        var academicYear = await _context.AcademicYears.FindAsync(request.AcademicYearId);
+        DateTime? startDate = null;
+        DateTime? endDate = null;
 
-        var assignmentsTeaching = await _context.TeachingAssignments
-            .Where(at => at.ClassId == request.ClassId && at.UserId == request.UserId)
-            .ToListAsync();
+        // Kiểm tra nếu AcademicYearId hợp lệ thì lấy dữ liệu
+        if (request.AcademicYearId > 0)
+        {
+            var academicYear = await _context.AcademicYears.FindAsync(request.AcademicYearId);
+            if (academicYear != null)
+            {
+                startDate = academicYear.StartDate;
+                endDate = academicYear.EndDate;
+            }
+        }
 
+        // Lấy danh sách TeachingAssignments theo UserId (luôn lấy, không gán rỗng)
+        var teachingAssignmentsQuery = _context.TeachingAssignments
+            .Where(at => at.UserId == request.UserId);
+
+        // Chỉ lọc theo ClassId nếu ClassId > 0
+        if (request.ClassId > 0)
+        {
+            teachingAssignmentsQuery = teachingAssignmentsQuery.Where(at => at.ClassId == request.ClassId);
+        }
+
+        // Lấy dữ liệu TeachingAssignments
+        var assignmentsTeaching = await teachingAssignmentsQuery.ToListAsync();
+
+        // Truy vấn EducationInformations
         var query = _context.EducationInformations
+            .Where(wp => wp.IsDeleted == false && wp.UserId == request.UserId);
 
-        .Where(wp =>
-            wp.IsDeleted == false &&
-            wp.UserId == request.UserId &&
-            wp.StartDate >= academicYear.StartDate && wp.EndDate <= academicYear.EndDate &&
-            assignmentsTeaching.Any(at => at.StartDate <= wp.StartDate && at.EndDate >= wp.EndDate)
-        );
+        // Áp dụng điều kiện thời gian nếu có AcademicYearId hợp lệ
+        if (startDate.HasValue && endDate.HasValue)
+        {
+            query = query.Where(wp => wp.StartDate >= startDate.Value && wp.EndDate <= endDate.Value);
+        }
 
-        // Thêm điều kiện tìm kiếm
+        // Nếu có TeachingAssignments và ClassId > 0, sử dụng join để lọc
+        if (assignmentsTeaching.Any() && request.ClassId > 0)
+        {
+            query = from ei in query
+                    join ta in teachingAssignmentsQuery
+                    on ei.UserId equals ta.UserId
+                    where ta.StartDate <= ei.StartDate && ta.EndDate >= ei.EndDate
+                    select ei;
+        }
+
+        // Áp dụng điều kiện tìm kiếm nếu có Search
         if (!string.IsNullOrEmpty(request.Search))
         {
             query = query.Where(wp =>
                 wp.TrainingInstitution.Contains(request.Search) ||
                 wp.Major.Contains(request.Search) ||
                 wp.TrainingForm.Contains(request.Search) ||
-                wp.CertifiedDegree.Contains(request.Search)
-            );
+                wp.CertifiedDegree.Contains(request.Search));
         }
+
+        // Trả về danh sách
         return await query.Select(wp => new EducationInformationsResponse
         {
             Id = wp.Id,
@@ -52,7 +85,6 @@ public class EducationInformationService : IEducationInformationService
             EndDate = wp.EndDate,
             TrainingForm = wp.TrainingForm,
             CertifiedDegree = wp.CertifiedDegree
-
         }).ToListAsync();
     }
 
@@ -98,6 +130,7 @@ public class EducationInformationService : IEducationInformationService
     // Thêm mới EducationInformation
     public async Task<bool> CreateAsync(EducationInformationCreateRequest request)
     {
+
         // Kiểm tra xem có AcademicYear phù hợp không
         var academicYear = await _context.AcademicYears
             .Where(ay => ay.IsDelete == false &&
