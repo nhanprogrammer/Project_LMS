@@ -229,7 +229,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
-            ValidateAudience = true,  // Đảm bảo API hỗ trợ nhiều client nếu cần
+            ValidateAudience = false,  // Đảm bảo API hỗ trợ nhiều client nếu cần
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
             ClockSkew = TimeSpan.Zero, // Loại bỏ độ trễ mặc định của JWT
@@ -253,17 +253,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     }
                 }
 
-                var handler = new JwtSecurityTokenHandler();
-                var jwtToken = handler.ReadToken(token) as JwtSecurityToken;
+                // var handler = new JwtSecurityTokenHandler();
+                // var jwtToken = handler.ReadToken(token) as JwtSecurityToken;
 
-                if (jwtToken == null)
-                {
-                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                    context.Response.ContentType = "application/json";
-                    var response = new ApiResponse<string>(1, "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", null);
-                    await context.Response.WriteAsync(JsonSerializer.Serialize(response));
-                    return;
-                }
+                // if (jwtToken == null)
+                // {
+                //     context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                //     context.Response.ContentType = "application/json";
+                //     var response = new ApiResponse<string>(1, "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", null);
+                //     await context.Response.WriteAsync(JsonSerializer.Serialize(response));
+                //     return;
+                // }
 
                 // Kiểm tra token trong blacklist
                 if (!string.IsNullOrEmpty(token) && memoryCache.TryGetValue($"blacklist:{token}", out _))

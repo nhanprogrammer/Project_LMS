@@ -67,7 +67,7 @@ namespace Project_LMS.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new ApiResponse<string>(2, "Lỗi hệ thống", null));
+                return BadRequest(new ApiResponse<string>(1, "Lỗi hệ thống", null));
             }
         }
 
