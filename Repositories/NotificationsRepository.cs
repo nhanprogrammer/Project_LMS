@@ -400,7 +400,7 @@ public sealed class NotificationsRepository : INotificationsRepository
                     UserId = userId,
                     Subject = subject,
                     Content = content,
-                    Type = true, // Thông báo hệ thống
+                    Type = false, // Thông báo hệ thống
                     IsRead = false,
                     IsDelete = false,
                     CreateAt = currentTime,

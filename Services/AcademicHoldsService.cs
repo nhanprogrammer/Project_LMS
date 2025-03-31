@@ -33,57 +33,95 @@ namespace Project_LMS.Services
             _semesterRepository = semesterRepository;
         }
 
-        public async Task<PaginatedResponse<AcademicHoldResponse>> GetPagedAcademicHolds(PaginationRequest request)
+        public async Task<PaginatedResponse<AcademicHoldResponse>> GetPagedAcademicHolds(PaginationRequest request, int? academicYearId)
         {
-            var query = from ah in _academicHoldRepository.GetQueryable().Where(ah => !ah.IsDelete)
-                        join u in _context.Users on ah.UserId equals u.Id into userGroup
-                        from userInfo in userGroup.DefaultIfEmpty()
-                        select new
-                        {
-                            ah,
-                            UserInfo = userInfo
-                        };
-
-            // Lấy danh sách dữ liệu từ database
-            var rawData = await query.AsNoTracking().ToListAsync();
-
-            // Xử lý trên bộ nhớ
-            var resultList = rawData
-                .Select(data => new AcademicHoldResponse
-                {
-                    Id = data.ah.Id,
-                    UserId = data.ah.UserId,
-                    UserCode = data.UserInfo?.UserCode,
-                    FullName = data.UserInfo?.FullName,
-                    BirthDate = data.UserInfo?.BirthDate,
-                    Gender = data.UserInfo?.Gender is BitArray bitArray && bitArray.Count > 0 ? (bitArray[0] ? "True" : "False") : null,
-                    ClassName = _context.Classes
-                                       .Where(c => c.UserId == data.ah.UserId)
-                                       .Select(c => c.Name)
-                                       .FirstOrDefault(),
-                    HoldDate = data.ah.HoldDate,
-                    HoldDuration = data.ah.HoldDuration,
-                    Reason = data.ah.Reason
-                })
-                .OrderByDescending(x => x.Id)
-                .Skip((request.PageNumber - 1) * request.PageSize)
-                .Take(request.PageSize)
-                .ToList();
-
-            int totalItems = rawData.Count();
-
-            return new PaginatedResponse<AcademicHoldResponse>
+            try
             {
-                Items = resultList,
-                PageNumber = request.PageNumber,
-                PageSize = request.PageSize,
-                TotalItems = totalItems,
-                TotalPages = (int)Math.Ceiling(totalItems / (double)request.PageSize),
-                HasPreviousPage = request.PageNumber > 1,
-                HasNextPage = request.PageNumber * request.PageSize < totalItems
-            };
-        }
+                // Lấy thông tin niên khóa nếu academicYearId được cung cấp
+                DateTime? academicYearStartDate = null;
+                DateTime? academicYearEndDate = null;
 
+                if (academicYearId.HasValue)
+                {
+                    var academicYear = await _context.AcademicYears
+                        .Where(ay => ay.Id == academicYearId.Value && (ay.IsDelete == false || ay.IsDelete == null))
+                        .Select(ay => new { ay.StartDate, ay.EndDate })
+                        .FirstOrDefaultAsync();
+
+                    if (academicYear == null)
+                    {
+                        throw new NotFoundException($"Không tìm thấy niên khóa với ID {academicYearId}.");
+                    }
+
+                    if (!academicYear.StartDate.HasValue || !academicYear.EndDate.HasValue)
+                    {
+                        throw new BadRequestException($"Niên khóa với ID {academicYearId} không có ngày bắt đầu hoặc ngày kết thúc hợp lệ.");
+                    }
+
+                    academicYearStartDate = academicYear.StartDate.Value;
+                    academicYearEndDate = academicYear.EndDate.Value;
+                }
+
+                // Truy vấn dữ liệu bảo lưu
+                var query = from ah in _academicHoldRepository.GetQueryable().Where(ah => !ah.IsDelete)
+                            join u in _context.Users on ah.UserId equals u.Id into userGroup
+                            from userInfo in userGroup.DefaultIfEmpty()
+                            select new
+                            {
+                                ah,
+                                UserInfo = userInfo
+                            };
+
+                // Lọc theo niên khóa nếu academicYearId được cung cấp
+                if (academicYearId.HasValue && academicYearStartDate.HasValue && academicYearEndDate.HasValue)
+                {
+                    query = query.Where(data => data.ah.HoldDate >= academicYearStartDate.Value && data.ah.HoldDate <= academicYearEndDate.Value);
+                }
+
+                // Lấy danh sách dữ liệu từ database
+                var rawData = await query.AsNoTracking().ToListAsync();
+
+                // Xử lý trên bộ nhớ
+                var resultList = rawData
+                    .Select(data => new AcademicHoldResponse
+                    {
+                        Id = data.ah.Id,
+                        UserId = data.ah.UserId,
+                        UserCode = data.UserInfo?.UserCode,
+                        FullName = data.UserInfo?.FullName,
+                        BirthDate = data.UserInfo?.BirthDate,
+                        Gender = data.UserInfo?.Gender is BitArray bitArray && bitArray.Count > 0 ? (bitArray[0] ? "True" : "False") : null,
+                        ClassName = _context.Classes
+                                           .Where(c => c.UserId == data.ah.UserId)
+                                           .Select(c => c.Name)
+                                           .FirstOrDefault(),
+                        HoldDate = data.ah.HoldDate,
+                        HoldDuration = data.ah.HoldDuration,
+                        Reason = data.ah.Reason
+                    })
+                    .OrderByDescending(x => x.Id)
+                    .Skip((request.PageNumber - 1) * request.PageSize)
+                    .Take(request.PageSize)
+                    .ToList();
+
+                int totalItems = rawData.Count();
+
+                return new PaginatedResponse<AcademicHoldResponse>
+                {
+                    Items = resultList,
+                    PageNumber = request.PageNumber,
+                    PageSize = request.PageSize,
+                    TotalItems = totalItems,
+                    TotalPages = (int)Math.Ceiling(totalItems / (double)request.PageSize),
+                    HasPreviousPage = request.PageNumber > 1,
+                    HasNextPage = request.PageNumber * request.PageSize < totalItems
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new BadRequestException($"Lỗi khi lấy danh sách bảo lưu: {ex.Message}");
+            }
+        }
         public async Task<User_AcademicHoldResponse> GetById(int id)
         {
             var user = await _context.Users

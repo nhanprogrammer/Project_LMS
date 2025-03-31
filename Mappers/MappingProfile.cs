@@ -52,10 +52,7 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate.ToDateTime(TimeOnly.MinValue)))
             .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate.ToDateTime(TimeOnly.MinValue)));
 
-        CreateMap<Semester, SemesterResponse>()
-            .ForMember(dest => dest.DateStart,
-                opt => opt.MapFrom(src => DateOnly.FromDateTime((DateTime)src.StartDate)))
-            .ForMember(dest => dest.DateEnd, opt => opt.MapFrom(src => DateOnly.FromDateTime((DateTime)src.EndDate)));
+        CreateMap<Semester, SemesterResponse>();
 
 
         CreateMap<CreateSemesterRequest, Semester>()
@@ -89,7 +86,8 @@ public class MappingProfile : Profile
         CreateMap<Role, RoleResponse>().ReverseMap();
         CreateMap<RoleRequest, Role>().ReverseMap();
 
-        CreateMap<School, SchoolResponse>().ReverseMap();
+        CreateMap<School, SchoolResponse>()
+        .ForMember(dest => dest.Branches, opt => opt.MapFrom(src => src.SchoolBranches));
         CreateMap<SchoolRequest, School>()
             .ForMember(dest => dest.Image, opt => opt.Ignore());
 
@@ -446,6 +444,24 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.SubjectName, opt => opt.MapFrom(src => src.Subject.SubjectName))
             .ForMember(dest => dest.Duration, opt => opt.MapFrom(src => src.Duration))
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.ExamScheduleStatus.Names));
+
+
+        CreateMap<TestExam, StudentTestExamResponse>()
+            .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
+            .ForMember(dest => dest.DateOfExam, opt => opt.MapFrom(src =>
+                src.StartDate.HasValue
+                    ? src.StartDate.Value.ToString("dddd, 'ngày' dd-MM-yyyy, HH:mm",
+                        new System.Globalization.CultureInfo("vi-VN"))
+                    : "Chưa có ngày thi"))
+            .ForMember(dest => dest.ContentTest, opt => opt.MapFrom(src => src.Topic))
+            .ForMember(dest => dest.SubjectName, opt => opt.MapFrom(src => src.Subject.SubjectName))
+            .ForMember(dest => dest.Duration, opt => opt.MapFrom(src => src.Duration))
+            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.ExamScheduleStatus.Names))
+            .ForMember(dest => dest.TeacherName,
+                opt => opt.MapFrom(src => src.ClassTestExams
+                    .Select(e => e.Class.User.FullName)
+                    .FirstOrDefault()));
+
     }
 
     private List<SubjectGroupSubject> MapSubjectGroupSubjects(List<int> subjectIds)

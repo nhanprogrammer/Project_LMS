@@ -110,30 +110,62 @@ namespace Project_LMS.Services
                 if (request == null)
                     return new ApiResponse<SubjectResponse>(1, "Dữ liệu không hợp lệ", null);
 
+                // Kiểm tra mã môn học
                 if (string.IsNullOrEmpty(request.SubjectCode))
                     return new ApiResponse<SubjectResponse>(1, "Mã môn học không được để trống", null);
 
                 if (await _context.Subjects.AnyAsync(s => s.SubjectCode == request.SubjectCode && (!s.IsDelete.HasValue || !s.IsDelete.Value)))
                     return new ApiResponse<SubjectResponse>(1, "Mã môn học đã tồn tại", null);
 
+                // Kiểm tra loại môn học
                 var subjectType = await _context.SubjectTypes.FindAsync(request.SubjectTypeId);
                 if (subjectType == null)
                     return new ApiResponse<SubjectResponse>(1, "Không tìm thấy loại môn học", null);
 
-                var subject = _mapper.Map<Subject>(request);
-                subject.CreateAt = DateTime.UtcNow.ToLocalTime();
-                subject.IsDelete = false;
-                subject.UserCreate = user.Id;
+                // Kiểm tra tổ bộ môn
+                var subjectGroup = await _context.SubjectGroups.FindAsync(request.SubjectGroupId);
+                if (subjectGroup == null)
+                    return new ApiResponse<SubjectResponse>(1, "Không tìm thấy tổ bộ môn", null);
 
-                _context.Subjects.Add(subject);
-                await _context.SaveChangesAsync();
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    // Tạo môn học mới
+                    var subject = _mapper.Map<Subject>(request);
+                    subject.CreateAt = DateTime.UtcNow.ToLocalTime();
+                    subject.IsDelete = false;
+                    subject.UserCreate = user.Id;
 
-                await _context.Entry(subject)
-                    .Reference(s => s.SubjectType)
-                    .LoadAsync();
+                    _context.Subjects.Add(subject);
+                    await _context.SaveChangesAsync();
 
-                var response = _mapper.Map<SubjectResponse>(subject);
-                return new ApiResponse<SubjectResponse>(0, "Tạo môn học thành công", response);
+                    // Tạo liên kết với tổ bộ môn
+                    var subjectGroupSubject = new SubjectGroupSubject
+                    {
+                        SubjectId = subject.Id,
+                        SubjectGroupId = request.SubjectGroupId,
+                        CreateAt = DateTime.UtcNow.ToLocalTime(),
+                        UserCreate = user.Id,
+                        IsDelete = false
+                    };
+
+                    _context.SubjectGroupSubjects.Add(subjectGroupSubject);
+                    await _context.SaveChangesAsync();
+
+                    await _context.Entry(subject)
+                        .Reference(s => s.SubjectType)
+                        .LoadAsync();
+
+                    await transaction.CommitAsync();
+
+                    var response = _mapper.Map<SubjectResponse>(subject);
+                    return new ApiResponse<SubjectResponse>(0, "Tạo môn học thành công", response);
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
             }
             catch (Exception ex)
             {
@@ -174,14 +206,55 @@ namespace Project_LMS.Services
                 if (subjectType == null)
                     return new ApiResponse<SubjectResponse>(1, "Không tìm thấy loại môn học", null);
 
-                _mapper.Map(request, existingSubject);
-                existingSubject.UpdateAt = DateTime.UtcNow.ToLocalTime();
-                existingSubject.UserUpdate = user.Id;
+                var subjectGroup = await _context.SubjectGroups.FindAsync(request.SubjectGroupId);
+                if (subjectGroup == null)
+                    return new ApiResponse<SubjectResponse>(1, "Không tìm thấy tổ bộ môn", null);
 
-                await _context.SaveChangesAsync();
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    // Cập nhật thông tin môn học
+                    _mapper.Map(request, existingSubject);
+                    existingSubject.UpdateAt = DateTime.UtcNow.ToLocalTime();
+                    existingSubject.UserUpdate = user.Id;
 
-                var response = _mapper.Map<SubjectResponse>(existingSubject);
-                return new ApiResponse<SubjectResponse>(0, "Cập nhật môn học thành công", response);
+                    // Cập nhật hoặc tạo mới liên kết với tổ bộ môn
+                    var existingLink = await _context.SubjectGroupSubjects
+                        .FirstOrDefaultAsync(sgs => sgs.SubjectId == request.Id && (!sgs.IsDelete.HasValue || !sgs.IsDelete.Value));
+
+                    if (existingLink != null)
+                    {
+                        if (existingLink.SubjectGroupId != request.SubjectGroupId)
+                        {
+                            existingLink.SubjectGroupId = request.SubjectGroupId;
+                            existingLink.UpdateAt = DateTime.UtcNow.ToLocalTime();
+                            existingLink.UserUpdate = user.Id;
+                        }
+                    }
+                    else
+                    {
+                        var newLink = new SubjectGroupSubject
+                        {
+                            SubjectId = request.Id,
+                            SubjectGroupId = request.SubjectGroupId,
+                            CreateAt = DateTime.UtcNow.ToLocalTime(),
+                            UserCreate = user.Id,
+                            IsDelete = false
+                        };
+                        _context.SubjectGroupSubjects.Add(newLink);
+                    }
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    var response = _mapper.Map<SubjectResponse>(existingSubject);
+                    return new ApiResponse<SubjectResponse>(0, "Cập nhật môn học thành công", response);
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
             }
             catch (Exception ex)
             {
@@ -283,7 +356,7 @@ namespace Project_LMS.Services
                              sgs.Subject != null)
                 .Select(sgs => new SubjectDropdownResponse
                 {
-                    Id = sgs.Subject!.Id, 
+                    Id = sgs.Subject!.Id,
                     Name = sgs.Subject!.SubjectName ?? string.Empty
                 })
                 .ToListAsync();
@@ -326,5 +399,33 @@ namespace Project_LMS.Services
                 return new List<SubjectResponseSearch>();
             }
         }
+
+
+        public async Task<List<SubjectDropdownResponse>> GetSubjectDropdownAsync()
+        {
+            var subjects = await _context.Subjects
+                .Where(s => s.IsDelete == null || s.IsDelete == false)
+                .Select(s => new SubjectDropdownResponse
+                {
+                    Id = s.Id,
+                    Name = s.SubjectName ?? string.Empty
+                })
+                .ToListAsync();
+
+            return subjects;
+        }
+
+        public async Task<List<SubjectTypeDropdownResponse>> GetSubjectTypeDropdownAsync()
+        {
+            return await _context.SubjectTypes
+                .Where(st => !(st.IsDelete ?? false))
+                .Select(st => new SubjectTypeDropdownResponse
+                {
+                    Id = st.Id,
+                    Name = st.Name ?? string.Empty
+                })
+                .ToListAsync();
+        }
+
     }
 }

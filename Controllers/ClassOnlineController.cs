@@ -4,6 +4,7 @@ using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces;
 
 namespace Project_LMS.Controllers;
+
 [Route("api/[controller]")]
 [ApiController]
 public class ClassOnlineController : ControllerBase

@@ -1,24 +1,26 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Project_LMS.Data;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Interfaces;
 using Project_LMS.Interfaces.Responsitories;
 using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers;
 
-
-
+[Authorize(Policy = "TEACHER")]
 [Route("api/[controller]")]
 [ApiController]
 public class TeacherTestExamController : ControllerBase
 {
     private readonly ITeacherTestExamService _teacherTestExamService;
+    private readonly IAuthService _authService;
 
-
-    public TeacherTestExamController(ITeacherTestExamService teacherTestExamService)
+    public TeacherTestExamController(ITeacherTestExamService teacherTestExamService , IAuthService authService)
     {
         _teacherTestExamService = teacherTestExamService;
+        _authService = authService;
     }
 
     [HttpGet]
@@ -58,7 +60,11 @@ public class TeacherTestExamController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<ApiResponse<Object>>> Create([FromBody] TeacherTestExamRequest request)
     {
-        var response = await _teacherTestExamService.CreateTeacherTestExamAsync(request);
+        var user = await _authService.GetUserAsync();
+        if (user == null)
+            return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+
+        var response = await _teacherTestExamService.CreateTeacherTestExamAsync(user.Id,request);
 
         if (response.Status == 1)
         {
@@ -72,7 +78,12 @@ public class TeacherTestExamController : ControllerBase
     [HttpPut]
     public async Task<ActionResult<ApiResponse<Object>>> Update([FromBody] TeacherTestExamRequest request)
     {
-        var response = await _teacherTestExamService.UpdateTeacherTestExamAsync(request);
+        var user = await _authService.GetUserAsync();
+        if (user == null)
+            return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+
+        
+        var response = await _teacherTestExamService.UpdateTeacherTestExamAsync(user.Id,request);
 
         if (response.Status == 1)
         {

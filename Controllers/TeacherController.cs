@@ -1,13 +1,15 @@
 ﻿using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces.Services;
-using System;
-using System.Threading.Tasks;
+using Project_LMS.DTOs.Response;
+
 
 namespace Project_LMS.Controllers
 {
+    [Authorize(Policy = "TEACHER-REC-VIEW")]
     [Route("api/[controller]")]
     [ApiController]
     public class TeacherController : ControllerBase
@@ -35,6 +37,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "TEACHER-REC-INSERT")]
         [HttpPost]
         public async Task<IActionResult> AddAsync(TeacherRequest request)
         {
@@ -50,6 +53,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "TEACHER-REC-UPDATE")]
         [HttpPut]
         public async Task<IActionResult> UpdateAsync(TeacherRequest request)
         {
@@ -65,6 +69,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "TEACHER-REC-DELETE")]
         [HttpDelete]
         public async Task<IActionResult> DeleteAsync([FromBody] DeleteTeacherRequest request)
         {
@@ -141,14 +146,17 @@ namespace Project_LMS.Controllers
             try
             {
                 var result = await _studentService.GeneratedUserCode("GV");
-                return Ok(result);
+                return Ok(new ApiResponse<object>(0, "Lấy UserCode thành công")
+                {
+                    Data = result
+                });
             }
             catch (Exception ex)
             {
                 return StatusCode(500, $"Lỗi server: {ex.Message}");
             }
         }
-        [HttpGet("for-assignment")]
+        [HttpGet("get-all-teachers")]
         public async Task<ActionResult<ApiResponse<List<UserResponseTeachingAssignment>>>> GetTeachers()
         {
             try

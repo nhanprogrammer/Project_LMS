@@ -11,4 +11,5 @@ public class AnswerResponse
     public DateTime UpdateAt { get; set; }
     public int? UserCreate { get; set; }
     public int? UserUpdate { get; set; }
+  
 }

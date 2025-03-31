@@ -7,6 +7,7 @@ using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers
 {
+
     [ApiController]
     [Route("api/[controller]")]
     public class SubjectController : ControllerBase
@@ -20,12 +21,12 @@ namespace Project_LMS.Controllers
             _authService = authService;
         }
 
-        [Authorize(Policy = "SUBJECT-VIEW")]
+        [Authorize(Policy = "DATA-MNG-VIEW")]
         [HttpGet]
         public async Task<ActionResult<ApiResponse<PaginatedResponse<SubjectResponse>>>> GetAll(
-            [FromQuery] string? keyword = null,
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 10)
+        [FromQuery] string? keyword = null,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10)
         {
             try
             {
@@ -42,7 +43,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "SUBJECT-VIEW")]
+        [Authorize(Policy = "DATA-MNG-VIEW")]
         [HttpGet("{id}")]
         public async Task<ActionResult<ApiResponse<SubjectResponse>>> GetById(int id)
         {
@@ -65,7 +66,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "SUBJECT-INSERT")]
+        [Authorize(Policy = "DATA-MNG-INSERT")]
         [HttpPost]
         public async Task<ActionResult<ApiResponse<SubjectResponse>>> Create([FromBody] SubjectRequest request)
         {
@@ -94,7 +95,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "SUBJECT-UPDATE")]
+        [Authorize(Policy = "DATA-MNG-UPDATE")]
         [HttpPut]
         public async Task<ActionResult<ApiResponse<SubjectResponse>>> Update([FromBody] SubjectRequest request)
         {
@@ -141,7 +142,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "SUBJECT-DELETE")]
+        [Authorize(Policy = "DATA-MNG-DELETE")]
         [HttpDelete]
         public async Task<ActionResult<ApiResponse<bool>>> DeleteMultiple([FromBody] DeleteMultipleRequest request)
         {
@@ -169,6 +170,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "DATA-MNG-VIEW")]
         [HttpGet("search-subject")]
         public async Task<IActionResult> getSubjectByUserId([FromQuery] int userId)
         {
@@ -182,7 +184,8 @@ namespace Project_LMS.Controllers
                 return Ok(new ApiResponse<object>(1, "Giảng viên chưa có môn học nào!", null));
             return Ok(new ApiResponse<object>(0, "Lấy danh sách môn học thành công!", result));
         }
-        
+
+        [Authorize(Policy = "DATA-MNG-VIEW")]
         [HttpGet("by-subject-group/{subjectGroupId}")]
         public async Task<IActionResult> GetSubjectsBySubjectGroupId(int subjectGroupId)
         {
@@ -199,6 +202,26 @@ namespace Project_LMS.Controllers
             }
 
             return Ok(new ApiResponse<object>(0, "Lấy danh sách môn học thành công!", result));
+        }
+        
+        [HttpGet("get-all-subjects")]
+        public async Task<IActionResult> GetSubjectDropdown()
+        {
+            try
+            {
+                var subjects = await _subjectService.GetSubjectDropdownAsync();
+
+                if (subjects == null || !subjects.Any())
+                {
+                    return Ok(new ApiResponse<List<SubjectDropdownResponse>>(1, "Không có môn học nào!", null));
+                }
+
+                return Ok(new ApiResponse<List<SubjectDropdownResponse>>(0, "Lấy danh sách môn học thành công!", subjects));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, $"Lỗi hệ thống: {ex.Message}", null));
+            }
         }
     }
 }

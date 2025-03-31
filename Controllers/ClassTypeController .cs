@@ -7,6 +7,7 @@ using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers
 {
+
     [ApiController]
     [Route("api/[controller]")]
     public class ClassTypeController : ControllerBase
@@ -20,12 +21,12 @@ namespace Project_LMS.Controllers
             _authService = authService;
         }
 
-        [Authorize(Policy = "CLASS-TYPE-VIEW")]
+        [Authorize(Policy = "SYS-SET-VIEW")]
         [HttpGet]
         public async Task<ActionResult<ApiResponse<PaginatedResponse<ClassTypeResponse>>>> GetAll(
-            [FromQuery] string? keyword = null,
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 10)
+        [FromQuery] string? keyword = null,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10)
         {
             try
             {
@@ -42,7 +43,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "CLASS-TYPE-VIEW")]
+        [Authorize(Policy = "SYS-SET-VIEW")]
         [HttpGet("{id}")]
         public async Task<ActionResult<ApiResponse<ClassTypeResponse>>> GetById(int id)
         {
@@ -65,18 +66,35 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "CLASS-TYPE-INSERT")]
+        [Authorize(Policy = "SYS-SET-INSERT")]
         [HttpPost]
         public async Task<ActionResult<ApiResponse<ClassTypeResponse>>> Create([FromBody] ClassTypeRequest request)
         {
             try
             {
+                // Kiểm tra ModelState
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new ApiResponse<ClassTypeResponse>(1, "Dữ liệu không hợp lệ", null));
+                }
+
+                // Kiểm tra request
+                if (request == null)
+                {
+                    return BadRequest(new ApiResponse<ClassTypeResponse>(1, "Dữ liệu không được để trống", null));
+                }
+
                 var user = await _authService.GetUserAsync();
                 if (user == null)
                     return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
 
                 var result = await _classTypeService.CreateClassTypeAsync(request);
-                return CreatedAtAction(nameof(GetById), new { id = result.Data.Id }, result);
+                if (result.Status != 0) // Kiểm tra kết quả trả về
+                {
+                    return BadRequest(result);
+                }
+
+                return CreatedAtAction(nameof(GetById), new { id = result.Data?.Id }, result);
             }
             catch (Exception ex)
             {
@@ -84,21 +102,39 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "CLASS-TYPE-UPDATE")]
+        [Authorize(Policy = "SYS-SET-UPDATE")]
         [HttpPut()]
         public async Task<ActionResult<ApiResponse<ClassTypeResponse>>> Update([FromBody] ClassTypeRequest request)
         {
             try
             {
+                // Kiểm tra ModelState
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new ApiResponse<ClassTypeResponse>(1, "Dữ liệu không hợp lệ", null));
+                }
+
+                // Kiểm tra request
+                if (request == null)
+                {
+                    return BadRequest(new ApiResponse<ClassTypeResponse>(1, "Dữ liệu không được để trống", null));
+                }
+
+                if (string.IsNullOrEmpty(request.Name))
+                {
+                    return BadRequest(new ApiResponse<ClassTypeResponse>(1, "Tên loại lớp học không được để trống", null));
+                }
+
                 var user = await _authService.GetUserAsync();
                 if (user == null)
                     return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
 
                 var result = await _classTypeService.UpdateClassTypeAsync(request);
-                if (result.Data == null)
+                if (result.Status != 0)
                 {
-                    return NotFound(new ApiResponse<ClassTypeResponse>(1, "ClassType not found", null));
+                    return BadRequest(result);
                 }
+
                 return Ok(result);
             }
             catch (Exception ex)
@@ -107,7 +143,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "CLASS-TYPE-DELETE")]
+        [Authorize(Policy = "SYS-SET-DELETE")]
         [HttpDelete]
         public async Task<ActionResult<ApiResponse<bool>>> Delete([FromBody] DeleteMultipleRequest request)
         {
@@ -132,6 +168,26 @@ namespace Project_LMS.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new ApiResponse<string>(1, $"Error deleting class types: {ex.Message}", null));
+            }
+        }
+
+        [HttpGet("get-all-classtypes")]
+        public async Task<ActionResult<ApiResponse<List<ClassTypeDropdownResponse>>>> GetClassTypeDropdown()
+        {
+            try
+            {
+                var classTypes = await _classTypeService.GetClassTypeDropdownAsync();
+
+                if (classTypes == null || !classTypes.Any())
+                {
+                    return Ok(new ApiResponse<List<ClassTypeDropdownResponse>>(1, "Không có loại lớp học nào!", null));
+                }
+
+                return Ok(new ApiResponse<List<ClassTypeDropdownResponse>>(0, "Lấy danh sách loại lớp học thành công!", classTypes));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, $"Lỗi hệ thống: {ex.Message}", null));
             }
         }
     }

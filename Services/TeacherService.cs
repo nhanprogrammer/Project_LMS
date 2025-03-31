@@ -187,14 +187,14 @@ public class TeacherService : ITeacherService
             {
                 var subjects = await _teacherClassSubjectRepository.GetAllByTeacher(teacher.Id);
 
-                    foreach (var item in subjects)
+                foreach (var item in subjects)
+                {
+                    if (!request.TeacherSubjectIds.Contains(item.Id))
                     {
-                        if (!request.TeacherSubjectIds.Contains(item.Id))
-                        {
-                            await _teacherClassSubjectRepository.DeleteAsync(item);
-                        }
+                        await _teacherClassSubjectRepository.DeleteAsync(item);
                     }
-         
+                }
+
                 Task task2 = Task.Run(async () =>
                 {
                     foreach (int item in request.TeacherSubjectIds)
@@ -371,8 +371,8 @@ public class TeacherService : ITeacherService
         }
     }
 
-public async Task<List<UserResponseTeachingAssignment>> GetTeachersAsync()
-{
-    return await _teacherRepository.GetTeachersAsync();
-}
+    public async Task<List<UserResponseTeachingAssignment>> GetTeachersAsync()
+    {
+        return await _teacherRepository.GetTeachersAsync();
+    }
 }

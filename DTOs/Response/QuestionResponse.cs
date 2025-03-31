@@ -2,12 +2,20 @@ namespace Project_LMS.DTOs.Response
 {
     public class QuestionResponse
     {
-        public int Id { get; set; }
-        public int TestExamId { get; set; }
-        public string QuestionText { get; set; } = null!;
-        public int Mark { get; set; }
-        public bool? IsDelete { get; set; }
-        public DateTime? CreateAt { get; set; }
-        public DateTime? UpdateAt { get; set; }
+        public string QuestionNumber { get; set; }
+        public int QuestionId { get; set; }        
+        public string SubjectName { get; set; } 
+        public string StartDate { get; set; }      
+        public string Duration { get; set; }      
+        public string Title { get; set; }     
+        public string ClassName { get; set; }
+        public string Question { get; set; }       
+        public List<AnswerResponseByQuestionId> Answers { get; set; } 
+    }
+
+    public class AnswerResponseByQuestionId
+    {
+        public int AnswerId { get; set; } 
+        public string AnswerText { get; set; }  
     }
 }

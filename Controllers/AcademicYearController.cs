@@ -21,7 +21,7 @@ namespace Project_LMS.Controllers
             _academicYearsService = academicYearsService;
             _authService = authService ?? throw new ArgumentNullException(nameof(authService));
         }
-
+        
         [HttpGet("search")]
         public async Task<ActionResult<ApiResponse<PaginatedResponse<AcademicYearResponse>>>> SearchAcademicYear([FromQuery] int year)
         {
@@ -63,6 +63,7 @@ namespace Project_LMS.Controllers
                 result));
         }
 
+        [Authorize(Policy = "DATA-MNG-INSERT")]
         [HttpPost]
         public async Task<ActionResult<ApiResponse<CreateAcademicYearRequest>>> Add([FromBody] CreateAcademicYearRequest request)
         {
@@ -76,6 +77,7 @@ namespace Project_LMS.Controllers
             return Ok(result);
         }
 
+        [Authorize(Policy = "DATA-MNG-UPDATE")]
         [HttpPut]
         public async Task<ActionResult<ApiResponse<UpdateAcademicYearRequest>>> Update([FromBody] UpdateAcademicYearRequest request)
         {
@@ -88,6 +90,7 @@ namespace Project_LMS.Controllers
             return Ok(result);
         }
 
+        [Authorize(Policy = "DATA-MNG-DELETE")]
         [HttpDelete]
         public async Task<IActionResult> DeleteLesson(DeleteRequest ids)
         {
@@ -100,7 +103,7 @@ namespace Project_LMS.Controllers
             return Ok(new ApiResponse<AcademicYearResponse>(response.Status, response.Message, response.Data));
         }
 
-        [HttpGet("names")]
+        [HttpGet("get-all-academic-years")]
         public async Task<ActionResult<ApiResponse<List<AcademicYearNameResponse>>>> GetAcademicYearNames()
         {
             var result = await _academicYearsService.GetAcademicYearNamesAsync();
