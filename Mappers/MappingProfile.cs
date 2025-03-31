@@ -144,7 +144,7 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.DepartmentCode, opt => opt.MapFrom(src => src.DepartmentCode))
             .ForMember(dest => dest.DepartmentName, opt => opt.MapFrom(src => src.Name))
             .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
-            .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User != null ? src.User.FullName : "N/A"));
+            .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.User != null ? src.User.FullName : "N/A"));
 
 
         CreateMap<Discipline, DisciplineResponse>()

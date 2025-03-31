@@ -9,19 +9,23 @@ namespace Project_LMS.Interfaces
             int? pageNumber,
             int? pageSize,
             string? sortDirection
-            );
+        );
 
         Task<ApiResponse<DepartmentResponse>> CreateDepartmentAsync(CreateDepartmentRequest createDepartmentRequest);
 
         Task<ApiResponse<DepartmentResponse>> UpdateDepartmentAsync(UpdateDepartmentRequest updateDepartmentRequest);
 
         Task<ApiResponse<DepartmentResponse>> DeleteDepartmentAsync(string id);
-        Task <ApiResponse<PaginatedResponse<DepartmentResponse>>> SearchDepartmentsAsync(string? keyword, int? pageNumber,
+
+        Task<ApiResponse<PaginatedResponse<DepartmentResponse>>> SearchDepartmentsAsync(string? keyword,
+            int? pageNumber,
             int? pageSize,
             string? sortDirection);
-        Task<ApiResponse<IEnumerable<object>>> GetAllClassesAsync(int DeparmentId);
+
+        Task<ApiResponse<IEnumerable<object>>> GetAllClassesAsync(int departmentId);
         Task<ApiResponse<string>> DeleteClassById(List<int> classId);
         Task<List<DepartmentDropdownResponse>> GetDepartmentDropdownAsync();
-
+        Task<ApiResponse<DepartmentResponse>> GetDepartmentById(int departmentId);
+        Task<ApiResponse<IEnumerable<object>>> ListUserDepartment();
     }
 }

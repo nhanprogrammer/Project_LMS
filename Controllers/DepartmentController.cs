@@ -6,7 +6,6 @@ using Project_LMS.Interfaces;
 
 namespace Project_LMS.Controllers
 {
-
     [ApiController]
     [Route("api/[controller]")]
     public class DepartmentController : ControllerBase
@@ -23,7 +22,7 @@ namespace Project_LMS.Controllers
         [Authorize(Policy = "DATA-MNG-VIEW")]
         [HttpGet]
         public async Task<IActionResult> GetAllDepartment([FromQuery] int? pageNumber, [FromQuery] int? pageSize,
-        [FromQuery] string? sortDirection)
+            [FromQuery] string? sortDirection)
         {
             // Gọi service để lấy danh sách phòng ban
             var response = await _departmentsService.GetAllCoursesAsync(pageNumber, pageSize, sortDirection);
@@ -140,12 +139,37 @@ namespace Project_LMS.Controllers
                     return Ok(new ApiResponse<List<DepartmentDropdownResponse>>(1, "Không có khoa/khối nào!", null));
                 }
 
-                return Ok(new ApiResponse<List<DepartmentDropdownResponse>>(0, "Lấy danh sách khoa/khối thành công!", departments));
+                return Ok(new ApiResponse<List<DepartmentDropdownResponse>>(0, "Lấy danh sách khoa/khối thành công!",
+                    departments));
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new ApiResponse<string>(1, $"Lỗi hệ thống: {ex.Message}", null));
             }
+        }
+
+        [HttpGet("{departmentId:int}")]
+        public async Task<IActionResult> GetDepartmentById(int departmentId)
+        {
+            var department = await _departmentsService.GetDepartmentById(departmentId);
+            if (department.Status == 1)
+            {
+                return NotFound(department);
+            }
+
+            return Ok(department);
+        }
+
+        [HttpGet("get-list-department")]
+        public async Task<IActionResult> GetListUserDepartment()
+        {
+            var userDepartment = await _departmentsService.ListUserDepartment();
+            if (userDepartment.Status == 1)
+            {
+                return BadRequest(userDepartment);
+            }
+
+            return Ok(userDepartment);
         }
     }
 }
