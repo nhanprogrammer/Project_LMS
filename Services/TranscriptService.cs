@@ -39,7 +39,7 @@ namespace Project_LMS.Services
         public async Task<ApiResponse<object>> ExportExcelTranscriptAsync(TranscriptRequest request)
         {
 
-            var student = await _studentRepository.FindStudentById(request.studentId);
+            var student = await _studentRepository.FindStudentById(request.StudentId);
             if (student == null)
                 return new ApiResponse<object>(1, "Học viên không tồn tại.");
 
@@ -145,7 +145,7 @@ namespace Project_LMS.Services
                 worksheet2.Cells.AutoFitColumns();
                 var filebytes = package.GetAsByteArray();
                 string base64Excel = Convert.ToBase64String(filebytes);
-                return new ApiResponse<object>(0, "Xuất excel thành công.") { Data = base64Excel };
+                return new ApiResponse<object>(0, "Xuất excel thành công.") { Data = await _cloudinaryService.UploadExcelAsync(base64Excel) };
             }
         }
 
@@ -439,7 +439,7 @@ namespace Project_LMS.Services
             //if (string.IsNullOrWhiteSpace(request.UserCode))
             //    return new ApiResponse<object>(1, "UserCode không được bỏ trống.");
 
-            var student = await _studentRepository.FindStudentById(request.studentId);
+            var student = await _studentRepository.FindStudentById(request.StudentId);
             if (student == null)
                 return new ApiResponse<object>(1, "Học viên không tồn tại.");
 
@@ -453,10 +453,10 @@ namespace Project_LMS.Services
             var transcript = new List<object>();
 
 
-            Console.WriteLine("subjects out " + subjects.Count);
+            //Console.WriteLine("subjects out " + subjects.Count);
             foreach (var subject in subjects)
             {
-                Console.WriteLine("subjects in " + subjects.Count);
+                //Console.WriteLine("subjects in " + subjects.Count);
                 double totalScore = 0;
                 int totalCoefficient = 0;
                 var testExamTypeItems = new List<Dictionary<string, object>>();

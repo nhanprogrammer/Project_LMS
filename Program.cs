@@ -308,6 +308,8 @@ builder.Services.AddValidatorsFromAssemblyContaining<DisciplineRequestValidator>
 builder.Services.AddValidatorsFromAssemblyContaining<TeacherRequestValidator>(); // 
 builder.Services.AddValidatorsFromAssemblyContaining<TeacherStatusHistoryRequestValidator>(); // 
 builder.Services.AddValidatorsFromAssemblyContaining<DependentRequestValidator>(); // 
+builder.Services.AddValidatorsFromAssemblyContaining<TranscriptRequestValidator>(); // 
+builder.Services.AddValidatorsFromAssemblyContaining<TranscriptTeacherRequestValidator>(); // 
 
 builder.Services.AddLogging();
 
