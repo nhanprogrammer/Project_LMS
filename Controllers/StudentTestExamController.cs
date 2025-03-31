@@ -1,10 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces;
 using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers;
+
+[Authorize(Policy = "STUDENT")]
 [ApiController]
 [Route("api/[controller]")]
 public class StudentTestExamController : ControllerBase
