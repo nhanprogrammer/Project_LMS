@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
@@ -5,6 +6,7 @@ using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers;
 
+[Authorize(Policy = "TEACHER-REC-VIEW")]
 [Route("api/educationinformation")]
 [ApiController]
 public class EducationInformationController : ControllerBase
@@ -31,7 +33,7 @@ public class EducationInformationController : ControllerBase
     }
 
     [HttpGet("get-by-id")]
-    public async Task<IActionResult> GetById(EducationInformationDeleteRequest request)
+    public async Task<IActionResult> GetById([FromQuery] EducationInformationDeleteRequest request)
     {
         try
         {
@@ -62,6 +64,7 @@ public class EducationInformationController : ControllerBase
         }
     }
 
+    [Authorize(Policy = "TEACHER-REC-INSERT")]
     [HttpPost("create")]
     public async Task<IActionResult> Create([FromBody] EducationInformationCreateRequest request)
     {
@@ -84,6 +87,7 @@ public class EducationInformationController : ControllerBase
         }
     }
 
+    [Authorize(Policy = "TEACHER-REC-UPDATE")]
     [HttpPut("update")]
     public async Task<IActionResult> Update([FromBody] EducationInformationUpdateRequest request)
     {
@@ -96,6 +100,10 @@ public class EducationInformationController : ControllerBase
         {
             return NotFound(new ApiResponse<string>(1, ex.Message, null));
         }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new ApiResponse<string>(1, ex.Message, null));
+        }
         catch (ArgumentException ex)
         {
             return BadRequest(new ApiResponse<string>(1, ex.Message, null));
@@ -106,6 +114,7 @@ public class EducationInformationController : ControllerBase
         }
     }
 
+    [Authorize(Policy = "TEACHER-REC-DELETE")]
     [HttpDelete("delete")]
     public async Task<IActionResult> Delete(EducationInformationDeleteRequest request)
     {

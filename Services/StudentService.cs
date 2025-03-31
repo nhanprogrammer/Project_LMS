@@ -592,7 +592,7 @@ public class StudentService : IStudentService
 
         return new ApiResponse<object>(0, "Xuất Excel thành công")
         {
-            Data = base64String
+            Data = await _cloudinaryService.UploadExcelAsync(base64String)
         };
         //}
         //catch (Exception ex)
@@ -1262,7 +1262,7 @@ public class StudentService : IStudentService
 
             return new ApiResponse<object>(0, "Xuất dữ liệu mẫu thành công")
             {
-                Data = base64Excel
+                Data = await _cloudinaryService.UploadExcelAsync(base64Excel)
             };
         }
     }

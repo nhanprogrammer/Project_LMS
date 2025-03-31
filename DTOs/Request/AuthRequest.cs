@@ -15,15 +15,17 @@ namespace Project_LMS.DTOs.Request
     {
         public string UserName { get; set; }
         public string Fullname { get; set; }
-        public string Token { get; set; }
+        public string AccessToken { get; set; }
+        public string RefreshToken { get; set; }
         public string Role { get; set; }
         public List<string> Permission { get; set; }
 
-        public AuthUserLoginResponse(string userName, string fullname, string token, string role, List<string> permission)
+        public AuthUserLoginResponse(string userName, string fullname, string accessToken, string refreshToken, string role, List<string> permission)
         {
             UserName = userName;
             Fullname = fullname;
-            Token = token;
+            AccessToken = accessToken;
+            RefreshToken = refreshToken;
             Role = role;
             Permission = permission;
         }

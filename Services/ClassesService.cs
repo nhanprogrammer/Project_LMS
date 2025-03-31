@@ -19,9 +19,12 @@ namespace Project_LMS.Services
     {
         private readonly ApplicationDbContext _context;
 
-        public ClassService(ApplicationDbContext context)
+        private readonly ICloudinaryService _cloudinaryService;
+
+        public ClassService(ApplicationDbContext context, ICloudinaryService cloudinaryService)
         {
             _context = context;
+            _cloudinaryService = cloudinaryService;
         }
 
         public async Task<ApiResponse<PaginatedResponse<ClassListResponse>>> GetClassList(ClassRequest classRequest)
@@ -471,12 +474,10 @@ namespace Project_LMS.Services
                 worksheet.Cells.AutoFitColumns();
 
                 var byteArray = package.GetAsByteArray();
-                return Convert.ToBase64String(byteArray);
+                string excelBase64 = Convert.ToBase64String(byteArray);
+                return await _cloudinaryService.UploadExcelAsync(excelBase64);
             }
         }
-
-
-
 
         public async Task CreateClassByBase64(string base64File)
         {
@@ -702,7 +703,8 @@ namespace Project_LMS.Services
                 byte[] fileBytes = package.GetAsByteArray();
 
                 // Chuyển đổi byte array sang chuỗi Base64
-                return Convert.ToBase64String(fileBytes);
+                string excelBase64 = Convert.ToBase64String(fileBytes);
+                return await _cloudinaryService.UploadExcelAsync(excelBase64);
             }
         }
 

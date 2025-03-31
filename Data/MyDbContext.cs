@@ -1656,6 +1656,7 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.Reason).HasColumnName("reason");
 
+
                 entity.Property(e => e.Semester)
                     .HasMaxLength(50)
                     .HasColumnName("semester");
@@ -2789,9 +2790,9 @@ namespace Project_LMS.Data
                     .HasColumnName("update_at")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                entity.Property(e => e.CreatedBy).HasColumnName("user_create");
+                entity.Property(e => e.UserCreate).HasColumnName("user_create");
 
-                entity.Property(e => e.UpdatedBy).HasColumnName("user_update");
+                entity.Property(e => e.UserUpdate).HasColumnName("user_update");
 
                 entity.Property(e => e.IsDeleted)
                     .HasColumnName("is_delete")
@@ -2855,9 +2856,9 @@ namespace Project_LMS.Data
                     .HasColumnName("update_at")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                entity.Property(e => e.CreatedBy).HasColumnName("user_create");
+                entity.Property(e => e.UserCreate).HasColumnName("user_create");
 
-                entity.Property(e => e.UpdatedBy).HasColumnName("user_update");
+                entity.Property(e => e.UserUpdate).HasColumnName("user_update");
 
                 entity.Property(e => e.IsDeleted)
                     .HasColumnName("is_delete")
@@ -2892,8 +2893,8 @@ namespace Project_LMS.Data
                     .HasColumnName("update_at")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                entity.Property(e => e.CreatedBy).HasColumnName("user_create");
-                entity.Property(e => e.UpdatedBy).HasColumnName("user_update");
+                entity.Property(e => e.UserCreate).HasColumnName("user_create");
+                entity.Property(e => e.UserUpdate).HasColumnName("user_update");
 
                 entity.Property(e => e.IsDeleted)
                     .HasColumnName("is_delete")
@@ -2924,8 +2925,8 @@ namespace Project_LMS.Data
                     .HasColumnName("update_at")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                entity.Property(e => e.CreatedBy).HasColumnName("user_create");
-                entity.Property(e => e.UpdatedBy).HasColumnName("user_update");
+                entity.Property(e => e.UserCreate).HasColumnName("user_create");
+                entity.Property(e => e.UserUpdate).HasColumnName("user_update");
 
                 entity.Property(e => e.IsDeleted)
                     .HasColumnName("is_delete")
