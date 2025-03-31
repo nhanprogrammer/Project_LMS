@@ -53,7 +53,7 @@ public class AssignmentRepository : IAssignmentRepository
             .Include(asm => asm.TestExam.Class)
             .Include(asm => asm.TestExam.Subject)
             .Include(asm => asm.User)
-            .Where(asm => asm.IsDelete == false && asm.TestExam.SemestersId == semesterId && asm.TestExam.ClassId == classId && asm.TestExam.SubjectId == subjectId && asm.TotalScore >= 0 && asm.TestExam.IsDelete == false);
+            .Where(asm => asm.IsDelete == false && asm.TestExam.SemestersId == semesterId && asm.TestExam.ClassId == classId && asm.TestExam.SubjectId == subjectId && asm.TotalScore >= 0 && asm.TestExam.IsDelete == false && asm.User.IsDelete == false);
         if (!string.IsNullOrWhiteSpace(searchItem))
         {
             query.Where
@@ -76,8 +76,9 @@ public class AssignmentRepository : IAssignmentRepository
             .Include(asm => asm.User)
             .Where(asm => asm.TestExam.Semesters.Name.ToLower().Contains("học kỳ 1")
                 && asm.TestExam.IsDelete == false
+                && asm.User.IsDelete == false
                 && asm.TestExam.ClassId == classId
-                && asm.TestExam.ClassId == classId
+                && asm.UserId == studentId
                 && asm.TestExam.SubjectId == subjectId
                 && asm.TotalScore >= 0);
 
@@ -90,7 +91,9 @@ public class AssignmentRepository : IAssignmentRepository
             .Where(asm => asm.TestExam.Semesters.Name.ToLower().Contains("học kỳ 2")
                 && asm.IsDelete == false
                 && asm.TestExam.IsDelete == false
+                && asm.User.IsDelete == false
                 && asm.TestExam.ClassId == classId
+                && asm.UserId == studentId
                 && asm.TestExam.SubjectId == subjectId
                 && asm.TotalScore >= 0);
 
@@ -98,7 +101,7 @@ public class AssignmentRepository : IAssignmentRepository
         var resultSemester1 = await querySemester1
             .Select(asm => new
             {
-                Coefficient = asm.TestExam.TestExamType.Coefficient ?? 1,
+                Coefficient = asm.TestExam.TestExamType.Coefficient ?? 0,
                 Score = asm.TotalScore.Value
             })
             .ToListAsync();
@@ -106,7 +109,7 @@ public class AssignmentRepository : IAssignmentRepository
         var resultSemester2 = await querySemester2
             .Select(asm => new
             {
-                Coefficient = asm.TestExam.TestExamType.Coefficient ?? 1,
+                Coefficient = asm.TestExam.TestExamType.Coefficient ?? 0,
                 Score = asm.TotalScore.Value
             })
             .ToListAsync();
@@ -123,7 +126,7 @@ public class AssignmentRepository : IAssignmentRepository
         double avgSemester2 = totalCoefficientSemester2 > 0 ? totalScoreSemester2 / totalCoefficientSemester2 : 0;
 
         // Công thức trung bình có trọng số (học kỳ 2 nhân đôi)
-        return (avgSemester1 + (avgSemester2 * 2)) / 3;
+        return await querySemester2.CountAsync() >0? (avgSemester1 + (avgSemester2 * 2)) / 3 : avgSemester1;
     }
 
 }

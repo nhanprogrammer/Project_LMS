@@ -43,7 +43,7 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddControllers(options => { options.Filters.Add<ValidationFilter>(); });
-
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 // Tắt tự động kiểm tra ModelState trong API behavior để sử dụng ValidationFilter
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {

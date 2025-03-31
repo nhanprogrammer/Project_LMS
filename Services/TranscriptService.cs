@@ -1,15 +1,21 @@
-﻿using Microsoft.CodeAnalysis.CSharp.Syntax;
+﻿
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
-using Project_LMS.Data;
+
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
-using Project_LMS.Interfaces;
 using Project_LMS.Interfaces.Repositories;
 using Project_LMS.Interfaces.Responsitories;
 using Project_LMS.Interfaces.Services;
 using Project_LMS.Models;
-using Twilio.Rest.Api.V2010.Account;
+
+using QuestPDF.Fluent;
+
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
+
+
 
 namespace Project_LMS.Services
 {
@@ -143,6 +149,291 @@ namespace Project_LMS.Services
             }
         }
 
+        public async Task<ApiResponse<object>> ExportExcelTranscriptByTeacherAsync(TranscriptTeacherRequest request)
+        {
+            var assignments = await _assignmentRepository.GetAllByClassAndSubjectAndSemesterAndSearch(request.ClassId, request.SubjectId, request.SemesterId, request.searchItem);
+            var users = assignments.GroupBy(x => new
+            {
+                x.User.Id,
+                x.User.FullName,
+                x.User.BirthDate,
+                x.User.UpdateAt
+            }).ToList();
+            var transcripts = new List<object>();
+            var testExamTypes = await _testExamTypeRepository.GetAllAsync();
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+            using (var package = new ExcelPackage())
+            {
+                int coutColumScore = testExamTypes.Count;
+                var worksheet1 = package.Workbook.Worksheets.Add("Danh sách học viên");
+
+                // Merge hàng 1 từ cột 1 đến cột (7 + coutColumScore)
+                worksheet1.Cells[1, 1, 1, 7 + coutColumScore].Merge = true;
+                worksheet1.Cells["A1"].Value = "Bảng điểm học viên";
+                // Căn giữa và in đậm tiêu đề
+                worksheet1.Cells["A1"].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                worksheet1.Cells["A1"].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+                worksheet1.Cells["A1"].Style.Font.Bold = true;
+
+                // Thiết lập tiêu đề cho hàng 2
+                // Cột A: "STT"
+                worksheet1.Cells[2, 1, 3, 1].Merge = true;
+                worksheet1.Cells["A2"].Value = "STT";
+                worksheet1.Cells["A2"].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                worksheet1.Cells["A2"].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+
+                // Cột B: "Họ Và tên"
+                worksheet1.Cells[2, 2, 3, 2].Merge = true;
+                worksheet1.Cells["B2"].Value = "Họ Và tên";
+                worksheet1.Cells["B2"].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                worksheet1.Cells["B2"].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+
+                // Cột C: "Ngày sinh"
+                worksheet1.Cells[2, 3, 3, 3].Merge = true;
+                worksheet1.Cells["C2"].Value = "Ngày sinh";
+                worksheet1.Cells["C2"].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                worksheet1.Cells["C2"].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+
+                // Merge cho tiêu đề của nhóm điểm (tùy chỉnh theo số cột điểm)
+                // Ví dụ: merge từ ô D2 đến ô (cột: coutColumScore + 1) của hàng 2
+                worksheet1.Cells[2, 4, 2, coutColumScore + 1].Merge = true;
+                worksheet1.Cells[2, 4].Value = assignments.Count > 0
+                    ? assignments[0]?.TestExam?.Semesters?.Name
+                    : "Chưa có dữ liệu";
+                worksheet1.Cells[2, 4].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                worksheet1.Cells[2, 4].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+
+                // Gán giá trị cho từng loại điểm (không cần merge lại nếu chỉ là 1 ô)
+                for (int colm = 0; colm < testExamTypes.Count; colm++)
+                {
+                    worksheet1.Cells[3, 4 + colm].Value = testExamTypes[colm].PointTypeName;
+                    worksheet1.Cells[3, 4 + colm].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                    worksheet1.Cells[3, 4 + colm].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+                }
+
+                // Cột "Trung bình"
+                worksheet1.Cells[3, 4 + coutColumScore].Value = "Trung bình";
+                worksheet1.Cells[3, 4 + coutColumScore].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                worksheet1.Cells[3, 4 + coutColumScore].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+
+                // Cột "Điểm trung bình cả năm"
+                worksheet1.Cells[2, 5 + coutColumScore, 3, 5 + coutColumScore].Merge = true;
+                worksheet1.Cells[2, 5 + coutColumScore].Value = "Điểm trung bình cả năm";
+                worksheet1.Cells[2, 5 + coutColumScore].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                worksheet1.Cells[2, 5 + coutColumScore].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+
+                // Cột "Đạt"
+                worksheet1.Cells[2, 6 + coutColumScore, 3, 6 + coutColumScore].Merge = true;
+                worksheet1.Cells[2, 6 + coutColumScore].Value = "Đạt";
+                worksheet1.Cells[2, 6 + coutColumScore].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                worksheet1.Cells[2, 6 + coutColumScore].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+
+                // Cột "Ngày cập nhật"
+                worksheet1.Cells[2, 7 + coutColumScore, 3, 7 + coutColumScore].Merge = true;
+                worksheet1.Cells[2, 7 + coutColumScore].Value = "Ngày cập nhật";
+                worksheet1.Cells[2, 7 + coutColumScore].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                worksheet1.Cells[2, 7 + coutColumScore].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+
+                int row = 3;
+                foreach (var user in users)
+                {
+                    row++;
+                    worksheet1.Cells[row, 1].Value = row-3;
+                    worksheet1.Cells[row,  1].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                    worksheet1.Cells[row,  1].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+                    
+                    worksheet1.Cells[row, 2].Value = user.Key.FullName;
+                    worksheet1.Cells[row,  2].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                    worksheet1.Cells[row,  2].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+                    
+                    worksheet1.Cells[row, 3].Value = user.Key.BirthDate;
+                    worksheet1.Cells[row,  3].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                    worksheet1.Cells[row,  3].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+
+                    double totalScore = 0;
+                    int totalCoefficient = 0;
+                    int column = 3;
+                    foreach (TestExamType test in testExamTypes)
+                    {
+                        column++;
+                        var pointTypeName = new Dictionary<string, object>();
+                        Assignment asm = assignments.Where(asm => asm.UserId == user.Key.Id && asm.TestExamId == test.Id).FirstOrDefault();
+                        if (asm != null)
+                        {
+                            worksheet1.Cells[row, column].Value = asm.TotalScore;
+                            worksheet1.Cells[row, column].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                            worksheet1.Cells[row, column].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+
+                            totalScore += (double)asm.TotalScore * asm.TestExam.TestExamType.Coefficient ?? 1;
+                            totalCoefficient += asm.TestExam.TestExamType.Coefficient ?? 0;
+                        }
+                        else
+                        {
+                            worksheet1.Cells[row, column].Value = "Chưa có dữ liệu";
+                            worksheet1.Cells[row, column].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                            worksheet1.Cells[row, column].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+                        }
+
+                    }
+                    //totalScore / (totalCoefficient > 0 ? totalCoefficient : 1
+                    worksheet1.Cells[row, column + 1].Value = (totalScore / (totalCoefficient > 0 ? totalCoefficient : 1));
+                    worksheet1.Cells[row, column + 1].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                    worksheet1.Cells[row, column + 1].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+
+                    worksheet1.Cells[row, column + 2].Value = await _assignmentRepository.AvgScoreByStudentAndClassAndSubjectAndSearch(user.Key.Id, request.ClassId, request.SubjectId);
+                    worksheet1.Cells[row, column + 2].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                    worksheet1.Cells[row, column + 2].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+
+                    worksheet1.Cells[row, column + 3].Value = await _assignmentRepository.AvgScoreByStudentAndClassAndSubjectAndSearch(user.Key.Id, request.ClassId, request.SubjectId) > 5 ? "Đạt" : "Chưa đạt";
+                    worksheet1.Cells[row, column + 3].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                    worksheet1.Cells[row, column + 3].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+
+                    worksheet1.Cells[row, column + 4].Value = user.Key.UpdateAt?.ToString("dddd, dd/MM/yyyy, HH:mm:ss");
+                    worksheet1.Cells[row, column + 4].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                    worksheet1.Cells[row, column + 4].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+                }
+                worksheet1.Cells.AutoFitColumns();
+                var filebytes = package.GetAsByteArray();
+                string base64Excel = Convert.ToBase64String(filebytes);
+                return new ApiResponse<object>(0, "Xuất excel thành công.") { Data = await _cloudinaryService.UploadExcelAsync(base64Excel) };
+
+            }
+
+        }
+
+
+
+        public async Task<ApiResponse<object>> ExportPdfTranscriptByTeacherAsync(TranscriptTeacherRequest request)
+        {
+            var assignments = await _assignmentRepository.GetAllByClassAndSubjectAndSemesterAndSearch(
+                request.ClassId, request.SubjectId, request.SemesterId, request.searchItem);
+
+            var users = assignments.GroupBy(x => new
+            {
+                x.User.Id,
+                x.User.FullName,
+                x.User.BirthDate,
+                x.User.UpdateAt
+            }).ToList();
+
+            var testExamTypes = await _testExamTypeRepository.GetAllAsync();
+            QuestPDF.Settings.License = LicenseType.Community;
+
+            var processedUsers = new List<(int rowNum, string fullName, string birthDate, List<string> scores, double avgSemester, double yearlyAvg, string status, string updatedAt)>();
+
+            int rowNum = 0;
+            foreach (var user in users)
+            {
+                rowNum++;
+
+                string birthDate = user.Key.BirthDate?.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) ?? "N/A";
+
+                double totalScore = 0;
+                int totalCoefficient = 0;
+                List<string> scores = new List<string>();
+
+                foreach (var test in testExamTypes)
+                {
+                    var assignment = assignments.FirstOrDefault(asm =>
+                        asm.UserId == user.Key.Id && asm.TestExamId == test.Id);
+
+                    string scoreText = assignment != null
+                        ? assignment.TotalScore.ToString()
+                        : "N/A";
+
+                    scores.Add(scoreText);
+
+                    int coefficient = assignment?.TestExam?.TestExamType?.Coefficient ?? 1;
+                    totalScore += (assignment?.TotalScore ?? 0) * coefficient;
+                    totalCoefficient += coefficient;
+                }
+
+                double avgSemester = totalCoefficient > 0 ? totalScore / totalCoefficient : 0;
+                double yearlyAvg = await _assignmentRepository.AvgScoreByStudentAndClassAndSubjectAndSearch(user.Key.Id, request.ClassId, request.SubjectId);
+                string status = yearlyAvg > 5 ? "Đạt" : "Chưa đạt";
+                string updatedAt = user.Key.UpdateAt?.ToString("dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture) ?? "N/A";
+
+                processedUsers.Add((rowNum, user.Key.FullName, birthDate, scores, avgSemester, yearlyAvg, status, updatedAt));
+            }
+
+            // 📌 Tạo tài liệu PDF bằng QuestPDF
+            var document = Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A3.Landscape()); // Tăng chiều ngang bằng chế độ Landscape
+                    page.Margin(20);
+                    page.DefaultTextStyle(x => x.FontSize(12).FontFamily("Arial"));
+
+                    page.Header().Text("Bảng điểm học viên").FontSize(18).SemiBold().AlignCenter();
+
+                    page.Content().Table(table =>
+                    {
+                        table.ColumnsDefinition(columns =>
+                        {
+                            columns.ConstantColumn(40); // STT
+                            columns.RelativeColumn(2); // Họ và tên (co giãn nhiều hơn)
+                            columns.ConstantColumn(90); // Ngày sinh
+                            foreach (var _ in testExamTypes)
+                                columns.RelativeColumn(1); // Cột điểm (co giãn)
+                            columns.ConstantColumn(70); // Trung bình kỳ
+                            columns.ConstantColumn(70); // Trung bình năm
+                            columns.ConstantColumn(80); // Đạt/Chưa đạt
+                            columns.ConstantColumn(140); // Ngày cập nhật
+                        });
+
+                        // Hàng tiêu đề
+                        table.Header(header =>
+                        {
+                            header.Cell().Text("STT").Bold().AlignCenter();
+                            header.Cell().Text("Họ và tên").Bold().AlignCenter();
+                            header.Cell().Text("Ngày sinh").Bold().AlignCenter();
+
+                            foreach (var test in testExamTypes)
+                                header.Cell().Text(test.PointTypeName).Bold().AlignCenter();
+
+                            header.Cell().Text("Trung bình kỳ").Bold().AlignCenter();
+                            header.Cell().Text("Trung bình năm").Bold().AlignCenter();
+                            header.Cell().Text("Đạt").Bold().AlignCenter();
+                            header.Cell().Text("Ngày cập nhật").Bold().AlignCenter();
+                        });
+
+                        // Dữ liệu từng học sinh
+                        foreach (var user in processedUsers)
+                        {
+                            table.Cell().Text(user.rowNum.ToString()).AlignCenter();
+                            table.Cell().Text(user.fullName).WrapAnywhere();
+                            table.Cell().Text(user.birthDate).WrapAnywhere();
+
+                            foreach (var score in user.scores)
+                                table.Cell().Text(score).WrapAnywhere().AlignCenter();
+
+                            table.Cell().Text(user.avgSemester.ToString("F2")).AlignCenter();
+                            table.Cell().Text(user.yearlyAvg.ToString("F2")).AlignCenter();
+                            table.Cell().Text(user.status).WrapAnywhere().AlignCenter();
+                            table.Cell().Text(user.updatedAt).WrapAnywhere().AlignCenter();
+                        }
+                    });
+                });
+            });
+
+            // 📌 Lưu PDF vào MemoryStream
+            using var memoryStream = new MemoryStream();
+            document.GeneratePdf(memoryStream);
+            var fileBytes = memoryStream.ToArray();
+            string base64Pdf = Convert.ToBase64String(fileBytes);
+
+            return new ApiResponse<object>(0, "Xuất PDF thành công.")
+            {
+                Data = await _cloudinaryService.UploadDocAsync(base64Pdf)
+            };
+        }
+
+
+
+
+
+
         public async Task<ApiResponse<object>> GetTranscriptAsync(TranscriptRequest request)
         {
             //if (string.IsNullOrWhiteSpace(request.UserCode))
@@ -243,9 +534,9 @@ namespace Project_LMS.Services
                 foreach (TestExamType test in testExamTypes)
                 {
                     var pointTypeName = new Dictionary<string, object>();
-                    foreach (Assignment asm in assignments.Where(asm => asm.UserId == user.Key.Id).ToList())
+                    Assignment asm = assignments.Where(asm => asm.UserId == user.Key.Id && asm.TestExamId == test.Id).FirstOrDefault();
                     {
-                        if (asm.TestExamId == test.Id)
+                        if (asm != null)
                         {
                             pointTypeName.Add(test.PointTypeName, asm.TotalScore);
                             totalScore += (double)asm.TotalScore * asm.TestExam.TestExamType.Coefficient ?? 1;
