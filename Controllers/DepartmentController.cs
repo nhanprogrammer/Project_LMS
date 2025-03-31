@@ -6,21 +6,24 @@ using Project_LMS.Interfaces;
 
 namespace Project_LMS.Controllers
 {
-    [Authorize(Policy = "DATA-MNG-VIEW")]
+
     [ApiController]
     [Route("api/[controller]")]
     public class DepartmentController : ControllerBase
     {
         private readonly IDepartmentsService _departmentsService;
+        private readonly IAuthService _authService;
 
-        public DepartmentController(IDepartmentsService departmentsService)
+        public DepartmentController(IDepartmentsService departmentsService, IAuthService authService)
         {
             _departmentsService = departmentsService;
+            _authService = authService;
         }
 
+        [Authorize(Policy = "DATA-MNG-VIEW")]
         [HttpGet]
         public async Task<IActionResult> GetAllDepartment([FromQuery] int? pageNumber, [FromQuery] int? pageSize,
-            [FromQuery] string? sortDirection)
+        [FromQuery] string? sortDirection)
         {
             // Gọi service để lấy danh sách phòng ban
             var response = await _departmentsService.GetAllCoursesAsync(pageNumber, pageSize, sortDirection);
@@ -43,6 +46,7 @@ namespace Project_LMS.Controllers
             ));
         }
 
+        [Authorize(Policy = "DATA-MNG-VIEW")]
         [HttpGet("search")]
         public async Task<IActionResult> SearchDepartments
         (
@@ -50,13 +54,14 @@ namespace Project_LMS.Controllers
             [FromQuery] int? pageNumber,
             [FromQuery] int? pageSize,
             [FromQuery] string? sortDirection
-           )
+        )
         {
             var search = await _departmentsService.SearchDepartmentsAsync(keyword, pageNumber, pageSize, sortDirection);
 
             return Ok(search);
         }
 
+        [Authorize(Policy = "DATA-MNG-VIEW")]
         [HttpGet("departments/{id:int}/classes")]
         public async Task<IActionResult> GetClassesByDepartmentId([FromRoute] int id)
         {
@@ -68,6 +73,8 @@ namespace Project_LMS.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateDepartment([FromBody] CreateDepartmentRequest request)
         {
+            var user = await _authService.GetUserAsync();
+            request.userId = user.Id;
             var response = await _departmentsService.CreateDepartmentAsync(request);
 
             if (response.Status == 1)
@@ -79,10 +86,13 @@ namespace Project_LMS.Controllers
             return Ok(new ApiResponse<DepartmentResponse>(response.Status, response.Message, response.Data));
         }
 
+
         [Authorize(Policy = "DATA-MNG-UPDATE")]
         [HttpPut]
         public async Task<IActionResult> UpdateDepartment([FromBody] UpdateDepartmentRequest request)
         {
+            var user = await _authService.GetUserAsync();
+            request.userUpdate = user.Id;
             var response = await _departmentsService.UpdateDepartmentAsync(request);
 
             if (response.Status == 1)
@@ -117,5 +127,25 @@ namespace Project_LMS.Controllers
             return response.Status == 0 ? Ok(response) : BadRequest(response);
         }
 
+
+        [HttpGet("get-all-departments")]
+        public async Task<IActionResult> GetDepartmentDropdown()
+        {
+            try
+            {
+                var departments = await _departmentsService.GetDepartmentDropdownAsync();
+
+                if (departments == null || !departments.Any())
+                {
+                    return Ok(new ApiResponse<List<DepartmentDropdownResponse>>(1, "Không có khoa/khối nào!", null));
+                }
+
+                return Ok(new ApiResponse<List<DepartmentDropdownResponse>>(0, "Lấy danh sách khoa/khối thành công!", departments));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, $"Lỗi hệ thống: {ex.Message}", null));
+            }
+        }
     }
 }

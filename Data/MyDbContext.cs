@@ -79,6 +79,9 @@ namespace Project_LMS.Data
 
         public virtual DbSet<Exemption> Exemptions { get; set; } = null!;
         public virtual DbSet<TeacherStatusHistory> TeacherStatusHistories { get; set; } = null!;
+        public virtual DbSet<Province> Provinces { get; set; } = null!;
+        public virtual DbSet<District> Districts { get; set; } = null!;
+        public virtual DbSet<Ward> Wards { get; set; } = null!;
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -256,7 +259,7 @@ namespace Project_LMS.Data
                 entity.Property(e => e.StatusAssignmentId).HasColumnName("status_assignment_id");
 
                 entity.Property(e => e.SubmissionDate)
-                    .HasColumnType("timestamp without time zone")
+                    .HasColumnType("timestamp with time zone")
                     .HasColumnName("submission_date");
 
                 entity.Property(e => e.SubmissionFile)
@@ -1284,6 +1287,8 @@ namespace Project_LMS.Data
                 entity.Property(e => e.Mark).HasColumnName("mark");
 
                 entity.Property(e => e.QuestionText).HasColumnName("question");
+                
+                entity.Property(e => e.QuestionType).HasColumnName("question_type");
 
                 entity.Property(e => e.TestExamId).HasColumnName("test_exam_id");
 
@@ -1650,8 +1655,6 @@ namespace Project_LMS.Data
                     .HasDefaultValueSql("false");
 
                 entity.Property(e => e.Reason).HasColumnName("reason");
-
-                entity.Property(e => e.SchoolBranchesId).HasColumnName("school_branches_id");
 
                 entity.Property(e => e.Semester)
                     .HasMaxLength(50)
@@ -2288,7 +2291,10 @@ namespace Project_LMS.Data
                 entity.Property(e => e.TestExamTypeId).HasColumnName("test_exam_type_id");
                 entity.Property(e => e.SubjectId).HasColumnName("subject_id");
                 entity.Property(e => e.DepartmentId).HasColumnName("department_id");
-                entity.Property(e => e.ScheduleStatusId).HasColumnName("schedule_status_id");
+                modelBuilder.Entity<TestExam>()
+                    .Property(te => te.ScheduleStatusId)
+                    .HasColumnName("schedule_status_id")
+                    .IsRequired(false);
                 entity.Property(e => e.Topic)
                     .HasMaxLength(50)
                     .HasColumnName("topic");
@@ -2993,6 +2999,63 @@ namespace Project_LMS.Data
                 entity.Property(e => e.IsDelete)
                     .HasColumnName("is_delete")
                     .HasDefaultValueSql("false");
+                modelBuilder.Entity<Province>(entity =>
+                {
+                    entity.ToTable("provinces");
+
+                    entity.HasKey(e => e.Code);
+
+                    entity.Property(e => e.Code).HasColumnName("code");
+                    entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(512);
+                    entity.Property(e => e.NameEn).HasColumnName("name_en").HasMaxLength(512);
+                    entity.Property(e => e.FullName).HasColumnName("full_name").HasMaxLength(512);
+                    entity.Property(e => e.FullNameEn).HasColumnName("full_name_en").HasMaxLength(512);
+                    entity.Property(e => e.CodeName).HasColumnName("code_name").HasMaxLength(512);
+                    entity.Property(e => e.AdministrativeUnitId).HasColumnName("administrative_unit_id");
+                    entity.Property(e => e.AdministrativeRegionId).HasColumnName("administrative_region_id");
+                });
+
+                modelBuilder.Entity<District>(entity =>
+                {
+                    entity.ToTable("districts");
+
+                    entity.HasKey(e => e.Code);
+
+                    entity.Property(e => e.Code).HasColumnName("code");
+                    entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(512);
+                    entity.Property(e => e.NameEn).HasColumnName("name_en").HasMaxLength(512);
+                    entity.Property(e => e.FullName).HasColumnName("full_name").HasMaxLength(512);
+                    entity.Property(e => e.FullNameEn).HasColumnName("full_name_en").HasMaxLength(512);
+                    entity.Property(e => e.CodeName).HasColumnName("code_name").HasMaxLength(512);
+                    entity.Property(e => e.ProvinceCode).HasColumnName("province_code");
+                    entity.Property(e => e.AdministrativeUnitId).HasColumnName("administrative_unit_id");
+
+                    entity.HasOne(d => d.Province)
+                        .WithMany(p => p.Districts)
+                        .HasForeignKey(d => d.ProvinceCode)
+                        .HasConstraintName("fk_districts_province");
+                });
+
+                modelBuilder.Entity<Ward>(entity =>
+                {
+                    entity.ToTable("wards");
+
+                    entity.HasKey(e => e.Code);
+
+                    entity.Property(e => e.Code).HasColumnName("code");
+                    entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(512);
+                    entity.Property(e => e.NameEn).HasColumnName("name_en").HasMaxLength(512);
+                    entity.Property(e => e.FullName).HasColumnName("full_name").HasMaxLength(512);
+                    entity.Property(e => e.FullNameEn).HasColumnName("full_name_en").HasMaxLength(512);
+                    entity.Property(e => e.CodeName).HasColumnName("code_name").HasMaxLength(512);
+                    entity.Property(e => e.DistrictCode).HasColumnName("district_code");
+                    entity.Property(e => e.AdministrativeUnitId).HasColumnName("administrative_unit_id");
+
+                    entity.HasOne(w => w.District)
+                        .WithMany(d => d.Wards)
+                        .HasForeignKey(w => w.DistrictCode)
+                        .HasConstraintName("fk_wards_district");
+                });
             });
 
 

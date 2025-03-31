@@ -108,6 +108,18 @@ namespace Project_LMS.Services
                 if (user == null)
                     return new ApiResponse<SubjectTypeResponse>(1, "Không có quyền truy cập", null);
 
+                if (request == null || string.IsNullOrEmpty(request.Name))
+                    return new ApiResponse<SubjectTypeResponse>(1, "Tên loại môn học không được để trống", null);
+
+                // Kiểm tra tên loại môn học đã tồn tại chưa
+                var existingSubjectType = await _context.SubjectTypes
+                    .FirstOrDefaultAsync(st => st.Name != null &&
+                        st.Name.ToLower() == request.Name.ToLower() &&
+                        (!st.IsDelete.HasValue || !st.IsDelete.Value));
+
+                if (existingSubjectType != null)
+                    return new ApiResponse<SubjectTypeResponse>(1, "Tên loại môn học đã tồn tại", null);
+
                 var subjectType = _mapper.Map<SubjectType>(request);
                 subjectType.CreateAt = DateTime.UtcNow.ToLocalTime();
                 subjectType.IsDelete = false;
@@ -133,11 +145,24 @@ namespace Project_LMS.Services
                 if (user == null)
                     return new ApiResponse<SubjectTypeResponse>(1, "Không có quyền truy cập", null);
 
+                if (request == null || string.IsNullOrEmpty(request.Name))
+                    return new ApiResponse<SubjectTypeResponse>(1, "Tên loại môn học không được để trống", null);
+
                 var existingSubjectType = await _context.SubjectTypes
                     .FirstOrDefaultAsync(st => st.Id == request.Id && !(st.IsDelete ?? false));
 
                 if (existingSubjectType == null)
                     return new ApiResponse<SubjectTypeResponse>(1, "Không tìm thấy loại môn học", null);
+
+                // Kiểm tra tên loại môn học đã tồn tại chưa (loại trừ chính nó)
+                var duplicateName = await _context.SubjectTypes
+                    .FirstOrDefaultAsync(st => st.Id != request.Id
+                        && st.Name != null
+                        && st.Name.ToLower() == request.Name.ToLower()
+                        && (!st.IsDelete.HasValue || !st.IsDelete.Value));
+
+                if (duplicateName != null)
+                    return new ApiResponse<SubjectTypeResponse>(1, "Tên loại môn học đã tồn tại", null);
 
                 _mapper.Map(request, existingSubjectType);
                 existingSubjectType.UpdateAt = DateTime.UtcNow.ToLocalTime();
@@ -185,6 +210,17 @@ namespace Project_LMS.Services
             {
                 return new ApiResponse<bool>(1, $"Lỗi khi xóa loại môn học: {ex.Message}", false);
             }
+        }
+        public async Task<List<SubjectTypeDropdownResponse>> GetSubjectTypeDropdownAsync()
+        {
+            return await _context.SubjectTypes
+                .Where(st => !(st.IsDelete ?? false) && (st.Status ?? false))
+                .Select(st => new SubjectTypeDropdownResponse
+                {
+                    Id = st.Id,
+                    Name = st.Name ?? string.Empty
+                })
+                .ToListAsync();
         }
     }
 }

@@ -27,7 +27,7 @@ using Project_LMS.Hubs;
 using Project_LMS.Middleware;
 using Hangfire;
 using Hangfire.PostgreSql;
-
+using Project_LMS.Controllers;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddCors(options =>
@@ -117,6 +117,9 @@ builder.Services.AddScoped<ITranscriptService, TranscriptService>();
 //AddSingleton
 builder.Services.AddSingleton<ISupportService, SupportService>();
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+builder.Services.AddScoped<IStudentTestExamService, StudentTestExamService>();
+builder.Services.AddScoped<ITestExamScheduleService, TestExamScheduleService>();
+// builder.Services.AddHostedService<TestExamStatusUpdater>();
 builder.Services.AddScoped<IGradeEntryService, GradeEntryService>();
 
 
@@ -155,10 +158,11 @@ builder.Services.AddScoped<ITeacherRepository, TeacherRepository>();
 builder.Services.AddScoped<ITeacherClassSubjectRepository, TeacherClassSubjectRepository>();
 builder.Services.AddScoped<ITeacherStatusHistoryRepository, TeacherStatusHistoryRepository>();
 builder.Services.AddScoped<ITeachingAssignmentRepository, TeachingAssignmentRepository>();
-
+builder.Services.AddScoped<IAddressRepository, AddressRepository>();
 builder.Services.AddScoped<INotificationsRepository, NotificationsRepository>();
 builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
 builder.Services.AddScoped<ITeachingAssignmentService, TeachingAssignmentService>();
+builder.Services.AddHttpClient();
 builder.Services.AddScoped<IGradeEntryRepository, GradeEntryRepository>();
 
 builder.Services.AddScoped<ISubjectGroupRepository, SubjectGroupRepository>();
@@ -177,6 +181,7 @@ builder.Services.AddScoped<ITopicRepository, TopicRepository>();
 
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAddressService, AddressService>();
 // builder.Services.AddScoped<IDepartmentsService, Deparmen>();
 builder.Services.AddScoped<IClassRepository, ClassRepository>();
 builder.Services.AddScoped<IClassStudentRepository, ClassStudentRepository>();
@@ -346,6 +351,7 @@ app.UseExceptionHandler(errorApp =>
 app.UseCors("AllowAll");
 app.UseHttpsRedirection();
 app.MapHub<RealtimeHub>("/realtimeHub");
+app.MapHub<TestExamHub>("/testExamHub"); 
 app.UseAuthentication();
 app.UseAuthorization();
 
