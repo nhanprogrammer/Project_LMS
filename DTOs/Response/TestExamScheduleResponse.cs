@@ -11,12 +11,24 @@ public class TestExamScheduleResponse
 
 public class TestExamScheduleDetailResponse
 {
+    public string SubjectName { get; set; }
     public int TestExamId { get; set; }
     public string TeacherName { get; set; }
     public string Duration { get; set; }
     public string TestExamType { get; set; }
-    public string? Form { get; set; }
-    
+    public string? Form { get; set; } 
 }
+
+public class TestExamScheduleDetailForStudentAndTeacherResponse
+{
+    public string SubjectName { get; set; }
+    public string ClassList { get; set; }
+    public string Duration { get; set; }
+    public string Topic { get; set; }
+    
+    public string TestExamType { get; set; }
+    public string? Form { get; set; } 
+}
+
 
 
