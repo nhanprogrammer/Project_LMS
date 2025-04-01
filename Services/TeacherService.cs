@@ -3,6 +3,7 @@ using FluentValidation;
 using OfficeOpenXml;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Interfaces;
 using Project_LMS.Interfaces.Responsitories;
 using Project_LMS.Interfaces.Services;
 using Project_LMS.Models;
@@ -20,8 +21,8 @@ public class TeacherService : ITeacherService
     private readonly ICloudinaryService _cloudinaryService;
     private readonly IClassRepository _classRepository;
     private readonly ITeachingAssignmentRepository _assignmentRepository;
-
-    public TeacherService(ITeacherRepository teacherRepository, IMapper mapper, ITeacherClassSubjectRepository teacherClassSubjectRepository, IValidator<TeacherRequest> validator, IStudentService studentService, IEmailService emailService, ICloudinaryService cloudinaryService, IClassRepository classRepository, ITeachingAssignmentRepository assignmentRepository)
+    private readonly ICodeGeneratorService _codeGeneratorService;
+    public TeacherService(ITeacherRepository teacherRepository, IMapper mapper, ITeacherClassSubjectRepository teacherClassSubjectRepository, IValidator<TeacherRequest> validator, IStudentService studentService, IEmailService emailService, ICloudinaryService cloudinaryService, IClassRepository classRepository, ITeachingAssignmentRepository assignmentRepository, ICodeGeneratorService codeGeneratorService)
     {
         _teacherRepository = teacherRepository;
         _mapper = mapper;
@@ -32,42 +33,49 @@ public class TeacherService : ITeacherService
         _cloudinaryService = cloudinaryService;
         _classRepository = classRepository;
         _assignmentRepository = assignmentRepository;
+        _codeGeneratorService = codeGeneratorService;
     }
 
     public async Task<ApiResponse<object>> AddAsync(TeacherRequest request)
     {
 
+        if (string.IsNullOrEmpty(request.UserCode))
+        {
+            request.UserCode = await _codeGeneratorService.GenerateCodeAsync("GV", async code =>
+                await _teacherRepository.FindTeacherByUserCode(code) != null);
+        }
+
         if (await _teacherRepository.FindTeacherByUserCode(request.UserCode) != null)
             return new ApiResponse<object>(1, "UserCode đã tồn tại");
+
         if (await _teacherRepository.FindTeacherByEmailOrderUserCode(request.Email, null) != null)
             return new ApiResponse<object>(1, "Email đã tồn tại");
 
         var teacher = _mapper.Map<User>(request);
         var username = await _studentService.GeneratedUsername(request.Email);
         var password = await _studentService.GenerateSecurePassword(10);
+
         try
         {
             if (request.Image != null)
             {
                 teacher.Image = await _cloudinaryService.UploadImageAsync(request.Image);
             }
+
             teacher.Username = username;
             teacher.Password = BCrypt.Net.BCrypt.HashPassword(password);
             teacher = await _teacherRepository.AddAsync(teacher);
+
             foreach (int item in request.TeacherSubjectIds)
             {
-                TeacherClassSubject teacherClass = new TeacherClassSubject();
-                teacherClass.SubjectsId = item;
-                teacherClass.UserId = teacher.Id;
-                if (item == request.SubjectId)
+                TeacherClassSubject teacherClass = new TeacherClassSubject
                 {
-                    teacherClass.IsPrimary = true;
-                }
+                    SubjectsId = item,
+                    UserId = teacher.Id,
+                    IsPrimary = item == request.SubjectId
+                };
                 await _teacherClassSubjectRepository.AddAsync(teacherClass);
-
             }
-
-
 
             Task.Run(async () =>
             {
@@ -78,7 +86,7 @@ public class TeacherService : ITeacherService
         }
         catch (Exception ex)
         {
-            return new ApiResponse<object>(0, "Tạo tài khoản giảng viên thất bại.")
+            return new ApiResponse<object>(1, "Tạo tài khoản giảng viên thất bại.")
             {
                 Data = "error : " + ex.ToString()
             };

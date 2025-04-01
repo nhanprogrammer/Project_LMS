@@ -183,7 +183,7 @@ builder.Services.AddScoped<ITopicRepository, TopicRepository>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAddressService, AddressService>();
-// builder.Services.AddScoped<IDepartmentsService, Deparmen>();
+builder.Services.AddScoped<ICodeGeneratorService, CodeGeneratorService>();
 builder.Services.AddScoped<IClassRepository, ClassRepository>();
 builder.Services.AddScoped<IClassStudentRepository, ClassStudentRepository>();
 builder.Services.AddScoped<IClassSubjectRepository, ClassSubjectRepository>();
