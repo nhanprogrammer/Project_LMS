@@ -72,8 +72,6 @@ namespace Project_LMS.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateDepartment([FromBody] CreateDepartmentRequest request)
         {
-            var user = await _authService.GetUserAsync();
-            request.userId = user.Id;
             var response = await _departmentsService.CreateDepartmentAsync(request);
 
             if (response.Status == 1)
@@ -90,8 +88,6 @@ namespace Project_LMS.Controllers
         [HttpPut]
         public async Task<IActionResult> UpdateDepartment([FromBody] UpdateDepartmentRequest request)
         {
-            var user = await _authService.GetUserAsync();
-            request.userUpdate = user.Id;
             var response = await _departmentsService.UpdateDepartmentAsync(request);
 
             if (response.Status == 1)
