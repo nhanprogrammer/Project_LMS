@@ -71,13 +71,13 @@ namespace Project_LMS.Services
                     .FirstOrDefaultAsync(ta => ta.Id == replyRequest.TeachingAssignmentId && ta.IsDelete == false);
                 if (teachingAssignment == null)
                 {
-                    return new ApiResponse<QuestionsAnswerResponse>(1, "TeachingAssignmentId không hợp lệ", null);
+                    return new ApiResponse<QuestionsAnswerResponse?>(1, "TeachingAssignmentId không hợp lệ", null);
                 }
 
                 // Kiểm tra ClassId không null
                 if (teachingAssignment.ClassId == null)
                 {
-                    return new ApiResponse<QuestionsAnswerResponse>(1, "ClassId của phân công giảng dạy không hợp lệ!",
+                    return new ApiResponse<QuestionsAnswerResponse?>(1, "ClassId của phân công giảng dạy không hợp lệ!",
                         null);
                 }
 
@@ -88,13 +88,13 @@ namespace Project_LMS.Services
                         .FirstOrDefaultAsync(qa => qa.Id == replyRequest.ParentCommentId && qa.IsDelete == false);
                     if (parentComment == null)
                     {
-                        return new ApiResponse<QuestionsAnswerResponse>(1, "Không tìm thấy bình luận gốc", null);
+                        return new ApiResponse<QuestionsAnswerResponse?>(1, "Không tìm thấy bình luận gốc", null);
                     }
 
                     // Kiểm tra ParentComment thuộc cùng TeachingAssignmentId
                     if (parentComment.TeachingAssignmentId != replyRequest.TeachingAssignmentId)
                     {
-                        return new ApiResponse<QuestionsAnswerResponse>(1,
+                        return new ApiResponse<QuestionsAnswerResponse?>(1,
                             "Câu hỏi gốc không thuộc phân công giảng dạy này!", null);
                     }
                 }
@@ -103,7 +103,7 @@ namespace Project_LMS.Services
                 var user = await _context.Users.FindAsync(replyRequest.UserId);
                 if (user == null)
                 {
-                    return new ApiResponse<QuestionsAnswerResponse>(1, "Người dùng không tồn tại!", null);
+                    return new ApiResponse<QuestionsAnswerResponse?>(1, "Người dùng không tồn tại!", null);
                 }
 
                 // Kiểm tra user có thuộc phân công giảng dạy không (đối với giáo viên)
@@ -116,7 +116,7 @@ namespace Project_LMS.Services
                                         && ta.IsDelete == false);
                     if (!isUserInTeachingAssignment)
                     {
-                        return new ApiResponse<QuestionsAnswerResponse>(1,
+                        return new ApiResponse<QuestionsAnswerResponse?>(1,
                             "Bạn không được gán vào phân công giảng dạy này để tạo câu hỏi hoặc câu trả lời!", null);
                     }
                 }
@@ -134,7 +134,7 @@ namespace Project_LMS.Services
                         .FirstOrDefaultAsync();
                     if (!isUserInClass)
                     {
-                        return new ApiResponse<QuestionsAnswerResponse>(1,
+                        return new ApiResponse<QuestionsAnswerResponse?>(1,
                             $"Bạn không thuộc lớp học {classMembers?.Name} để bình luận câu hỏi này!", null);
                     }
                 }
@@ -227,7 +227,7 @@ namespace Project_LMS.Services
             }
             catch (Exception ex)
             {
-                return new ApiResponse<QuestionsAnswerResponse>(1, $"Lỗi: {ex.Message}", null);
+                return new ApiResponse<QuestionsAnswerResponse?>(1, $"Lỗi: {ex.Message}", null);
             }
         }
 
@@ -279,12 +279,12 @@ namespace Project_LMS.Services
                         ta.Id == existingQuestionAnswer.TeachingAssignmentId && ta.IsDelete == false);
                 if (teachingAssignment == null)
                 {
-                    return new ApiResponse<QuestionsAnswerResponse>(1, "TeachingAssignmentId không hợp lệ", null);
+                    return new ApiResponse<QuestionsAnswerResponse?>(1, "TeachingAssignmentId không hợp lệ", null);
                 }
 
                 if (teachingAssignment.ClassId == null)
                 {
-                    return new ApiResponse<QuestionsAnswerResponse>(1, "ClassId của phân công giảng dạy không hợp lệ!",
+                    return new ApiResponse<QuestionsAnswerResponse?>(1, "ClassId của phân công giảng dạy không hợp lệ!",
                         null);
                 }
 
@@ -312,7 +312,7 @@ namespace Project_LMS.Services
 
                 if (!hasPermissionToUpdate)
                 {
-                    return new ApiResponse<QuestionsAnswerResponse>(1,
+                    return new ApiResponse<QuestionsAnswerResponse?>(1,
                         "Bạn không có quyền cập nhật câu hỏi/câu trả lời này!", null);
                 }
 
@@ -327,7 +327,7 @@ namespace Project_LMS.Services
                     {
                         var classInfos = await _context.Classes
                             .FirstOrDefaultAsync(c => c.Id == teachingAssignment.ClassId);
-                        return new ApiResponse<QuestionsAnswerResponse>(1,
+                        return new ApiResponse<QuestionsAnswerResponse?>(1,
                             $"Bạn không thuộc lớp học {classInfos?.Name} để cập nhật câu hỏi này!", null);
                     }
                 }
@@ -337,7 +337,7 @@ namespace Project_LMS.Services
                     .FirstOrDefaultAsync(c => c.Id == teachingAssignment.ClassId);
                 if (classInfo == null)
                 {
-                    return new ApiResponse<QuestionsAnswerResponse>(1, "Lớp học không tồn tại!", null);
+                    return new ApiResponse<QuestionsAnswerResponse?>(1, "Lớp học không tồn tại!", null);
                 }
 
                 string roleName = await GetUserRoleNameAsync(request.UserUpdate.Value);

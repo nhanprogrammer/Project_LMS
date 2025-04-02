@@ -48,10 +48,16 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate.ToDateTime(TimeOnly.MinValue)));
 
         CreateMap<UpdateAcademicYearRequest, AcademicYear>()
-            .ForMember(dest => dest.UpdateAt, opt => opt.MapFrom(src => TimeHelper.Now))
             .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate.ToDateTime(TimeOnly.MinValue)))
             .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate.ToDateTime(TimeOnly.MinValue)));
-
+        CreateMap<UpdateSemesterRequest, Semester>()
+            .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.DateStart.ToDateTime(TimeOnly.MinValue)))
+            .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.DateEnd.ToDateTime(TimeOnly.MinValue)));
+        CreateMap<AcademicYearWithSemestersDto, AcademicYearResponse>()
+            .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => DateOnly.FromDateTime(src.StartDate)))
+            .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => DateOnly.FromDateTime(src.EndDate)));
+        CreateMap<SemesterDto, SemesterResponse>();
+           
         CreateMap<Semester, SemesterResponse>();
 
 
