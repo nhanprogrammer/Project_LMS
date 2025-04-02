@@ -304,7 +304,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddSignalR();
 
 // Thêm Authorization
-builder.Services.AddAuthorization();
 builder.Services.AddPermissionAuthorization();
 
 builder.Services.AddHttpContextAccessor();
