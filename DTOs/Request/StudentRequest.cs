@@ -7,6 +7,8 @@ namespace Project_LMS.DTOs.Request
     {
         [Range(1, int.MaxValue, ErrorMessage = "StudentStatusId phải lớn hơn 0.")]
         public int? StudentStatusId { get; set; }
+        [Required(ErrorMessage = "SchoolYear không được để trống.")]
+        public int SchoolYear { get; set; }
 
         [Required(ErrorMessage = "ClassId không được để trống.")]
         [Range(1, int.MaxValue, ErrorMessage = "ClassId phải lớn hơn 0.")]

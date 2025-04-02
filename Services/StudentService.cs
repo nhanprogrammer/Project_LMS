@@ -31,6 +31,7 @@ public class StudentService : IStudentService
     private readonly IMapper _mapper;
     private readonly ILogger<StudentService> _logger;
     private readonly ICodeGeneratorService _codeGeneratorService;
+    private readonly IAcademicYearRepository _academicYearRepository;
 
     private readonly List<string> _expectedHeaders = new List<string>
     {
@@ -41,8 +42,9 @@ public class StudentService : IStudentService
         "fullnameMother", "birthMother", "workMother", "phoneMother",
         "fullnameGuardianship", "birthGuardianship", "workGuardianship", "phoneGuardianship"
     };
-    public StudentService(ITestExamTypeRepository testExamTypeRepository, IStudentRepository studentRepository, IClassStudentRepository classStudentRepository, IClassRepository classRepository, IStudentStatusRepository studentStatusRepository, IEmailService emailService, IClassSubjectRepository classSubjectRepository, ICloudinaryService cloudinaryService, ICodeGeneratorService codeGeneratorService, IMapper mapper, ILogger<StudentService> logger)
+    public StudentService(ITestExamTypeRepository testExamTypeRepository, IStudentRepository studentRepository, IClassStudentRepository classStudentRepository, IClassRepository classRepository, IStudentStatusRepository studentStatusRepository, IEmailService emailService, IClassSubjectRepository classSubjectRepository, ICloudinaryService cloudinaryService, ICodeGeneratorService codeGeneratorService, IMapper mapper, ILogger<StudentService> logger, IAcademicYearRepository academicYearRepository)
     {
+        _academicYearRepository = academicYearRepository ?? throw new ArgumentNullException(nameof(academicYearRepository));
         _testExamTypeRepository = testExamTypeRepository ?? throw new ArgumentNullException(nameof(testExamTypeRepository));
         _studentRepository = studentRepository ?? throw new ArgumentNullException(nameof(studentRepository));
         _classStudentRepository = classStudentRepository ?? throw new ArgumentNullException(nameof(classStudentRepository));
@@ -618,18 +620,61 @@ public class StudentService : IStudentService
 
     public async Task<ApiResponse<StudentResponse>> FindStudentByUserCodeAsync(string userCode)
     {
-        if (userCode == null) return new ApiResponse<StudentResponse>(1, "UserCode không được null.");
+        if (string.IsNullOrEmpty(userCode))
+            return new ApiResponse<StudentResponse>(1, "UserCode không được null hoặc rỗng.");
+
+        // Tìm học viên theo UserCode
         var student = await _studentRepository.FindStudentByUserCode(userCode);
-        if (student == null) return new ApiResponse<StudentResponse>(1, "Học viên không tồn tại.");
+        if (student == null)
+            return new ApiResponse<StudentResponse>(1, "Học viên không tồn tại.");
+
+        // Ánh xạ dữ liệu học viên sang StudentResponse
         var studentResponse = _mapper.Map<StudentResponse>(student);
+
+        // Tìm bản ghi ClassStudent hiện tại (dựa trên niên khóa mới nhất hoặc niên khóa hiện tại)
         var classStudent = await _classStudentRepository.FindStudentByIdIsActive(student.Id);
-        studentResponse.ClassId = classStudent.ClassId ?? 0;
+        if (classStudent != null)
+        {
+            // Tìm thông tin lớp từ bảng Class
+            var classInfo = await _classRepository.FindClassById(classStudent.ClassId ?? 0);
+            if (classInfo != null)
+            {
+                // Lấy thông tin niên khóa từ AcademicYear
+                var academicYear = classInfo.AcademicYearId.HasValue
+                    ? await _academicYearRepository.FindById(classInfo.AcademicYearId.Value)
+                    : null;
+                if (academicYear != null)
+                {
+                    studentResponse.AcademicYear = new IdNamePair
+                    {
+                        Id = academicYear.Id,
+                        Name = academicYear.StartDate.HasValue && academicYear.EndDate.HasValue
+                            ? $"{academicYear.StartDate.Value.Year}-{academicYear.EndDate.Value.Year}"
+                            : "Không xác định"
+                    };
+                }
+
+                // Khối (Grade)
+                studentResponse.Department = new IdNamePair
+                {
+                    Id = classInfo.DepartmentId ?? 0,
+                    Name = classInfo.Department?.Name ?? "Unknown" // Tên khối là số (ví dụ: "7")
+                };
+                Console.WriteLine(classInfo.Name + " khối");
+                // Lớp (Class)
+                studentResponse.Class = new IdNamePair
+                {
+                    Id = classInfo.Id,
+                    Name = classInfo.Name // Tên lớp (ví dụ: "7A")
+                };
+            }
+        }
+
         return new ApiResponse<StudentResponse>(0, "Đã tìm thấy học viên.")
         {
             Data = studentResponse
         };
     }
-
     public async Task<string> GeneratedUserCode(string code)
     {
         int number = 1; // Bắt đầu từ 1 (SV001)
@@ -1047,17 +1092,17 @@ public class StudentService : IStudentService
             return new ApiResponse<object>(1, $"Lỗi khi đọc file Excel: {ex.Message}");
         }
     }
-
     public async Task<ApiResponse<object>> UpdateAsync(StudentRequest request)
     {
+        // Tìm học viên theo UserCode
         var studentFind = await _studentRepository.FindStudentByUserCode(request.UserCode);
         if (studentFind == null)
             return new ApiResponse<object>(1, "Học viên không tồn tại.");
-        request.UserCode = studentFind.UserCode;
 
+        request.UserCode = studentFind.UserCode;
         string url = studentFind.Image;
 
-
+        // Validate dữ liệu đầu vào
         var valids = await ValidateStudentRequest(request);
         if (valids.Count > 0)
             return new ApiResponse<object>(1, "Cập nhật học viên thất bại. Vui lòng kiểm tra lại thông tin.")
@@ -1067,21 +1112,85 @@ public class StudentService : IStudentService
 
         try
         {
+            var latestClassStudent = await _classStudentRepository.FindStudentByIdIsActive(studentFind.Id);
+            if (latestClassStudent != null && latestClassStudent.Class != null && latestClassStudent.Class.AcademicYear != null)
+            {
+                var currentAcademicYear = latestClassStudent.Class.AcademicYearId.HasValue
+                    ? await _academicYearRepository.FindById(latestClassStudent.Class.AcademicYearId.Value)
+                    : null;
+                if (currentAcademicYear != null && currentAcademicYear.StartDate.HasValue)
+                {
+                    // Lấy niên khóa từ request
+                    var requestedAcademicYear = await _academicYearRepository.FindById(request.SchoolYear);
+                    if (requestedAcademicYear == null || !requestedAcademicYear.StartDate.HasValue)
+                    {
+                        return new ApiResponse<object>(1, "Niên khóa trong yêu cầu không hợp lệ.");
+                    }
+
+                    // So sánh niên khóa
+                    if (requestedAcademicYear.StartDate.Value < currentAcademicYear.StartDate.Value)
+                    {
+                        var now = DateTime.Now; // 02/04/2025
+                        if (requestedAcademicYear.StartDate.HasValue && requestedAcademicYear.EndDate.HasValue && requestedAcademicYear.StartDate.Value < requestedAcademicYear.EndDate.Value)
+                        {
+                            if (now >= requestedAcademicYear.StartDate.Value && now <= requestedAcademicYear.EndDate.Value)
+                            {
+                                // Cho phép cập nhật lùi vì thời gian hiện tại nằm trong niên khóa yêu cầu
+                                _logger.LogInformation("Cho phép cập nhật lùi niên khóa từ {CurrentYear} về {RequestedYear} vì thời gian hiện tại ({Now}) nằm trong niên khóa yêu cầu.",
+                                    $"{currentAcademicYear.StartDate.Value.Year}-{currentAcademicYear.EndDate?.Year}",
+                                    $"{requestedAcademicYear.StartDate.Value.Year}-{requestedAcademicYear.EndDate?.Year}",
+                                    now);
+                            }
+                            else
+                            {
+                                // Không cho phép cập nhật lùi vì thời gian hiện tại không nằm trong niên khóa yêu cầu
+                                return new ApiResponse<object>(1, $"Không được phép cập nhật lùi niên khóa từ {currentAcademicYear.StartDate.Value.Year}-{currentAcademicYear.EndDate?.Year} về {requestedAcademicYear.StartDate.Value.Year}-{requestedAcademicYear.EndDate?.Year} vì thời gian hiện tại ({now:dd/MM/yyyy}) không nằm trong niên khóa yêu cầu.");
+                            }
+                        }
+                        else
+                        {
+                            // Niên khóa yêu cầu không hợp lệ (StartDate >= EndDate)
+                            return new ApiResponse<object>(1, $"Niên khóa yêu cầu không hợp lệ: Ngày bắt đầu ({requestedAcademicYear.StartDate?.ToString("dd/MM/yyyy")}) phải nhỏ hơn ngày kết thúc ({requestedAcademicYear.EndDate?.ToString("dd/MM/yyyy")}).");
+                        }
+                    }
+                }
+            }
+
+            // Tiếp tục xử lý như Phương án 1
             var student = _mapper.Map(request, studentFind);
+
             if (request.Image != null)
             {
-                //await _cloudinaryService.DeleteFileByUrlAsync(student.Image);
                 url = await _cloudinaryService.UploadImageAsync(request.Image);
             }
             student.Image = url;
-            if (request.ClassId != 0 || request.ClassId != null)
+
+            var currentClassStudent = await _classStudentRepository.FindByUserIdAndSchoolYearAndClassId(studentFind.Id, request.SchoolYear, request.ClassId);
+            if (currentClassStudent == null)
             {
-                await _classStudentRepository.UpdateClassIdAsync(student.Id, request.ClassId);
+                await _classStudentRepository.AddAsync(new ClassStudentRequest
+                {
+                    UserId = studentFind.Id,
+                    ClassId = request.ClassId
+                });
+                _logger.LogInformation("Thêm học viên vào lớp mới cho niên khóa {SchoolYear}: UserId={UserId}, ClassId={ClassId}",
+                    request.SchoolYear, studentFind.Id, request.ClassId);
+            }
+            else
+            {
+                if (request.ClassId != currentClassStudent.ClassId && request.ClassId != 0)
+                {
+                    currentClassStudent.ClassId = request.ClassId;
+                    await _classStudentRepository.UpdateClassIdAsync(currentClassStudent.UserId ?? 0, request.ClassId);
+                    _logger.LogInformation("Cập nhật lớp cho học viên trong niên khóa {SchoolYear}: UserId={UserId}, ClassId={ClassId}",
+                        request.SchoolYear, studentFind.Id, request.ClassId);
+                }
             }
 
             student.UpdateAt = DateTime.Now;
             var user = await _studentRepository.UpdateAsync(student);
             _logger.LogInformation("Cập nhật học viên thành công.");
+
             if (request.Email != studentFind.Email)
             {
                 student.Username = await GeneratedUsername(request.Email);
@@ -1090,7 +1199,6 @@ public class StudentService : IStudentService
                 Task.Run(async () =>
                 {
                     await ExecuteEmail(user.Email, user.FullName, user.Username, password);
-
                 });
             }
 

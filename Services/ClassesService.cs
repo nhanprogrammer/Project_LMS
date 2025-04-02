@@ -1130,6 +1130,21 @@ namespace Project_LMS.Services
 
             return classes;
         }
+
+        public async Task<List<ClassDropdownResponse>> GetClassesDropdown(int academicYearId, int departmentId)
+        {
+            var classes = await _context.Classes
+                .Where(c => c.AcademicYearId == academicYearId && c.DepartmentId == departmentId && c.IsDelete == false)
+                .OrderBy(c => c.Name)
+                .Select(c => new ClassDropdownResponse
+                {
+                    Id = c.Id,
+                    Name = c.Name
+                })
+                .ToListAsync();
+
+            return classes;
+        }
     }
 
 }

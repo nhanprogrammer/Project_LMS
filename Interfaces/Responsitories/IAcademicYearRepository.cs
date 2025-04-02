@@ -13,4 +13,5 @@ public interface IAcademicYearRepository :IRepository<AcademicYear>
     Task<List<AcademicYear>> SearchAcademicYear(int year);
 
     Task<bool> IsAcademicYearExist(int academicYearId);
+    Task<AcademicYear> FindById(int id);
 }
