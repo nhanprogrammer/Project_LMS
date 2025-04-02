@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
 
 namespace Project_LMS.Authorization
 {
@@ -44,11 +43,10 @@ namespace Project_LMS.Authorization
                     "SYS-SET-DELETE",
                     "SYS-SET-ENTERSCORE",
 
-                    // Nhóm quyền mức dộ vai trò
+                    // Nhóm quyền mức độ vai trò
                     "SUPER-ADMIN",
                     "TEACHER",
                     "STUDENT"
-                   
                 };
 
                 foreach (var permission in permissions)
@@ -56,26 +54,12 @@ namespace Project_LMS.Authorization
                     options.AddPolicy(permission, policy =>
                         policy.Requirements.Add(new PermissionRequirement(permission)));
                 }
-
-                // Thêm policy TEACHER_OR_STUDENT cho phép có một trong hai quyền
-                options.AddPolicy("TEACHER_OR_STUDENT", policy => 
-                    policy.RequireAssertion(context => {
-                        // Cho phép bất kỳ người dùng đã xác thực
-                        if (context.User.Identity?.IsAuthenticated == true)
-                        {
-                            // Lấy danh sách quyền của người dùng từ claims
-                            var permissions = context.User.Claims
-                                .Where(c => c.Type == "Permission" || c.Type == ClaimTypes.Role)
-                                .Select(c => c.Value)
-                                .ToList();
-
-                            // Kiểm tra xem người dùng có quyền TEACHER hoặc STUDENT không
-                            return permissions.Contains("TEACHER") || permissions.Contains("STUDENT") || 
-                                   context.User.IsInRole("TEACHER") || context.User.IsInRole("STUDENT");
-                        }
-                        return true; // Tạm thời cho phép tất cả người dùng đã xác thực
-                    })
-                );
+                                
+                options.AddPolicy("TEACHER_OR_STUDENT", policy =>
+                {
+                    policy.Requirements.Add(new PermissionRequirement("TEACHER"));
+                    policy.Requirements.Add(new PermissionRequirement("STUDENT"));
+                });
             });
 
             return services;

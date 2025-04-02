@@ -398,7 +398,18 @@ namespace Project_LMS.Services
                                           && cso.UserId == request.UserUpdate.Value
                                           && cso.IsDelete == false);
 
-                        if (!isStudentInLesson)
+                        // Kiểm tra học viên có thuộc lớp của phân công giảng dạy
+                        bool isStudentInClass = false;
+                        if (!isStudentInLesson && teachingAssignment.ClassId.HasValue)
+                        {
+                            isStudentInClass = await _context.ClassStudents
+                                .AnyAsync(cs => cs.ClassId == teachingAssignment.ClassId.Value
+                                            && cs.UserId == request.UserUpdate.Value
+                                            && cs.IsDelete == false);
+                        }
+
+                        // Cho phép học viên cập nhật nếu họ thuộc lớp học hoặc tham gia buổi học
+                        if (!isStudentInLesson && !isStudentInClass)
                         {
                             return new ApiResponse<QuestionsAnswerResponse?>(1,
                                 "Bạn không thuộc buổi học này để cập nhật câu hỏi/câu trả lời!", null);
@@ -566,6 +577,15 @@ namespace Project_LMS.Services
                 // 16. Map và trả về phản hồi
                 var responseDto = _mapper.Map<QuestionsAnswerResponse>(updatedQuestionAnswer);
                 responseDto.RoleName = roleName;
+                
+                // Thêm thông tin người dùng vào response như trong AddAsync
+                var userInfo = await _context.Users.FindAsync(existingQuestionAnswer.UserId);
+                if (userInfo != null)
+                {
+                    responseDto.Avatar = userInfo.Image;
+                    responseDto.FullName = userInfo.FullName;
+                }
+                
                 return new ApiResponse<QuestionsAnswerResponse?>(0, "Cập nhật thông tin thành công!", responseDto);
             }
             catch (Exception ex)

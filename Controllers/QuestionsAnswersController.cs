@@ -8,8 +8,7 @@ using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers
 {
-    [Authorize(Policy = "TEACHER")]
-    [Authorize(Policy = "STUDENT")]
+    [Authorize(Policy = "TEACHER_OR_STUDENT")]
     [ApiController]
     [Route("api/[controller]")]
     public class QuestionsAnswersController : ControllerBase
@@ -110,17 +109,24 @@ namespace Project_LMS.Controllers
         public async Task<IActionResult> Update([FromBody] UpdateQuestionsAnswerRequest request)
         {
             var user = await _authService.GetUserAsync();
+            System.Console.WriteLine($"UPDATE USER INFO: ID={user?.Id}, Name={user?.FullName}, Role={user?.RoleId}");
+            System.Console.WriteLine($"UPDATE REQUEST INFO: Id={request.Id}, Message={request.Message}");
+
             if (user == null)
                 return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
 
             request.UserUpdate = user.Id;
             var result = await _questionsAnswersService.UpdateAsync(request);
-            if (result.Status == 1)
+            
+            if (result.Status == 0)
             {
-                return BadRequest(result);
+                return Ok(result); // 200 OK khi thành công
             }
-
-            return Ok(result);
+            else
+            {
+                System.Console.WriteLine($"UPDATE ERROR: {result.Message}");
+                return BadRequest(result); // 400 Bad Request khi có lỗi
+            }
         }
 
         /// <summary>
