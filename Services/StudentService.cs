@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Interfaces;
 using Project_LMS.Interfaces.Repositories;
 using Project_LMS.Interfaces.Responsitories;
 using Project_LMS.Interfaces.Services;
@@ -29,6 +30,7 @@ public class StudentService : IStudentService
     private readonly ICloudinaryService _cloudinaryService;
     private readonly IMapper _mapper;
     private readonly ILogger<StudentService> _logger;
+    private readonly ICodeGeneratorService _codeGeneratorService;
 
     private readonly List<string> _expectedHeaders = new List<string>
     {
@@ -39,8 +41,7 @@ public class StudentService : IStudentService
         "fullnameMother", "birthMother", "workMother", "phoneMother",
         "fullnameGuardianship", "birthGuardianship", "workGuardianship", "phoneGuardianship"
     };
-
-    public StudentService(ITestExamTypeRepository testExamTypeRepository, IStudentRepository studentRepository, IClassStudentRepository classStudentRepository, IClassRepository classRepository, IStudentStatusRepository studentStatusRepository, IEmailService emailService, IClassSubjectRepository classSubjectRepository, ICloudinaryService cloudinaryService, IMapper mapper, ILogger<StudentService> logger)
+    public StudentService(ITestExamTypeRepository testExamTypeRepository, IStudentRepository studentRepository, IClassStudentRepository classStudentRepository, IClassRepository classRepository, IStudentStatusRepository studentStatusRepository, IEmailService emailService, IClassSubjectRepository classSubjectRepository, ICloudinaryService cloudinaryService, ICodeGeneratorService codeGeneratorService, IMapper mapper, ILogger<StudentService> logger)
     {
         _testExamTypeRepository = testExamTypeRepository ?? throw new ArgumentNullException(nameof(testExamTypeRepository));
         _studentRepository = studentRepository ?? throw new ArgumentNullException(nameof(studentRepository));
@@ -49,9 +50,11 @@ public class StudentService : IStudentService
         _studentStatusRepository = studentStatusRepository ?? throw new ArgumentNullException(nameof(studentStatusRepository));
         _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
         _classSubjectRepository = classSubjectRepository ?? throw new ArgumentNullException(nameof(classSubjectRepository));
-        _cloudinaryService = cloudinaryService ?? throw new ArgumentNullException(nameof(cloudinaryService));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _codeGeneratorService = codeGeneratorService ?? throw new ArgumentNullException(nameof(codeGeneratorService));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _cloudinaryService = cloudinaryService ?? throw new ArgumentNullException(nameof(cloudinaryService));
     }
 
     public async Task<ApiResponse<object>> AddAsync(StudentRequest request)
@@ -63,12 +66,21 @@ public class StudentService : IStudentService
         student.Username = await GeneratedUsername(request.Email);
         string password = await GenerateSecurePassword(10);
         student.Password = BCrypt.Net.BCrypt.HashPassword(password);
-        var valids = await ValidateStudentRequest(request);
-        if (request.UserCode == null)
-        {
-            valids.Add("Usercode không được để trống.");
-        }
 
+        Console.WriteLine(request.UserCode + "usercode");
+        if (string.IsNullOrEmpty(request.UserCode))
+        {
+            Console.WriteLine("UserCode null");
+            student.UserCode = await _codeGeneratorService.GenerateCodeAsync("HS", async code =>
+                await _studentRepository.FindStudentByUserCode(code) != null);
+            Console.WriteLine(student.UserCode + "usercode sau khi gen code");
+        }
+        else
+        {
+            Console.WriteLine("UserCode không null");
+            student.UserCode = request.UserCode;
+        }
+        var valids = await ValidateStudentRequest(request);
         if (await _studentRepository.FindStudentByUserCode(request.UserCode) != null)
         {
             valids.Add($"UserCode đã tồn tại.");
@@ -82,11 +94,11 @@ public class StudentService : IStudentService
         {
             if (request.Image != null)
             {
+                Console.WriteLine("Url Đã chạy vào");
                 string url = await _cloudinaryService.UploadImageAsync(request.Image);
                 student.Image = url;
-                Console.WriteLine("Url : " + request.Image);
             }
-
+            Console.WriteLine(student.Image + " ảnh sau khi upload");
             var user = await _studentRepository.AddAsync(student);
             Task.Run(async () =>
             {
@@ -105,12 +117,12 @@ public class StudentService : IStudentService
         catch (DbUpdateException ex)
         {
             _logger.LogError(ex, "Lỗi cơ sở dữ liệu khi thêm học viên.");
-            return new ApiResponse<object>(4, "Lỗi cơ sở dữ liệu khi thêm học viên. Vui lòng thử lại sau.");
+            return new ApiResponse<object>(1, "Lỗi cơ sở dữ liệu khi thêm học viên. Vui lòng thử lại sau.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Lỗi không xác định khi thêm học viên. Dữ liệu: {@Student}", student);
-            return new ApiResponse<object>(5, "Đã xảy ra lỗi không xác định khi thêm học viên. Vui lòng thử lại sau.");
+            return new ApiResponse<object>(1, "Đã xảy ra lỗi không xác định khi thêm học viên. Vui lòng thử lại sau: " + ex.Message);
         }
 
     }
@@ -133,7 +145,8 @@ public class StudentService : IStudentService
             {
                 userCodeDeleteError.Add(userCode);
             }
-        };
+        }
+        ;
         if (userCodeDeleteSuccess.Count > 0)
         {
             return new ApiResponse<object>(0, "Xóa học viên thành công.")
@@ -1145,12 +1158,6 @@ public class StudentService : IStudentService
         {
             object value = property.GetValue(student);
             string propertyName = property.Name;
-
-            // Kiểm tra các trường bắt buộc không được để trống (string)
-            if (property.PropertyType == typeof(string) && string.IsNullOrWhiteSpace(value as string))
-            {
-                errors.Add($"{propertyName} không được để trống.");
-            }
 
             // Kiểm tra số nguyên không hợp lệ
             if (property.PropertyType == typeof(int) || property.PropertyType == typeof(int?))
