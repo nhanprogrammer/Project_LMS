@@ -33,5 +33,6 @@ namespace Project_LMS.Models
         public virtual User? User { get; set; }
 
         public virtual ICollection<ClassOnline> ClassOnlines { get; set; }
+        public virtual ICollection<QuestionAnswer> QuestionAnswers { get; set; }
     }
 }

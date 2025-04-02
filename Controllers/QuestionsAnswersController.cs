@@ -74,12 +74,12 @@ namespace Project_LMS.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateQuestionsAnswerRequest request)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+
 
             var user = await _authService.GetUserAsync();
+            System.Console.WriteLine($"USER INFO: ID={user?.Id}, Name={user?.FullName}, Role={user?.RoleId}");
+            System.Console.WriteLine($"REQUEST INFO: TeachingAssignmentId={request.TeachingAssignmentId}, LessonId={request.LessonId}");
+
             if (user == null)
                 return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
 
@@ -93,6 +93,7 @@ namespace Project_LMS.Controllers
             }
             else
             {
+                System.Console.WriteLine($"ERROR: {result.Message}");
                 return BadRequest(result); // 400 Bad Request khi có lỗi
             }
         }
@@ -108,17 +109,24 @@ namespace Project_LMS.Controllers
         public async Task<IActionResult> Update([FromBody] UpdateQuestionsAnswerRequest request)
         {
             var user = await _authService.GetUserAsync();
+            System.Console.WriteLine($"UPDATE USER INFO: ID={user?.Id}, Name={user?.FullName}, Role={user?.RoleId}");
+            System.Console.WriteLine($"UPDATE REQUEST INFO: Id={request.Id}, Message={request.Message}");
+
             if (user == null)
                 return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
 
             request.UserUpdate = user.Id;
             var result = await _questionsAnswersService.UpdateAsync(request);
-            if (result.Status == 1)
+            
+            if (result.Status == 0)
             {
-                return BadRequest(result);
+                return Ok(result); // 200 OK khi thành công
             }
-
-            return Ok(result);
+            else
+            {
+                System.Console.WriteLine($"UPDATE ERROR: {result.Message}");
+                return BadRequest(result); // 400 Bad Request khi có lỗi
+            }
         }
 
         /// <summary>
@@ -240,7 +248,9 @@ namespace Project_LMS.Controllers
         [HttpGet("by-tab")]
         public async Task<IActionResult> GetQuestionsAnswersByTab(
             [FromQuery] string tab,
-            [FromQuery] int teachingAssignmentId)
+            [FromQuery] int teachingAssignmentId,
+            [FromQuery] int lessonId
+            )
         {
             var user = await _authService.GetUserAsync();
             if (user == null)
@@ -248,7 +258,7 @@ namespace Project_LMS.Controllers
 
             // Gọi service để xử lý
             var result =
-                await _questionsAnswersService.GetQuestionsAnswersByTabAsync(user.Id, teachingAssignmentId, tab);
+                await _questionsAnswersService.GetQuestionsAnswersByTabAsync(user.Id, teachingAssignmentId, tab, lessonId);
 
             if (result.Status == 0)
             {
@@ -256,6 +266,44 @@ namespace Project_LMS.Controllers
             }
 
             return BadRequest(result);
+        }
+
+        // Thêm endpoint này để debug
+        [AllowAnonymous]
+        [HttpGet("debug-permissions")]
+        public async Task<IActionResult> DebugPermissions()
+        {
+            try
+            {
+                var user = await _authService.GetUserAsync();
+
+                if (user == null)
+                    return Ok(new { Message = "Người dùng chưa đăng nhập hoặc token không hợp lệ" });
+
+                // Lấy claims từ token
+                var identity = HttpContext.User.Identity as ClaimsIdentity;
+                var claims = identity?.Claims.Select(c => new { Type = c.Type, Value = c.Value }).ToList();
+
+                // Kiểm tra role của user
+                var roles = HttpContext.User.Claims
+                    .Where(c => c.Type == ClaimTypes.Role)
+                    .Select(c => c.Value)
+                    .ToList();
+
+                return Ok(new
+                {
+                    UserId = user.Id,
+                    UserName = user.FullName,
+                    UserRole = user.RoleId,
+                    Roles = roles,
+                    Claims = claims,
+                    IsAuthenticated = HttpContext.User.Identity?.IsAuthenticated ?? false
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Error = ex.Message, StackTrace = ex.StackTrace });
+            }
         }
     }
 }
