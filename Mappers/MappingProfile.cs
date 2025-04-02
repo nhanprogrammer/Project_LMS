@@ -405,7 +405,8 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
             .ForMember(dest => dest.Message, opt => opt.MapFrom(src => src.Message))
             .ForMember(dest => dest.FileName, opt => opt.MapFrom(src => src.FileName))
-            .ForMember(dest => dest.TeachingAssignmentId, opt => opt.MapFrom(src => src.TeachingAssignmentId));
+            .ForMember(dest => dest.TeachingAssignmentId, opt => opt.MapFrom(src => src.TeachingAssignmentId))
+            .ForMember(dest => dest.LessonId, opt => opt.MapFrom(src => src.LessonId));
 
         // Mapping từ UpdateQuestionsAnswerRequest sang QuestionAnswer
         CreateMap<UpdateQuestionsAnswerRequest, QuestionAnswer>()
@@ -417,8 +418,8 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.UpdateAt, opt => opt.MapFrom(src => TimeHelper.NowUsingTimeZone))
             .ForMember(dest => dest.UserId, opt => opt.Ignore()) // Không ánh xạ UserId
             .ForMember(dest => dest.CreateAt, opt => opt.Ignore()) // Không ánh xạ CreateAt
-            .ForMember(dest => dest.IsDelete, opt => opt.Ignore()); // Không ánh xạ IsDelete
-
+            .ForMember(dest => dest.IsDelete, opt => opt.Ignore()) // Không ánh xạ IsDelete
+            .ForMember(dest => dest.LessonId, opt => opt.MapFrom(src => src.LessonId));
         // Mapping từ QuestionAnswer sang QuestionsAnswerResponse
         CreateMap<QuestionAnswer, QuestionsAnswerResponse>()
             .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))

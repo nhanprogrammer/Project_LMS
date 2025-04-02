@@ -102,7 +102,6 @@ namespace Project_LMS.Services
                 {
                     return new ApiResponse<AcademicYearWithSemestersDto>(1, $"Không tìm thấy niên khóa với ID: {id}");
                 }
-
                 return new ApiResponse<AcademicYearWithSemestersDto>(0, "Tìm thấy niên khóa thành công!", academicYear);
             }
             catch (Exception ex)
