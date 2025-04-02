@@ -73,10 +73,6 @@ namespace Project_LMS.DTOs.Request
                 });
 
 
-            RuleFor(tc => tc.UserCode)
-                .NotEmpty().WithMessage("UserCode không được để trống.");
-
-
             RuleFor(tc => tc.FullName)
                 .NotNull().WithMessage("FullName không được để trống.");
 

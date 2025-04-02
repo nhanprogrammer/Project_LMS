@@ -120,4 +120,10 @@ public class AcademicYearRepository : IAcademicYearRepository
     {
         return await _context.AcademicYears.AnyAsync(a => a.Id == academicYearId);
     }
+    public async Task<AcademicYear> FindById(int id)
+    {
+        return await _context.AcademicYears
+            .FirstOrDefaultAsync(ay => ay.Id == id && !(ay.IsDelete ?? false))
+            ?? throw new InvalidOperationException($"AcademicYear with ID {id} not found.");
+    }
 }

@@ -20,7 +20,7 @@ namespace Project_LMS.Repositories
         {
             // Lấy tất cả các bản ghi ClassStudent có UserId và IsActive = true
             var activeClasses = await _context.ClassStudents
-                .Where(cs => cs.UserId.HasValue && cs.UserId.Value == request.UserId && cs.ClassId != request.ClassId && cs.IsActive == true  && cs.IsDelete == false )
+                .Where(cs => cs.UserId.HasValue && cs.UserId.Value == request.UserId && cs.ClassId != request.ClassId && cs.IsActive == true && cs.IsDelete == false)
                 .FirstOrDefaultAsync();
 
             if (activeClasses != null)
@@ -36,12 +36,14 @@ namespace Project_LMS.Repositories
                 await _context.SaveChangesAsync();
             }
 
-            var classStudent = await _context.ClassStudents.FirstOrDefaultAsync(cs =>cs.UserId == request.UserId && cs.ClassId == request.ClassId && cs.IsDelete == false);
-            if (classStudent != null) {
+            var classStudent = await _context.ClassStudents.FirstOrDefaultAsync(cs => cs.UserId == request.UserId && cs.ClassId == request.ClassId && cs.IsDelete == false);
+            if (classStudent != null)
+            {
                 classStudent.IsDelete = false;
                 classStudent.IsActive = true;
                 classStudent.IsClassTransitionStatus = false;
-            } else
+            }
+            else
             {
                 var classAdd = new ClassStudent()
                 {
@@ -68,7 +70,7 @@ namespace Project_LMS.Repositories
             }
 
             var query = _context.ClassStudents
-                .Where(cs => cs.ClassId.HasValue && ids.Contains(cs.ClassId.Value) && cs.IsDelete == false && cs.User.IsDelete ==false);
+                .Where(cs => cs.ClassId.HasValue && ids.Contains(cs.ClassId.Value) && cs.IsDelete == false && cs.User.IsDelete == false);
 
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
@@ -87,7 +89,7 @@ namespace Project_LMS.Repositories
 
         public async Task<ClassStudent> FindClassStudentByUserCodeClassId(string userCode, int classId)
         {
-            return await _context.ClassStudents.FirstOrDefaultAsync(cs => cs.User.UserCode == userCode && cs.ClassId == classId && cs.Class.IsDelete ==false && cs.IsDelete == false && cs.User.IsDelete ==false);
+            return await _context.ClassStudents.FirstOrDefaultAsync(cs => cs.User.UserCode == userCode && cs.ClassId == classId && cs.Class.IsDelete == false && cs.IsDelete == false && cs.User.IsDelete == false);
         }
 
         public async Task<ClassStudent> FindStudentByClassAndStudent(int classId, int studentId)
@@ -110,9 +112,19 @@ namespace Project_LMS.Repositories
         public async Task<ClassStudent> FindStudentByIdIsActive(int studentId)
         {
             return await _context.ClassStudents
-                .Include(cs=>cs.User)
-                .Include(cs=>cs.Class)
-                .FirstOrDefaultAsync(cs => cs.UserId == studentId && cs.IsActive == true && cs.Class.IsDelete == false && cs.IsDelete == false && cs.User.IsDelete == false);
+                .Include(cs => cs.User)
+                .Include(cs => cs.Class)
+                    .ThenInclude(c => c.AcademicYear)
+                .Where(cs => cs.UserId == studentId
+                    && cs.IsActive == true
+                    && cs.IsDelete == false
+                    && cs.User.IsDelete == false
+                    && cs.Class != null
+                    && cs.Class.IsDelete == false
+                    && cs.Class.AcademicYear != null
+                    && cs.Class.AcademicYear.StartDate != null) // Đảm bảo StartDate không null
+                .OrderByDescending(cs => cs.Class.AcademicYear.StartDate)
+                .FirstOrDefaultAsync();
         }
 
         public async Task<List<ClassStudent>> FindStudentByStudentAcademic(int studentId, int academicId)
@@ -231,6 +243,24 @@ namespace Project_LMS.Repositories
             classStudent.ClassId = classId;
             _context.ClassStudents.Update(classStudent);
             await _context.SaveChangesAsync();
+        }
+        public async Task<ClassStudent?> FindByUserId(int userId)
+        {
+            return await _context.ClassStudents
+                .Include(cs => cs.Class)
+                .FirstOrDefaultAsync(cs => cs.UserId == userId && cs.IsDelete == false);
+        }
+        public async Task<ClassStudent?> FindByUserIdAndSchoolYearAndClassId(int userId, int schoolYearId, int classId)
+        {
+            return await _context.ClassStudents
+                .Include(cs => cs.Class)
+                .ThenInclude(c => c.AcademicYear)
+                .FirstOrDefaultAsync(cs => cs.UserId == userId
+                    && cs.Class != null
+                    && cs.Class.AcademicYear != null
+                    && cs.Class.AcademicYear.Id == schoolYearId
+                    && cs.ClassId == classId
+                    && cs.IsDelete == false);
         }
     }
 }

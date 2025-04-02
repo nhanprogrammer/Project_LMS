@@ -19,4 +19,5 @@ public interface IAcademicYearRepository
      Task AddAsync(AcademicYear academicYear);
      Task UpdateAsync(AcademicYear academicYear);
      Task<AcademicYearWithSemestersDto> GetByIdAcademicYearAsync(int id);
+    Task<AcademicYear> FindById(int id);
 }
