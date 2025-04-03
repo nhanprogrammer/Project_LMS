@@ -11,37 +11,68 @@ namespace Project_LMS.Repositories
     public class ClassStudentRepository : IClassStudentRepository
     {
         private readonly ApplicationDbContext _context;
-        public ClassStudentRepository(ApplicationDbContext context)
+        private readonly ILogger<ClassStudentRepository> _logger;
+        public ClassStudentRepository(ApplicationDbContext context, ILogger<ClassStudentRepository> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         public async Task AddAsync(ClassStudentRequest request)
         {
+            // Lấy thông tin lớp và niên khóa của bản ghi mới
+            var newClass = await _context.Classes
+                .Include(c => c.AcademicYear)
+                .FirstOrDefaultAsync(c => c.Id == request.ClassId);
+            if (newClass == null || newClass.AcademicYear == null || !newClass.AcademicYear.StartDate.HasValue)
+            {
+                throw new Exception("Lớp học hoặc niên khóa không hợp lệ.");
+            }
+            var newAcademicYearStartDate = newClass.AcademicYear.StartDate.Value;
+
             // Lấy tất cả các bản ghi ClassStudent có UserId và IsActive = true
             var activeClasses = await _context.ClassStudents
+                .Include(cs => cs.Class)
+                .ThenInclude(c => c.AcademicYear)
                 .Where(cs => cs.UserId.HasValue && cs.UserId.Value == request.UserId && cs.ClassId != request.ClassId && cs.IsActive == true && cs.IsDelete == false)
-                .FirstOrDefaultAsync();
+                .ToListAsync(); // Sử dụng ToListAsync để lấy tất cả bản ghi
 
-            if (activeClasses != null)
+            if (activeClasses != null && activeClasses.Any())
             {
-                activeClasses.IsActive = false;
-                if (activeClasses.IsClassTransitionStatus == false)
+                foreach (var activeClass in activeClasses)
                 {
-                    activeClasses.IsClassTransitionStatus = true;
+                    // Kiểm tra niên khóa của bản ghi hiện tại
+                    if (activeClass.Class != null && activeClass.Class.AcademicYear != null &&
+                        activeClass.Class.AcademicYear.StartDate.HasValue &&
+                        activeClass.Class.AcademicYear.StartDate.Value > newAcademicYearStartDate)
+                    {
+                        activeClass.IsActive = false;
+                        if (activeClass.IsClassTransitionStatus == false)
+                        {
+                            activeClass.IsClassTransitionStatus = true;
+                        }
+                        _logger.LogInformation("Đánh dấu bản ghi ClassStudent không hoạt động do thêm bản ghi mới: UserId={UserId}, ClassId={ClassId}, SchoolYear={SchoolYear}",
+                            activeClass.UserId, activeClass.ClassId, activeClass.Class.AcademicYearId);
+                    }
+                    else
+                    {
+                        _logger.LogInformation("Bỏ qua bản ghi ClassStudent vì niên khóa không thỏa mãn: UserId={UserId}, ClassId={ClassId}, SchoolYear={SchoolYear}",
+                            activeClass.UserId, activeClass.ClassId, activeClass.Class?.AcademicYearId);
+                    }
                 }
                 _context.ClassStudents.UpdateRange(activeClasses);
-
-                // Lưu thay đổi
                 await _context.SaveChangesAsync();
             }
 
-            var classStudent = await _context.ClassStudents.FirstOrDefaultAsync(cs => cs.UserId == request.UserId && cs.ClassId == request.ClassId && cs.IsDelete == false);
+            // Kiểm tra xem đã có bản ghi ClassStudent với UserId và ClassId chưa
+            var classStudent = await _context.ClassStudents
+                .FirstOrDefaultAsync(cs => cs.UserId == request.UserId && cs.ClassId == request.ClassId && cs.IsDelete == false);
             if (classStudent != null)
             {
                 classStudent.IsDelete = false;
                 classStudent.IsActive = true;
                 classStudent.IsClassTransitionStatus = false;
+                _context.ClassStudents.Update(classStudent);
             }
             else
             {
@@ -49,16 +80,15 @@ namespace Project_LMS.Repositories
                 {
                     UserId = request.UserId,
                     ClassId = request.ClassId,
-                    //User = student,
-                    //Class = classStudent,
                     IsDelete = false,
                     IsActive = true,
-                    IsClassTransitionStatus = false
+                    IsClassTransitionStatus = false,
+                    CreateAt = DateTime.Now,
+                    UpdateAt = DateTime.Now
                 };
-
                 await _context.ClassStudents.AddAsync(classAdd);
-                await _context.SaveChangesAsync();
             }
+            await _context.SaveChangesAsync();
         }
 
 
@@ -114,7 +144,7 @@ namespace Project_LMS.Repositories
             return await _context.ClassStudents
                 .Include(cs => cs.User)
                 .Include(cs => cs.Class)
-                    .ThenInclude(c => c.AcademicYear)
+                .ThenInclude(c => c.AcademicYear)
                 .Where(cs => cs.UserId == studentId
                     && cs.IsActive == true
                     && cs.IsDelete == false
@@ -250,6 +280,14 @@ namespace Project_LMS.Repositories
                 .Include(cs => cs.Class)
                 .FirstOrDefaultAsync(cs => cs.UserId == userId && cs.IsDelete == false);
         }
+        public async Task<List<ClassStudent>> FindAllClassStudentByUserId(int userId)
+        {
+            return await _context.ClassStudents
+            .Include(cs => cs.Class)
+            .Include(cs => cs.Class != null ? cs.Class.AcademicYear : null)
+            .Where(cs => cs.UserId == userId && cs.IsDelete == false)
+            .ToListAsync(); ;
+        }
         public async Task<ClassStudent?> FindByUserIdAndSchoolYearAndClassId(int userId, int schoolYearId, int classId)
         {
             return await _context.ClassStudents
@@ -261,6 +299,28 @@ namespace Project_LMS.Repositories
                     && cs.Class.AcademicYear.Id == schoolYearId
                     && cs.ClassId == classId
                     && cs.IsDelete == false);
+        }
+        public async Task UpdateAsync(ClassStudent classStudent)
+        {
+            var existingClassStudent = await _context.ClassStudents.FindAsync(classStudent.Id);
+            if (existingClassStudent != null)
+            {
+                Console.WriteLine("existingClassStudent: " + existingClassStudent.Id);
+                existingClassStudent.UserId = classStudent.UserId;
+                existingClassStudent.ClassId = classStudent.ClassId;
+                existingClassStudent.IsActive = classStudent.IsActive;
+                existingClassStudent.IsDelete = classStudent.IsDelete;
+                existingClassStudent.IsClassTransitionStatus = classStudent.IsClassTransitionStatus;
+
+                _context.ClassStudents.Update(existingClassStudent);
+                await _context.SaveChangesAsync();
+            }
+        }
+        public async Task<ClassStudent> FindByUserIdAndSchoolYear(int userId, int schoolYear)
+        {
+            return await _context.ClassStudents
+                .Include(cs => cs.Class) // Bao gồm thông tin lớp để truy cập AcademicYearId
+                .FirstOrDefaultAsync(cs => cs.UserId == userId && cs.Class.AcademicYearId == schoolYear && cs.IsDelete == false && cs.IsActive == true);
         }
     }
 }

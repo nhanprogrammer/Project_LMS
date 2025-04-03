@@ -55,15 +55,15 @@ namespace Project_LMS.Controllers
 
         [HttpGet]
         public async Task<ActionResult<ApiResponse<PaginatedResponse<AcademicYearResponse>>>> GetAll(
-            [FromQuery] PaginationRequest request)
+     [FromQuery] PaginationRequest request,
+     [FromQuery] string? keyword)
         {
-            var result = await _academicYearsService.GetPagedAcademicYears(request);
+            var result = await _academicYearsService.GetPagedAcademicYears(request, keyword);
             return Ok(new ApiResponse<PaginatedResponse<AcademicYearResponse>>(
                 0,
                 "Lấy danh sách Niên Khóa thành công",
                 result));
         }
-
         [Authorize(Policy = "DATA-MNG-INSERT")]
         [HttpPost]
         public async Task<ActionResult<ApiResponse<CreateAcademicYearRequest>>> Add(

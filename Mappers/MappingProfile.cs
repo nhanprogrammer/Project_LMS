@@ -296,7 +296,9 @@ public class MappingProfile : Profile
                 opt => opt.MapFrom(src => src.ExamScheduleStatus.Names)) // Ánh xạ ExamScheduleStatus.Names
             .ForMember(dest => dest.Examiner, opt => opt.MapFrom(src => src.User.FullName));
 
-        CreateMap<Subject, SubjectResponse>();
+        CreateMap<Subject, SubjectResponse>()
+            .ForMember(dest => dest.SubjectGroupId, opt => opt.MapFrom(src =>
+                src.SubjectGroupSubjects.FirstOrDefault(sgs => !(sgs.IsDelete ?? false))!.SubjectGroupId));
         CreateMap<SubjectRequest, Subject>();
         CreateMap<SubjectType, SubjectTypeResponse>();
         CreateMap<SubjectTypeRequest, SubjectType>();

@@ -22,7 +22,7 @@ public class GradeEntryController : ControllerBase
         _gradeEntryService = gradeEntryService;
         _authService = authService;
     }
-        [Authorize(Policy = "TEACHER")]
+    [Authorize(Policy = "TEACHER")]
     [HttpGet("test/{testId}")]
     public async Task<IActionResult> GetGradingData(int testId)
     {

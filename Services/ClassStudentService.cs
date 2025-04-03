@@ -14,8 +14,10 @@ namespace Project_LMS.Services
         private readonly IClassStudentRepository _classStudentRepository;
         private readonly IStudentRepository _studentRepository;
         private readonly ICloudinaryService _cloudinaryService;
-        public ClassStudentService(IClassRepository classRepository, IClassStudentRepository classStudentRepository,IStudentRepository studentRepository, ICloudinaryService cloudinaryService)
+        private readonly ILogger<ClassStudentService> _logger;
+        public ClassStudentService(IClassRepository classRepository, IClassStudentRepository classStudentRepository, IStudentRepository studentRepository, ICloudinaryService cloudinaryService, ILogger<ClassStudentService> logger)
         {
+            _logger = logger;
             _classRepository = classRepository;
             _classStudentRepository = classStudentRepository;
             _studentRepository = studentRepository;
@@ -132,12 +134,43 @@ namespace Project_LMS.Services
 
         public async Task<ApiResponse<object>> ChangeClassOfStudent(ClassStudentRequest request)
         {
-            var clas = await _classRepository.FindClassById(request.ClassId??0);
-            if (clas == null) return new ApiResponse<object>(1, "Lớp học không tồn tại.");
-            var student = await _studentRepository.FindStudentById(request.UserId??0);
-            if (student == null) return new ApiResponse<object>(1, "Học viên không tồn tại.");
-            await _classStudentRepository.AddAsync(request);
-            return new ApiResponse<object>(0, "Chuyển lớp thành công.");
+            // Kiểm tra lớp học và học viên tồn tại
+            var clas = await _classRepository.FindClassById(request.ClassId ?? 0);
+            if (clas == null)
+                return new ApiResponse<object>(1, "Lớp học không tồn tại.");
+
+            var student = await _studentRepository.FindStudentById(request.UserId ?? 0);
+            if (student == null)
+                return new ApiResponse<object>(1, "Học viên không tồn tại.");
+
+            try
+            {
+                // Tìm thông tin lớp học hiện tại của học viên
+                var currentClassStudent = await _classStudentRepository.FindStudentByIdIsActive(request.UserId ?? 0);
+
+                if (currentClassStudent != null)
+                {
+                    // Nếu học viên đang ở cùng lớp rồi thì không cần thay đổi
+                    if (currentClassStudent.ClassId == request.ClassId)
+                        return new ApiResponse<object>(0, "Học viên đã ở trong lớp này.");
+
+                    // Đánh dấu bản ghi cũ là không hoạt động
+                    currentClassStudent.IsActive = false;
+                    await _classStudentRepository.UpdateAsync(currentClassStudent);
+                    _logger.LogInformation($"Vô hiệu hóa bản ghi lớp cũ: Học viên {request.UserId} rời lớp {currentClassStudent.ClassId}");
+                }
+
+                // Thêm bản ghi mới
+                await _classStudentRepository.AddAsync(request);
+                _logger.LogInformation($"Thêm bản ghi lớp mới: Học viên {request.UserId} vào lớp {request.ClassId}");
+
+                return new ApiResponse<object>(0, "Chuyển lớp thành công.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi chuyển lớp cho học viên");
+                return new ApiResponse<object>(5, "Đã xảy ra lỗi khi chuyển lớp. Vui lòng thử lại sau.");
+            }
         }
     }
 }
