@@ -20,6 +20,7 @@
         public int Views { get; set; } // Số lượt xem
         public int Replies { get; set; } // Số lượt trả lời
         public string? RoleName { get; set; }
+        public bool IsClosed { get; set; }
         public List<TopicResponse> Comments { get; set; }
     }
 }

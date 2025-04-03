@@ -187,19 +187,28 @@ namespace Project_LMS.Repositories
 
         public async Task<bool> IsUserInClassAsync(int userId, int classId)
         {
-            var isUserInClass = await _context.TeachingAssignments
-                .Where(ta =>
-                    ta.ClassId == classId && ta.UserId == userId && ta.IsDelete == false && ta.User.RoleId == 2)
-                .Select(ta => true)
-                .Union(
-                    _context.ClassStudents
-                        .Where(cs =>
-                            cs.UserId == userId && cs.ClassId == classId && cs.IsDelete == false && cs.User.RoleId == 3)
-                        .Select(cs => true)
-                )
+            // Kiểm tra nếu là giáo viên được phân công dạy lớp này
+            var teacherAccess = await _context.TeachingAssignments
+                .Where(ta => ta.ClassId == classId
+                          && ta.UserId == userId
+                          && ta.IsDelete == false
+                          && ta.User.RoleId == 2)
                 .AnyAsync();
 
-            return isUserInClass;
+            if (teacherAccess)
+                return true;
+
+            // Lấy bản ghi mới nhất (ID cao nhất) cho học sinh trong lớp
+            var latestClassStudent = await _context.ClassStudents
+                .Where(cs => cs.UserId == userId && cs.ClassId == classId)
+                .OrderByDescending(cs => cs.Id) // Sắp xếp theo ID giảm dần
+                .FirstOrDefaultAsync();
+
+            // Kiểm tra bản ghi mới nhất
+            return latestClassStudent != null &&
+                   latestClassStudent.IsDelete == false &&
+                   latestClassStudent.IsActive == true &&
+                   latestClassStudent.User.RoleId == 3;
         }
 
         public async Task<ClassMembersWithStatsResponse> GetClassMembersByTeachingAssignmentAsync(
@@ -380,33 +389,56 @@ namespace Project_LMS.Repositories
                 .Select(g => g.First())
                 .ToListAsync();
 
-            // Lấy danh sách học sinh
-            var studentsQuery = _context.ClassStudents
+            // Lấy danh sách lớp học liên quan đến teaching assignment
+            var relatedClassIds = await _context.TeachingAssignments
                 .AsNoTracking()
-                .Where(cs => cs.Class.TeachingAssignments.Any(ta => ta.Id == teachingAssignmentId)
-                             && cs.IsDelete == false
-                             && cs.User.RoleId == 3);
+                .Where(ta => ta.Id == teachingAssignmentId)
+                .Where(ta => ta.ClassId.HasValue)
+                .Select(ta => ta.ClassId.Value)
+                .ToListAsync();
 
+            // Lấy tất cả bản ghi class_students cho các lớp liên quan
+            var allClassStudents = await _context.ClassStudents
+                .AsNoTracking()
+                .Where(cs => cs.ClassId.HasValue && relatedClassIds.Contains(cs.ClassId.Value))
+                .Include(cs => cs.User) // Đảm bảo load thông tin User
+                .Include(cs => cs.Class) // Đảm bảo load thông tin Class
+                .ToListAsync();
+
+            // Xử lý trong memory để lấy bản ghi mới nhất cho mỗi student
+            var activeStudents = allClassStudents
+                .GroupBy(cs => cs.UserId)
+                .Select(g => g.OrderByDescending(cs => cs.Id).FirstOrDefault())
+                .Where(cs => cs != null 
+                          && cs.IsDelete == false 
+                          && cs.User.RoleId == 3 
+                          && cs.IsActive == true)
+                .ToList();
+
+            // Lọc theo userIdsWithQuestions nếu có
             if (userIdsWithQuestions.Any())
             {
-                studentsQuery = studentsQuery.Where(cs => userIdsWithQuestions.Contains(cs.User.Id));
+                activeStudents = activeStudents
+                    .Where(cs => userIdsWithQuestions.Contains(cs.UserId))
+                    .ToList();
             }
 
-            var students = await studentsQuery
+            // Chuyển đổi sang ClassMemberResponse
+            var students = activeStudents
                 .Select(cs => new ClassMemberResponse
                 {
                     UserId = cs.User.Id,
                     FullName = cs.User.FullName,
-                    Avatar = cs.User.Image, // Thêm ánh xạ Avatar
+                    Avatar = cs.User.Image,
                     Email = cs.User.Email,
                     Phone = cs.User.Phone,
                     Role = "student",
-                    ClassId = cs.Class.Id,
-                    ClassName = cs.Class.Name
+                    ClassId = cs.ClassId.Value,
+                    ClassName = cs.Class?.Name
                 })
                 .GroupBy(s => new { s.UserId, s.ClassId })
                 .Select(g => g.First())
-                .ToListAsync();
+                .ToList();
 
             // Gán số lượt xem, câu hỏi, câu trả lời và số lượng câu hỏi/câu trả lời cho từng giáo viên
             foreach (var teacher in teachers)
@@ -455,7 +487,7 @@ namespace Project_LMS.Repositories
         }
 
         public async Task<TeachingAssignmentStudentsResponse> GetTeachingAssignmentStudentsAsync(
-            int teachingAssignmentId)
+     int teachingAssignmentId)
         {
             // Lấy thông tin phân công giảng dạy, lớp học, và giáo viên
             var teachingAssignmentInfo = await _context.TeachingAssignments
@@ -476,19 +508,31 @@ namespace Project_LMS.Repositories
                 return null; // Trả về null thay vì ném ngoại lệ
             }
 
-            // Lấy danh sách học sinh trong lớp
-            var students = await _context.ClassStudents
+            // Tách thành 2 bước để tránh lỗi dịch LINQ sang SQL
+            // 1. Lấy tất cả dữ liệu class_students của lớp này
+            var allClassStudents = await _context.ClassStudents
                 .AsNoTracking()
                 .Where(cs => cs.ClassId == teachingAssignmentInfo.ClassId)
-                .Join(_context.Users,
-                    cs => cs.UserId,
-                    u => u.Id,
-                    (cs, u) => new StudentInfoResponse
-                    {
-                        UserId = u.Id,
-                        FullName = u.FullName,
-                        RoleName = u.Role.Name
-                    })
+                .ToListAsync();
+
+            // 2. Xử lý trong memory để lấy bản ghi mới nhất cho mỗi học sinh
+            var latestStudentRecords = allClassStudents
+                .GroupBy(cs => cs.UserId)
+                .Select(g => g.OrderByDescending(cs => cs.Id).FirstOrDefault())
+                .Where(cs => cs != null && cs.IsDelete == false && cs.IsActive == true)
+                .ToList();
+
+            // Lấy thông tin chi tiết của học sinh
+            var studentIds = latestStudentRecords.Select(cs => cs.UserId).ToList();
+            var students = await _context.Users
+                .AsNoTracking()
+                .Where(u => studentIds.Contains(u.Id))
+                .Select(u => new StudentInfoResponse
+                {
+                    UserId = u.Id,
+                    FullName = u.FullName,
+                    RoleName = u.Role.Name
+                })
                 .ToListAsync();
 
             // Tạo dữ liệu trả về
@@ -501,7 +545,7 @@ namespace Project_LMS.Repositories
                 Students = students
             };
 
-            return responseData; // Trả về dữ liệu thay vì ném ngoại lệ
+            return responseData;
         }
     }
 }
