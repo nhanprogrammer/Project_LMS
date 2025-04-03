@@ -4,7 +4,7 @@ using MimeKit;
 
 public interface IEmailService
 {
-    Task SendOtpAsync(string email, string otp);
+    Task SendMailAsync(string email, string subject,string content);
 }
 
 public class EmailService : IEmailService
@@ -16,15 +16,16 @@ public class EmailService : IEmailService
         _config = config;
     }
 
-    public async Task SendOtpAsync(string email, string otp)
+    public async Task SendMailAsync(string email, string subject, string content)
     {
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress(_config["EmailSettings:SenderName"], _config["EmailSettings:SenderEmail"]));
         message.To.Add(new MailboxAddress(email, email));
-        message.Subject = "Your OTP Code";
+        message.Subject = subject;
         message.Body = new TextPart("html")
         {
-            Text = $"<h3>Your OTP Code: <strong>{otp}</strong></h3><p>This OTP is valid for 5 minutes.</p>"
+            Text = content
+            //Text = $"<h3>Your OTP Code: <strong>{otp}</strong></h3><p>This OTP is valid for 5 minutes.</p>"
         };
 
         var smtpServer = _config["EmailSettings:SmtpServer"];

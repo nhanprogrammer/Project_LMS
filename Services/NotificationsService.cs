@@ -22,6 +22,7 @@ public class NotificationsService : INotificationsService
         _context = context;
     }
 
+    /*Chức năng: Gửi thông báo đến nhiều người dùng cùng lúc.*/
     public async Task AddNotificationAsync(int? senderId, int userId, string subject, string content, bool type)
     {
         try
@@ -30,7 +31,19 @@ public class NotificationsService : INotificationsService
         }
         catch (Exception ex)
         {
-            throw new Exception($"Không thể thêm thông báo: {ex.Message}", ex);
+            throw new Exception("Không thể gửi thông báo, vui lòng kiểm tra lại thông tin người nhận");
+        }
+    }
+
+    public async Task AddNotificationToUsersAsync(List<int> userIds, string subject, string content)
+    {
+        try
+        {
+            await _notificationsRepository.AddNotificationToUsersAsync(userIds, subject, content);
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Không thể thêm thông báo đến danh sách người dùng: {ex.Message}", ex);
         }
     }
 

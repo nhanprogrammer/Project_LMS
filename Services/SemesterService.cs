@@ -6,133 +6,41 @@ using Project_LMS.Interfaces.Repositories;
 using Project_LMS.Models;
 using Project_LMS.Exceptions;
 using Project_LMS.Helpers;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using Project_LMS.Interfaces.Responsitories;
+using Project_LMS.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace Project_LMS.Services
 {
     public class SemesterService : ISemesterService
     {
         private readonly ISemesterRepository _semesterRepository;
+        private readonly IAcademicYearRepository _academicYearRepository;
         private readonly IMapper _mapper;
+        private readonly ApplicationDbContext _context;
 
-        public SemesterService(ISemesterRepository semesterRepository, IMapper mapper)
+        public SemesterService(ISemesterRepository semesterRepository, IAcademicYearRepository academicYearRepository, IMapper mapper, ApplicationDbContext context)
         {
             _semesterRepository = semesterRepository;
+            _academicYearRepository = academicYearRepository;
             _mapper = mapper;
+            _context = context;
+
         }
 
-        public async Task<IEnumerable<SemesterResponse>> GetAllAsync()
+        public async Task<List<SemesterDropdownResponse>> GetSemestersByAcademicYearIdAsync(int academicYearId)
         {
-            var semesters = await _semesterRepository.GetAllAsync();
-            return _mapper.Map<IEnumerable<SemesterResponse>>(semesters);
-        }
+            var semesters = await _context.Semesters
+                .Where(s => s.AcademicYearId == academicYearId && (s.IsDelete == null || s.IsDelete == false))
+                .OrderBy(s => s.StartDate)
+                .Select(s => new SemesterDropdownResponse
+                {
+                    Id = s.Id,
+                    Name = s.Name ?? string.Empty
+                })
+                .ToListAsync();
 
-        public async Task<SemesterResponse> GetByIdAsync(int id)
-        {
-            var semester = await _semesterRepository.GetByIdAsync(id);
-            if (semester == null)
-            {
-                throw new NotFoundException("Không tìm thấy học kỳ.");
-            }
-
-            return _mapper.Map<SemesterResponse>(semester);
-        }
-
-        public async Task<SemesterResponse> CreateAsync(SemesterRequest request)
-        {
-            var errors = new List<ValidationError>();
-
-            if (StringValidator.ContainsSpecialCharacters(request.Name))
-                errors.Add(new ValidationError { Field = "Name", Error = "Tên học kỳ không được chứa ký tự đặc biệt" });
-
-            if (!request.DateStart.HasValue || !DateTimeValidator.IsValidDateTime(request.DateStart?.ToString() ?? ""))
-                errors.Add(new ValidationError { Field = "DateStart", Error = "Ngày bắt đầu không hợp lệ" });
-
-            if (!request.DateEnd.HasValue || !DateTimeValidator.IsValidDateTime(request.DateEnd?.ToString() ?? ""))
-                errors.Add(new ValidationError { Field = "DateEnd", Error = "Ngày kết thúc không hợp lệ" });
-
-            if (request.DateStart.HasValue && request.DateEnd.HasValue)
-            {
-                if (request.DateStart > request.DateEnd)
-                    errors.Add(new ValidationError { Field = "DateRange", Error = "Ngày bắt đầu không thể lớn hơn ngày kết thúc" });
-
-                if (DateTimeValidator.IsPastDate(request.DateStart.Value))
-                    errors.Add(new ValidationError { Field = "DateStart", Error = "Ngày bắt đầu không thể ở quá khứ" });
-            }
-
-            if (errors.Any())
-            {
-                throw new BadRequestException("Validation failed.", errors);
-            }
-
-            var semester = _mapper.Map<Semester>(request);
-            semester.UserCreate = 1;
-
-            await _semesterRepository.AddAsync(semester);
-
-            return _mapper.Map<SemesterResponse>(semester);
-        }
-
-        public async Task<SemesterResponse> UpdateAsync(int id, SemesterRequest request)
-        {
-            var semester = await _semesterRepository.GetByIdAsync(id);
-            if (semester == null)
-            {
-                throw new NotFoundException("Không tìm thấy học kỳ.");
-            }
-
-            var errors = new List<ValidationError>();
-
-            if (StringValidator.ContainsSpecialCharacters(request.Name))
-                errors.Add(new ValidationError { Field = "Name", Error = "Tên học kỳ không được chứa ký tự đặc biệt" });
-
-            if (!request.DateStart.HasValue || !DateTimeValidator.IsValidDateTime(request.DateStart?.ToString() ?? ""))
-                errors.Add(new ValidationError { Field = "DateStart", Error = "Ngày bắt đầu không hợp lệ" });
-
-            if (!request.DateEnd.HasValue || !DateTimeValidator.IsValidDateTime(request.DateEnd?.ToString() ?? ""))
-                errors.Add(new ValidationError { Field = "DateEnd", Error = "Ngày kết thúc không hợp lệ" });
-
-            if (request.DateStart.HasValue && request.DateEnd.HasValue)
-            {
-                if (request.DateStart > request.DateEnd)
-                    errors.Add(new ValidationError { Field = "DateRange", Error = "Ngày bắt đầu không thể lớn hơn ngày kết thúc" });
-
-            }
-
-            // if (request.DateStart.HasValue && request.DateStart < semester.DateStart)
-            // {
-            //     errors.Add(new ValidationError { Field = "DateStart", Error = "Ngày bắt đầu không thể nhỏ hơn ngày bắt đầu trước đó." });
-            // }
-
-            if (errors.Any())
-            {
-                throw new BadRequestException("Validation failed.", errors);
-            }
-
-            _mapper.Map(request, semester);
-            semester.UserUpdate = 1;
-
-            await _semesterRepository.UpdateAsync(semester);
-
-            return _mapper.Map<SemesterResponse>(semester);
-        }
-
-        public async Task<SemesterResponse> DeleteAsync(int id)
-        {
-            var semester = await _semesterRepository.GetByIdAsync(id);
-            if (semester == null)
-            {
-                throw new NotFoundException("Không tìm thấy học kỳ.");
-            }
-
-            semester.IsDelete = true;
-            semester.UserUpdate = 1;
-
-            await _semesterRepository.UpdateAsync(semester);
-
-            return _mapper.Map<SemesterResponse>(semester);
+            return semesters;
         }
     }
 }

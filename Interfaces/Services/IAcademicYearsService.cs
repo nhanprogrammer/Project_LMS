@@ -6,12 +6,14 @@ namespace Project_LMS.Interfaces
     public interface IAcademicYearsService
     {
         //Task<IEnumerable<AcademicYearResponse>> GetAllAcademicYears();
-        Task<AcademicYearResponse> GetByIdAcademicYear(int id);
-        Task AddAcademicYear(CreateAcademicYearRequest request);
-        Task UpdateAcademicYear(int id, UpdateAcademicYearRequest request);
-        Task<bool> DeleteAcademicYear(int id);
+        Task<ApiResponse<AcademicYearWithSemestersDto>> GetByIdAcademicYear(int id);
+        Task<PaginatedResponse<AcademicYearResponse>> SearchAcademicYear(int year, int pageNumber = 1, int pageSize = 10);
+        Task<ApiResponse<AcademicYearResponse>> AddAcademicYear(CreateAcademicYearRequest request, int userId);
+        Task<ApiResponse<AcademicYearResponse>> UpdateAcademicYear(UpdateAcademicYearRequest request, int userId);
+        Task<ApiResponse<AcademicYearResponse>> DeleteLessonAsync(DeleteRequest deleteRequest);
 
-        Task<PaginatedResponse<AcademicYearResponse>> GetPagedAcademicYears(PaginationRequest request);
+        Task<PaginatedResponse<AcademicYearResponse>> GetPagedAcademicYears(PaginationRequest request, string? keyword);
+        Task<List<AcademicYearNameResponse>> GetAcademicYearNamesAsync();
         
     }
 }

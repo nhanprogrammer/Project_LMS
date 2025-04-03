@@ -5,6 +5,10 @@ namespace Project_LMS.Models
 {
     public partial class Lesson
     {
+        public Lesson()
+        {
+            ClassOnlines = new HashSet<ClassOnline>();
+        }
         public int Id { get; set; }
         public int? TeachingAssignmentId { get; set; }
         public int? UserId { get; set; }
@@ -27,5 +31,8 @@ namespace Project_LMS.Models
 
         public virtual TeachingAssignment? TeachingAssignment { get; set; }
         public virtual User? User { get; set; }
+
+        public virtual ICollection<ClassOnline> ClassOnlines { get; set; }
+        public virtual ICollection<QuestionAnswer> QuestionAnswers { get; set; }
     }
 }

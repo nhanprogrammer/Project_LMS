@@ -1,4 +1,5 @@
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Project_LMS.DTOs.Request;
@@ -10,6 +11,7 @@ namespace Project_LMS.Controllers
 {
     [Route("api/permission")]
     [ApiController]
+    [Authorize(Policy = "SUPER-ADMIN")]
     public class PermissionController : ControllerBase
     {
         private readonly IPermissionService _permissionService;
@@ -37,12 +39,12 @@ namespace Project_LMS.Controllers
             }
         }
         [HttpPost("create")]
-        public async Task<IActionResult> CreateGroupPermission([FromBody] SaveGroupPermissionRequest request)
+        public async Task<IActionResult> CreateGroupPermission([FromBody] GroupPermissionCreateRequest request)
         {
             try
             {
                 bool result = await _permissionService.SaveGroupPermission(
-                    request.GroupRoleId,
+                    0,
                     request.GroupRoleName,
                     request.Description,
                     request.AllPermission,
@@ -74,10 +76,11 @@ namespace Project_LMS.Controllers
         }
 
         [HttpPut("update")]
-        public async Task<IActionResult> UpdateGroupPermission([FromBody] SaveGroupPermissionRequest request)
+        public async Task<IActionResult> UpdateGroupPermission([FromBody] GroupPermissionUpdateRequest request)
         {
             try
             {
+
                 bool result = await _permissionService.SaveGroupPermission(
                     request.GroupRoleId,
                     request.GroupRoleName,
@@ -126,7 +129,7 @@ namespace Project_LMS.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi, vui lòng thử lại sau."+ex.Message, null));
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi, vui lòng thử lại sau." + ex.Message, null));
             }
         }
         [HttpDelete]
@@ -170,6 +173,7 @@ namespace Project_LMS.Controllers
                 return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi, vui lòng thử lại sau.", null));
             }
         }
+
         [HttpGet("user")]
         public async Task<IActionResult> GetPermissionUser([FromQuery] PermissionIdRequest request)
         {
@@ -216,6 +220,8 @@ namespace Project_LMS.Controllers
                 return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi, vui lòng thử lại sau.", null));
             }
         }
+
+
         [HttpDelete("user-delete")]
         public async Task<IActionResult> DeleteUserPermission([FromBody] PermissionIdRequest userId)
         {
@@ -242,6 +248,44 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [HttpGet("unassigned-users")]
+        public async Task<IActionResult> GetUnassignedUsers()
+        {
+            try
+            {
+                var users = await _permissionService.GetUnassignedUsersAsync();
+                return Ok(new ApiResponse<List<UnassignedUserResponse>>(0, "Lấy danh sách người dùng chưa cấp quyền thành công.", users));
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(new ApiResponse<string>(1, ex.Message, null));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi, vui lòng thử lại sau.", null));
+            }
+        }
+
+        [HttpGet("available-permissions")]
+        public async Task<IActionResult> GetAvailablePermissions()
+        {
+            try
+            {
+                var permissions = await _permissionService.GetAvailablePermissionsAsync();
+                return Ok(new ApiResponse<List<AvailablePermissionResponse>>(0, "Lấy danh sách quyền thành công.", permissions));
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(new ApiResponse<string>(1, ex.Message, null));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi, vui lòng thử lại sau.", null));
+            }
+        }
+
+
+        //Demo
         [HttpGet("u")]
         public async Task<IActionResult> GetUserPer([FromQuery] PermissionIdRequest userId)
         {

@@ -142,6 +142,13 @@ namespace Project_LMS.Services
         {
             try
             {
+                // Kiểm tra xem đã tồn tại department với tên tương tự chưa
+                var existingDepartment = await _departmentRepository.GetByNameAsync(createDepartmentRequest.name);
+                if (existingDepartment != null)
+                {
+                    return new ApiResponse<DepartmentResponse>(1, "Department đã tồn tại", null);
+                }
+
                 // Chuyển đổi dữ liệu từ DTO sang entity Department
                 var department = _mapper.Map<Department>(createDepartmentRequest);
 
@@ -157,7 +164,7 @@ namespace Project_LMS.Services
 
                 // Lấy thông tin User dựa trên UserId từ request để lấy tên của User
                 var user = _context.Users.FirstOrDefault(x => x.Id == createDepartmentRequest.userId);
-                response.UserName = user?.FullName;
+                response.FullName = user?.FullName;
 
                 // Gán DepartmentID từ entity vào response
                 response.DepartmentID = department.Id;
@@ -175,7 +182,8 @@ namespace Project_LMS.Services
             }
         }
 
-        public async Task<ApiResponse<DepartmentResponse>> UpdateDepartmentAsync(UpdateDepartmentRequest updateDepartmentRequest)
+        public async Task<ApiResponse<DepartmentResponse>> UpdateDepartmentAsync(
+            UpdateDepartmentRequest updateDepartmentRequest)
         {
             try
             {
@@ -214,12 +222,12 @@ namespace Project_LMS.Services
                 if (updateDepartmentRequest.userUpdate.HasValue && updateDepartmentRequest.userUpdate > 0)
                 {
                     var updatingUser = _context.Users.FirstOrDefault(x => x.Id == updateDepartmentRequest.userUpdate);
-                    response.UserName = updatingUser?.FullName;
+                    response.FullName = updatingUser?.FullName;
                 }
                 else
                 {
                     // Trường hợp UserUpdate = 0 hoặc null, có thể bỏ qua hoặc gán chuỗi trống
-                    response.UserName = null;
+                    response.FullName = null;
                 }
 
                 // 8. Trả về phản hồi thành công kèm dữ liệu DepartmentResponse đã được cập nhật
@@ -445,6 +453,61 @@ namespace Project_LMS.Services
                 var innerExceptionMessage = ex.InnerException?.Message ?? ex.Message;
                 return new ApiResponse<string>(1, $"Lỗi khi xóa lớp: {innerExceptionMessage}");
             }
+        }
+
+        public async Task<List<DepartmentDropdownResponse>> GetDepartmentDropdownAsync()
+        {
+            var departments = await _context.Departments
+                .Where(d => d.IsDelete == false)
+                .OrderBy(d => d.DepartmentCode)
+                .Select(d => new DepartmentDropdownResponse
+                {
+                    Id = d.Id,
+                    Name = d.Name,
+                    DepartmentCode = d.DepartmentCode
+                })
+                .ToListAsync();
+
+            return departments;
+        }
+
+        public async Task<ApiResponse<DepartmentResponse>> GetDepartmentById(int departmentId)
+        {
+            var department = await _departmentRepository.GetByIdAsync(departmentId);
+            var user = _context.Users.FirstOrDefault(u => u.Id == department.UserId);
+            if (department == null)
+            {
+                return new ApiResponse<DepartmentResponse>(1, "Không tìm thấy department!");
+            }
+
+            var response = _mapper.Map<DepartmentResponse>(department);
+            response.FullName = user.FullName;
+            return new ApiResponse<DepartmentResponse>(0, "Lấy thông tin department thành công!", response);
+        }
+
+        public async Task<ApiResponse<IEnumerable<object>>> ListUserDepartment()
+        {
+            var users = await _context.Users
+                .Include(u => u.Role)
+                .Include(u => u.TeacherStatus)
+                .Where(u => u.IsDelete == false && u.TeacherStatusId == 1 && u.RoleId == 2)
+                .ToListAsync();
+
+            if (!users.Any())
+            {
+                return new ApiResponse<IEnumerable<object>>(1, "Không tìm thấy giáo viên nào.");
+            }
+
+            var response = users.Select(u => new
+            {
+                UserId = u.Id,
+                UserCode = u.UserCode,
+                FullName = u.FullName,
+                Email = u.Email,
+                RoleName = u.Role?.Name,
+                StatusName = u.TeacherStatus?.StatusName
+            }).ToList();
+            return new ApiResponse<IEnumerable<object>>(0, "Lấy danh sách trưởng bộ môn thành công!", response);
         }
     }
 }

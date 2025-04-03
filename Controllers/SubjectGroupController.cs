@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Project_LMS.Data;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
@@ -6,6 +7,7 @@ using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers;
 
+[Authorize(Policy = "DATA-MNG-VIEW")]
 [Route("api/[controller]")]
 [ApiController]
 public class SubjectGroupController : ControllerBase
@@ -19,7 +21,7 @@ public class SubjectGroupController : ControllerBase
 
 
     [HttpGet]
-    public async Task<IActionResult> GetAllDisciplinesAsync(    int? pageNumber,
+    public async Task<IActionResult> GetAllDisciplinesAsync(int? pageNumber,
         int? pageSize,
         string? sortDirection)
     {
@@ -34,6 +36,7 @@ public class SubjectGroupController : ControllerBase
         return Ok(new ApiResponse<PaginatedResponse<SubjectGroupResponse>>(response.Status, response.Message, response.Data));
     }
 
+    [Authorize(Policy = "DATA-MNG-INSERT")]
     [HttpPost]
     public async Task<IActionResult> CreateDepartment([FromBody] CreateSubjectGroupRequest createSubjectGroupRequest)
     {
@@ -61,6 +64,7 @@ public class SubjectGroupController : ControllerBase
         return Ok(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
     }
 
+
     [HttpPut]
     public async Task<IActionResult> UpdateDepartment([FromBody] UpdateSubjectGroupRequest updateSubjectGroupRequest)
     {
@@ -73,6 +77,7 @@ public class SubjectGroupController : ControllerBase
         return Ok(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
     }
 
+    [Authorize(Policy = "DATA-MNG-DELETE")]
     [HttpDelete("{id?}")]
     public async Task<IActionResult> DeleteDepartment(int id)
     {
@@ -85,20 +90,31 @@ public class SubjectGroupController : ControllerBase
         return Ok(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
     }
 
- [HttpDelete]
- public async Task<IActionResult> DeleteListSubject([FromBody] DeleteRequest deleteRequest)
-{
-    Console.WriteLine($"Received IDs: {string.Join(", ", deleteRequest)}");
-
-
-    var response = await _subjectGroupService.DeleteSubjectGroupSubject(deleteRequest);
-    
-    if (response.Status == 1)
+    [Authorize(Policy = "DATA-MNG-DELETE")]
+    [HttpDelete]
+    public async Task<IActionResult> DeleteListSubject([FromBody] DeleteRequest deleteRequest)
     {
-        return BadRequest(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
+        var response = await _subjectGroupService.DeleteSubjectGroupSubject(deleteRequest);
+
+        if (response.Status == 1)
+        {
+            return BadRequest(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
+        }
+
+        return Ok(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
     }
 
-    return Ok(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
-}
+    [HttpGet("get-all-subject-groups")]
+    public async Task<IActionResult> GetSubjectGroupDropdown()
+    {
+        var response = await _subjectGroupService.GetSubjectGroupDropdownAsync();
+
+        if (response.Status == 1)
+        {
+            return BadRequest(new ApiResponse<List<SubjectGroupDropdownResponse>>(response.Status, response.Message, response.Data));
+        }
+
+        return Ok(new ApiResponse<List<SubjectGroupDropdownResponse>>(response.Status, response.Message, response.Data));
+    }
 
 }

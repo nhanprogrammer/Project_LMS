@@ -5,12 +5,13 @@ namespace Project_LMS.Interfaces
 {
     public interface IAuthService
     {
-        Task<AuthUserLoginResponse> LoginAsync(string email, string password);
+        Task<AuthUserLoginResponse> LoginAsync(string userName, string password);
+        Task<string?> RefreshAccessTokenAsync(string refreshToken);
         Task LogoutAsync(HttpContext context);
-        Task SendVerificationCodeAsync(string email);
-        Task ResetPasswordWithCodeAsync(string email, string verificationCode, string newPassword, string confirmPassword);
+        Task SendVerificationCodeAsync(string userName);
+        Task ResetPasswordWithCodeAsync(string userName, string verificationCode);
         Task<User?> GetUserAsync();
-        Task<string> HashPassword();
+        Task<string> HashPassword(string password);
 
     }
 

@@ -15,7 +15,7 @@
     {
         public int Id { get; set; }
         public int? UserId { get; set; }
-        public string? UserName { get; set; } // Giảng viên
+        public string? FullName { get; set; } // Giảng viên
         public int? ClassId { get; set; }
         public string? ClassName { get; set; } // Lớp học
         public int? SubjectId { get; set; }

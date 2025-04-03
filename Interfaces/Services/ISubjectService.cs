@@ -12,5 +12,9 @@ namespace Project_LMS.Interfaces.Services
         Task<ApiResponse<SubjectResponse>> UpdateSubjectAsync(SubjectRequest request);
         // Task<ApiResponse<bool>> DeleteSubjectAsync(int id);
         Task<ApiResponse<bool>> DeleteMultipleSubjectsAsync(List<int> ids);
+
+        Task<List<SubjectResponseSearch>> getSubjectByUserId(int userId);
+        Task<List<SubjectDropdownResponse>> GetSubjectsBySubjectGroupIdAsync(int subjectGroupId);
+        Task<List<SubjectDropdownResponse>> GetSubjectDropdownAsync();
     }
 }

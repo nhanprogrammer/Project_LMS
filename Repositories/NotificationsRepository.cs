@@ -366,4 +366,73 @@ public sealed class NotificationsRepository : INotificationsRepository
             throw new Exception($"Không thể lấy danh sách thông báo: {ex.Message}", ex);
         }
     }
+
+    public async Task AddNotificationToUsersAsync(List<int> userIds, string subject, string content)
+    {
+        try
+        {
+            // Kiểm tra danh sách userIds
+            if (userIds == null || !userIds.Any())
+            {
+                throw new ArgumentException("Danh sách userIds không được rỗng!");
+            }
+
+            // Kiểm tra subject và content
+            if (string.IsNullOrWhiteSpace(subject))
+            {
+                throw new ArgumentException("Subject không được rỗng!");
+            }
+
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                throw new ArgumentException("Content không được rỗng!");
+            }
+
+            // Tạo danh sách thông báo cho từng user
+            var notifications = new List<Notification>();
+            var currentTime = DateTime.UtcNow;
+
+            foreach (var userId in userIds)
+            {
+                var notification = new Notification
+                {
+                    SenderId = null, // type = true (hệ thống) nên SenderId = null
+                    UserId = userId,
+                    Subject = subject,
+                    Content = content,
+                    Type = false, // Thông báo hệ thống
+                    IsRead = false,
+                    IsDelete = false,
+                    CreateAt = currentTime,
+                    UpdateAt = currentTime,
+                    UserCreate = 0, // Không có sender nên gán mặc định là 0
+                    UserUpdate = 0
+                };
+
+                notifications.Add(notification);
+            }
+
+            // Lưu tất cả thông báo vào DB
+            _context.Notifications.AddRange(notifications);
+            await _context.SaveChangesAsync();
+
+            // Gửi thông báo qua SignalR đến từng user
+            foreach (var notification in notifications)
+            {
+                await _hubContext.Clients.User(notification.UserId.ToString())
+                    .SendAsync("ReceiveNotification", new
+                    {
+                        Id = notification.Id,
+                        Subject = notification.Subject,
+                        Content = notification.Content,
+                        CreateAt = notification.CreateAt.ToString(),
+                        Type = notification.Type.Value ? "System" : "User"
+                    });
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Không thể thêm thông báo đến danh sách người dùng: {ex.Message}", ex);
+        }
+    }
 }

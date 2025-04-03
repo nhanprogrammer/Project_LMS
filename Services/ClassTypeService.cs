@@ -16,17 +16,23 @@ namespace Project_LMS.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly IMapper _mapper;
+        private readonly IAuthService _authService;
 
-        public ClassTypeService(ApplicationDbContext context, IMapper mapper)
+        public ClassTypeService(ApplicationDbContext context, IMapper mapper, IAuthService authService)
         {
             _context = context;
             _mapper = mapper;
+            _authService = authService;
         }
 
         public async Task<ApiResponse<PaginatedResponse<ClassTypeResponse>>> GetAllClassTypesAsync(string? keyword, int pageNumber, int pageSize)
         {
             try
             {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return new ApiResponse<PaginatedResponse<ClassTypeResponse>>(1, "Không có quyền truy cập", null);
+
                 var query = _context.ClassTypes
                     .Where(ct => !(ct.IsDelete ?? false));
 
@@ -62,82 +68,156 @@ namespace Project_LMS.Services
                     HasNextPage = pageNumber < totalPages
                 };
 
-                return new ApiResponse<PaginatedResponse<ClassTypeResponse>>(0, "Success", paginatedResponse);
+                return new ApiResponse<PaginatedResponse<ClassTypeResponse>>(0, "Lấy danh sách loại lớp học thành công", paginatedResponse);
             }
             catch (Exception ex)
             {
-                return new ApiResponse<PaginatedResponse<ClassTypeResponse>>(1, $"Error getting class types: {ex.Message}", null);
+                return new ApiResponse<PaginatedResponse<ClassTypeResponse>>(1, $"Lỗi khi lấy danh sách loại lớp học: {ex.Message}", null);
             }
         }
 
         public async Task<ApiResponse<ClassTypeResponse>> GetClassTypeByIdAsync(int id)
         {
-            var classType = await _context.ClassTypes
-                .FirstOrDefaultAsync(ct => ct.Id == id && !(ct.IsDelete ?? false));
+            try
+            {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return new ApiResponse<ClassTypeResponse>(1, "Không có quyền truy cập", null);
 
-            if (classType == null)
-                return new ApiResponse<ClassTypeResponse>(1, "ClassType not found", null);
+                var classType = await _context.ClassTypes
+                    .FirstOrDefaultAsync(ct => ct.Id == id && !(ct.IsDelete ?? false));
 
-            var response = _mapper.Map<ClassTypeResponse>(classType);
-            return new ApiResponse<ClassTypeResponse>(0, "Success", response);
+                if (classType == null)
+                    return new ApiResponse<ClassTypeResponse>(1, "Không tìm thấy loại lớp học", null);
+
+                var response = _mapper.Map<ClassTypeResponse>(classType);
+                return new ApiResponse<ClassTypeResponse>(0, "Lấy thông tin loại lớp học thành công", response);
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<ClassTypeResponse>(1, $"Lỗi khi lấy thông tin loại lớp học: {ex.Message}", null);
+            }
         }
 
         public async Task<ApiResponse<ClassTypeResponse>> CreateClassTypeAsync(ClassTypeRequest request)
         {
-            var classType = _mapper.Map<ClassType>(request);
-            classType.CreateAt = DateTime.UtcNow.ToLocalTime();
-            classType.IsDelete = false;
+            try
+            {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return new ApiResponse<ClassTypeResponse>(1, "Không có quyền truy cập", null);
 
-            await _context.ClassTypes.AddAsync(classType);
-            await _context.SaveChangesAsync();
+                if (request == null || string.IsNullOrEmpty(request.Name))
+                    return new ApiResponse<ClassTypeResponse>(1, "Tên loại lớp học không được để trống", null);
 
-            var response = _mapper.Map<ClassTypeResponse>(classType);
-            return new ApiResponse<ClassTypeResponse>(0, "ClassType created successfully", response);
+                // Kiểm tra tên loại lớp học đã tồn tại chưa
+                var existingClassType = await _context.ClassTypes
+                    .FirstOrDefaultAsync(ct => ct.Name != null &&
+                        ct.Name.ToLower() == request.Name.ToLower() &&
+                        (!ct.IsDelete.HasValue || !ct.IsDelete.Value));
+
+                if (existingClassType != null)
+                    return new ApiResponse<ClassTypeResponse>(1, "Tên loại lớp học đã tồn tại", null);
+
+                var classType = _mapper.Map<ClassType>(request);
+                classType.CreateAt = DateTime.UtcNow.ToLocalTime();
+                classType.IsDelete = false;
+                classType.UserCreate = user.Id;
+
+                await _context.ClassTypes.AddAsync(classType);
+                await _context.SaveChangesAsync();
+
+                var response = _mapper.Map<ClassTypeResponse>(classType);
+                return new ApiResponse<ClassTypeResponse>(0, "Tạo loại lớp học thành công", response);
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<ClassTypeResponse>(1, $"Lỗi khi tạo loại lớp học: {ex.Message}", null);
+            }
         }
 
         public async Task<ApiResponse<ClassTypeResponse>> UpdateClassTypeAsync(ClassTypeRequest request)
         {
-            var existingClassType = await _context.ClassTypes
-                .FirstOrDefaultAsync(ct => ct.Id == request.id && !(ct.IsDelete ?? false));
+            try
+            {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return new ApiResponse<ClassTypeResponse>(1, "Không có quyền truy cập", null);
 
-            if (existingClassType == null)
-                return new ApiResponse<ClassTypeResponse>(1, "ClassType not found", null);
+                if (request == null || string.IsNullOrEmpty(request.Name))
+                    return new ApiResponse<ClassTypeResponse>(1, "Tên loại lớp học không được để trống", null);
 
-            _mapper.Map(request, existingClassType);
-            existingClassType.UpdateAt = DateTime.UtcNow.ToLocalTime();
+                var existingClassType = await _context.ClassTypes
+                    .FirstOrDefaultAsync(ct => ct.Id == request.id && !(ct.IsDelete ?? false));
 
-            await _context.SaveChangesAsync();
+                if (existingClassType == null)
+                    return new ApiResponse<ClassTypeResponse>(1, "Không tìm thấy loại lớp học", null);
 
-            var response = _mapper.Map<ClassTypeResponse>(existingClassType);
-            return new ApiResponse<ClassTypeResponse>(0, "ClassType updated successfully", response);
+                // Kiểm tra tên loại lớp học đã tồn tại chưa (loại trừ chính nó)
+                var duplicateName = await _context.ClassTypes
+                    .FirstOrDefaultAsync(ct => ct.Id != request.id
+                        && ct.Name != null
+                        && ct.Name.ToLower() == request.Name.ToLower()
+                        && (!ct.IsDelete.HasValue || !ct.IsDelete.Value));
+
+                if (duplicateName != null)
+                    return new ApiResponse<ClassTypeResponse>(1, "Tên loại lớp học đã tồn tại", null);
+
+                _mapper.Map(request, existingClassType);
+                existingClassType.UpdateAt = DateTime.UtcNow.ToLocalTime();
+                existingClassType.UserUpdate = user.Id;
+
+                await _context.SaveChangesAsync();
+
+                var response = _mapper.Map<ClassTypeResponse>(existingClassType);
+                return new ApiResponse<ClassTypeResponse>(0, "Cập nhật loại lớp học thành công", response);
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<ClassTypeResponse>(1, $"Lỗi khi cập nhật loại lớp học: {ex.Message}", null);
+            }
         }
 
         public async Task<ApiResponse<bool>> DeleteClassTypeAsync(List<int> ids)
         {
             try
             {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return new ApiResponse<bool>(1, "Không có quyền truy cập", false);
+
                 var classTypes = await _context.ClassTypes
                     .Where(c => ids.Contains(c.Id) && (!c.IsDelete.HasValue || !c.IsDelete.Value))
                     .ToListAsync();
 
                 if (!classTypes.Any())
-                {
-                    return new ApiResponse<bool>(1, "No class types found to delete", false);
-                }
+                    return new ApiResponse<bool>(1, "Không tìm thấy loại lớp học để xóa", false);
 
                 foreach (var classType in classTypes)
                 {
                     classType.IsDelete = true;
                     classType.UpdateAt = DateTime.UtcNow.ToLocalTime();
+                    classType.UserUpdate = user.Id;
                 }
 
                 await _context.SaveChangesAsync();
-                return new ApiResponse<bool>(0, $"Successfully deleted {classTypes.Count} class types", true);
+                return new ApiResponse<bool>(0, $"Đã xóa thành công {classTypes.Count} loại lớp học", true);
             }
             catch (Exception ex)
             {
-                return new ApiResponse<bool>(1, $"Error deleting class types: {ex.Message}", false);
+                return new ApiResponse<bool>(1, $"Lỗi khi xóa loại lớp học: {ex.Message}", false);
             }
+        }
+        public async Task<List<ClassTypeDropdownResponse>> GetClassTypeDropdownAsync()
+        {
+            return await _context.ClassTypes
+                .Where(ct => !(ct.IsDelete ?? false) && (ct.Status ?? false))
+                .Select(ct => new ClassTypeDropdownResponse
+                {
+                    Id = ct.Id,
+                    Name = ct.Name ?? string.Empty
+                })
+                .ToListAsync();
         }
     }
 }

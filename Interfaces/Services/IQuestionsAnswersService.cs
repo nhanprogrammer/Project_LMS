@@ -30,7 +30,7 @@ namespace Project_LMS.Interfaces.Services
             int teachingAssignmentId);
 
         Task<ApiResponse<QuestionsAnswerTabResponse>> GetQuestionsAnswersByTabAsync(int userId,
-            int teachingAssignmentId, string tab);
+            int teachingAssignmentId, string tab, int? lessonId = null);
         
         Task<ApiResponse<bool>> SendUserMessageAsync(int senderId, int receiverId, string message);
     }

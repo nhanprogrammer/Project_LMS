@@ -11,4 +11,5 @@ public interface INotificationsRepository
     Task AddManualNotification(int senderId, int userId, string subject, string content);
     Task DeleteNotifications(int notificationId, int userId);
     Task SelectIsRead(int notificationId, int userId);
+    Task AddNotificationToUsersAsync(List<int> userIds, string subject, string content);
 }

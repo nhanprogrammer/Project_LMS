@@ -20,7 +20,7 @@ namespace Project_LMS.Authorization
 
         protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, PermissionRequirement requirement)
         {
-             // var userPermissions = context.User.FindAll("Permission").Select(c => c.Value).ToList();
+            // var userPermissions = context.User.FindAll("Permission").Select(c => c.Value).ToList();
 
             var email = context.User.FindFirstValue(ClaimTypes.Email);
             if (string.IsNullOrWhiteSpace(email))
@@ -33,14 +33,21 @@ namespace Project_LMS.Authorization
                 .Select(u => u.Id)
                 .FirstOrDefaultAsync();
 
-            if (userId == 0) 
+            if (userId == 0)
             {
                 return;
             }
 
             var userPermissions = await _permissionService.ListPermission(userId);
 
-            if (userPermissions.Contains(requirement.Permission))
+            if (requirement.Permission == "TEACHER" || requirement.Permission == "STUDENT")
+            {
+                if (userPermissions.Contains("TEACHER") || userPermissions.Contains("STUDENT"))
+                {
+                    context.Succeed(requirement);
+                }
+            }
+            else if (userPermissions.Contains(requirement.Permission))
             {
                 context.Succeed(requirement);
             }

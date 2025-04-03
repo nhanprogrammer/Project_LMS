@@ -25,20 +25,49 @@ namespace Project_LMS.Controllers
         {
             try
             {
-                var userResponse = await _authService.LoginAsync(request.Email, request.Password);
+                var userResponse = await _authService.LoginAsync(request.UserName, request.Password);
 
-                Response.Cookies.Append("AuthToken", userResponse.Token, new CookieOptions
+                // Lưu Access Token vào cookie (thời hạn ngắn,  1 ngày)
+                Response.Cookies.Append("AccessToken", userResponse.AccessToken, new CookieOptions
                 {
                     HttpOnly = true,
-                    Secure = true,
-                    Expires = DateTime.UtcNow.AddHours(24)
+                    Secure = false, // Tắt tạm thời nếu frontend không có HTTPS
+                    Expires = DateTime.Now.AddHours(24)
                 });
-                return Ok(new ApiResponse<AuthUserLoginResponse>(0,
-                    "Đăng nhập thành công! ", userResponse));
+
+                // Lưu Refresh Token vào cookie (thời hạn dài hơn,  6 tháng)
+                Response.Cookies.Append("RefreshToken", userResponse.RefreshToken, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = false,
+                    Expires = DateTime.Now.AddMonths(6)
+                });
+
+                return Ok(new ApiResponse<AuthUserLoginResponse>(0, "Đăng nhập thành công!", userResponse));
             }
             catch (Exception ex)
             {
                 return BadRequest(new ApiResponse<string>(1, ex.Message, null));
+            }
+        }
+
+
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
+        {
+            try
+            {
+                var newAccessToken = await _authService.RefreshAccessTokenAsync(request.RefreshToken);
+
+                return Ok(new ApiResponse<string>(0, "Làm mới token thành công!", newAccessToken));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new ApiResponse<string>(1, ex.Message, null));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<string>(1, "Lỗi hệ thống", null));
             }
         }
 
@@ -50,18 +79,22 @@ namespace Project_LMS.Controllers
                 await _authService.LogoutAsync(HttpContext);
                 return Ok(new ApiResponse<string>(0, "Đăng xuất thành công!", null));
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new ApiResponse<string>(1, ex.Message, null));
+            }
             catch (Exception ex)
             {
                 return BadRequest(new ApiResponse<string>(1, ex.Message, null));
             }
         }
 
-        [HttpPost("send-verification-code")]
+        [HttpPost("forgot-password")]
         public async Task<IActionResult> SendVerificationCode([FromBody] AuthForgotPasswordRequest request)
         {
             try
             {
-                await _authService.SendVerificationCodeAsync(request.Email);
+                await _authService.SendVerificationCodeAsync(request.UserName);
                 return Ok(new ApiResponse<string>(0, "Mã xác thực đã được gửi!", null));
             }
             catch (KeyNotFoundException ex)
@@ -84,8 +117,8 @@ namespace Project_LMS.Controllers
         {
             try
             {
-                await _authService.ResetPasswordWithCodeAsync(request.Email, request.VerificationCode, request.NewPassword, request.ConfirmPassword);
-                return Ok(new ApiResponse<string>(0, "Mật khẩu đã được đặt lại thành công!", null));
+                await _authService.ResetPasswordWithCodeAsync(request.UserName, request.VerificationCode);
+                return Ok(new ApiResponse<string>(0, "Mật khẩu đã được gửi. Bạn đã có thể đăng nhập với mật khẩu mới!", null));
             }
             catch (Exception ex)
             {

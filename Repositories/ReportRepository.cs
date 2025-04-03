@@ -349,15 +349,16 @@ namespace Project_LMS.Repositories
                 .Where(ta => ta.UserId == teacherId && ta.IsDelete == false)
                 .ToListAsync();
         }
-        // public async Task<Lesson?> GetFirstLessonByClassAndSubjectAsync(int classId, int subjectId, int teacherId)
-        // {
-        //     return await _context.Lessons
-        //         .Where(l => l.ClassId == classId &&
-        //                     l.UserId == teacherId &&
-        //                     l.IsDelete == false)
-        //         .OrderBy(l => l.StartDate) // Sắp xếp theo thời gian bắt đầu
-        //         .FirstOrDefaultAsync();
-        // }
+        public async Task<Lesson?> GetFirstLessonByClassAndSubjectAsync(int classId, int subjectId, int teacherId)
+        {
+            return await _context.Lessons
+                .Where(l => l.TeachingAssignmentId != null &&
+                            l.TeachingAssignment != null && l.TeachingAssignment.ClassId == classId &&
+                            l.UserId == teacherId &&
+                            l.IsDelete == false)
+                .OrderBy(l => l.StartDate)
+                .FirstOrDefaultAsync();
+        }
         public async Task<List<ClassStudent>> GetClassStudentsByStudentIdAsync(int studentId)
         {
             return await _context.ClassStudents
@@ -398,12 +399,36 @@ namespace Project_LMS.Repositories
                 .ToListAsync();
         }
 
-        // public async Task<Lesson?> GetFirstLessonByClassAndSubjectAsync(int classId, int subjectId)
-        // {
-        //     return await _context.Lessons
-        //         .Where(l => l.ClassId == classId && l.IsDelete == false)
-        //         .OrderBy(l => l.StartDate)
-        //         .FirstOrDefaultAsync();
-        // }
+        public async Task<Lesson?> GetFirstLessonByClassAndSubjectAsync(int classId, int subjectId)
+        {
+            Console.WriteLine($"Class ID: {classId}, Subject ID: {subjectId}");
+            System.Console.WriteLine("GetFirstLessonByClassAndSubjectAsync");
+
+            var query = _context.Lessons
+                .Include(l => l.TeachingAssignment)
+                .Where(l => l.TeachingAssignmentId != null && l.TeachingAssignment != null
+                    && l.TeachingAssignment.ClassId == classId
+                    && l.TeachingAssignment.SubjectId == subjectId
+                    && l.IsDelete == false);
+
+            // Log số lượng bản ghi trước khi lấy bài học đầu tiên
+            var count = await query.CountAsync();
+            System.Console.WriteLine($"Number of matching lessons: {count}");
+
+            var lesson = await query
+                .OrderBy(l => l.StartDate)
+                .FirstOrDefaultAsync();
+
+            if (lesson != null)
+            {
+                System.Console.WriteLine($"First Lesson ID: {lesson.Id}, StartDate: {lesson.StartDate}");
+            }
+            else
+            {
+                System.Console.WriteLine("No lesson found.");
+            }
+
+            return lesson;
+        }
     }
 }

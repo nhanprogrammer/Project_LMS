@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Exceptions;
 using Project_LMS.Interfaces;
 using System.Collections.Generic;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace Project_LMS.Controllers
@@ -14,12 +16,15 @@ namespace Project_LMS.Controllers
     public class ClassController : ControllerBase
     {
         private readonly IClassService _classService;
+        private readonly IAuthService _authService;
 
-        public ClassController(IClassService classService)
+        public ClassController(IClassService classService, IAuthService authService)
         {
             _classService = classService;
+            _authService = authService;
         }
 
+        [Authorize(Policy = "DATA-MNG-VIEW")]
         [HttpGet("list")]
         public async Task<IActionResult> GetClassList([FromQuery] ClassRequest classRequest)
         {
@@ -27,7 +32,7 @@ namespace Project_LMS.Controllers
             return Ok(response);
         }
 
-
+        [Authorize(Policy = "DATA-MNG-INSERT")]
         [HttpPost("create")]
         public async Task<IActionResult> CreateClass([FromBody] ClassSaveRequest request)
         {
@@ -46,6 +51,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "DATA-MNG-UPDATE")]
         [HttpPut("update")]
         public async Task<IActionResult> UpdateClass([FromBody] ClassSaveRequest request)
         {
@@ -68,7 +74,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-
+        [Authorize(Policy = "DATA-MNG-DELETE")]
         [HttpDelete("delete")]
         public async Task<IActionResult> DeleteClass([FromBody] ClassListIdRequest request)
         {
@@ -92,7 +98,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-
+        [Authorize(Policy = "DATA-MNG-VIEW")]
         [HttpGet("detail")]
         public async Task<IActionResult> GetClassDetail([FromQuery] ClassIdRequest classId)
         {
@@ -112,7 +118,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-
+        [Authorize(Policy = "DATA-MNG-VIEW")]
         [HttpGet("subjects/excluding")]
         public async Task<IActionResult> GetSubjectsExcluding([FromQuery] ClassListStringId request)
         {
@@ -120,6 +126,7 @@ namespace Project_LMS.Controllers
             return Ok(response);
         }
 
+        [Authorize(Policy = "DATA-MNG-VIEW")]
         [HttpGet("subjects/inherited")]
         public async Task<IActionResult> GetInheritedSubjects([FromQuery] ClassAcademicDepartmentRequest request)
         {
@@ -127,6 +134,7 @@ namespace Project_LMS.Controllers
             return Ok(response);
         }
 
+        [Authorize(Policy = "DATA-MNG-UPDATE")]
         [HttpPut("student-status")]
         public async Task<IActionResult> SaveStudentStatus([FromBody] ClassStudentStatusRequest request)
         {
@@ -142,6 +150,7 @@ namespace Project_LMS.Controllers
             return BadRequest(new ApiResponse<string>(1, "Cập nhật trạng thái học sinh thất bại", null));
         }
 
+        [Authorize(Policy = "DATA-MNG-VIEW")]
         [HttpGet("export-class-list")]
         public async Task<IActionResult> ExportClassList(int academicYearId, int departmentId)
         {
@@ -156,8 +165,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-
-
+        [Authorize(Policy = "DATA-MNG-INSERT")]
         [HttpPost("upload")]
         public async Task<IActionResult> UploadClassFile([FromBody] ClassBase64FileRequest request)
         {
@@ -177,7 +185,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-
+        [Authorize(Policy = "DATA-MNG-VIEW")]
         [HttpGet("download-excel")]
         public async Task<IActionResult> DownloadClassTemplate()
         {
@@ -192,16 +200,22 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "TEACHER")]
         [HttpGet("future")]
         public async Task<ActionResult<ApiResponse<PaginatedResponse<ClassFutureResponse>>>> GetClassFuture(
-            [FromQuery] string? keyword,
-            [FromQuery] int? subjectId,
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 10)
+    [FromQuery] string? keyword,
+    [FromQuery] int? subjectId,
+    [FromQuery] bool future,
+    [FromQuery] int pageNumber = 1,
+    [FromQuery] int pageSize = 10)
         {
             try
             {
-                var result = await _classService.GetClassFuture(keyword, subjectId, pageNumber, pageSize);
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+
+                var result = await _classService.GetClassFuture(user.Id, keyword, subjectId, future, pageNumber, pageSize);
                 if (result.Status != 0)
                 {
                     return BadRequest(result);
@@ -214,11 +228,16 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "TEACHER")]
         [HttpGet("future/{teachingAssignmentId}")]
         public async Task<ActionResult<ApiResponse<TeachingAssignmentDetailResponse>>> GetClassFutureDetail(int teachingAssignmentId)
         {
             try
             {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+
                 var result = await _classService.GetClassFutureDetail(teachingAssignmentId);
                 if (result.Status != 0)
                 {
@@ -232,5 +251,98 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "STUDENT")]
+        [HttpGet("futurestudent")]
+        public async Task<ActionResult<ApiResponse<PaginatedResponse<ClassFutureResponse>>>> GetClassLessonStudent(
+      [FromQuery] string? keyword,
+      [FromQuery] int? subjectId,
+      [FromQuery] int status = 0,
+      [FromQuery] int pageNumber = 1,
+      [FromQuery] int pageSize = 10)
+        {
+            try
+            {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+
+                var result = await _classService.GetClassLessonStudent(user.Id, keyword, subjectId, status, pageNumber, pageSize);
+                if (result.Status != 0)
+                {
+                    return BadRequest(result);
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, $"Lỗi server: {ex.Message}", null));
+            }
+        }
+
+        [Authorize(Policy = "STUDENT")]
+        [HttpGet("futurestudent/{teachingAssignmentId}")]
+        public async Task<ActionResult<ApiResponse<TeachingAssignmentDetailResponse>>> GetClassLessonStudentDetail(int teachingAssignmentId)
+        {
+            try
+            {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+
+                var result = await _classService.GetClassLessonStudentDetail(teachingAssignmentId);
+                if (result.Status != 0)
+                {
+                    return BadRequest(result);
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, $"Lỗi server: {ex.Message}", null));
+            }
+        }
+
+        [HttpGet("search-classes")]
+        public async Task<IActionResult> GetClassesByAcademicYear(
+            [FromQuery] int academicYearId)
+        {
+            try
+            {
+                var classes = await _classService.GetClassesByAcademicYear(academicYearId);
+                return Ok(new ApiResponse<List<Class_UserResponse>>(
+                    0,
+                    "Lấy danh sách lớp học thành công!",
+                    classes));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<string>(1, ex.Message, null));
+            }
+        }
+
+        [HttpGet("get-all-classes")]
+        public async Task<IActionResult> GetClassesDropdown([FromQuery] int academicYearId, [FromQuery] int departmentId)
+        {
+            try
+            {
+                if (academicYearId <= 0 || departmentId <= 0)
+                {
+                    return BadRequest(new ApiResponse<string>(1, "ID niên khóa hoặc khoa khối không hợp lệ.", null));
+                }
+
+                var classes = await _classService.GetClassesDropdown(academicYearId, departmentId);
+
+                if (classes == null || !classes.Any())
+                {
+                    return Ok(new ApiResponse<List<ClassDropdownResponse>>(1, "Không tìm thấy lớp học nào.", null));
+                }
+
+                return Ok(new ApiResponse<List<ClassDropdownResponse>>(0, "Lấy danh sách lớp học thành công!", classes));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, $"Lỗi server: {ex.Message}", null));
+            }
+        }
     }
 }
