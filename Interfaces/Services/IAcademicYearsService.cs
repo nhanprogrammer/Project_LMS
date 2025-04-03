@@ -12,7 +12,7 @@ namespace Project_LMS.Interfaces
         Task<ApiResponse<AcademicYearResponse>> UpdateAcademicYear(UpdateAcademicYearRequest request, int userId);
         Task<ApiResponse<AcademicYearResponse>> DeleteLessonAsync(DeleteRequest deleteRequest);
 
-        Task<PaginatedResponse<AcademicYearResponse>> GetPagedAcademicYears(PaginationRequest request);
+        Task<PaginatedResponse<AcademicYearResponse>> GetPagedAcademicYears(PaginationRequest request, string? keyword);
         Task<List<AcademicYearNameResponse>> GetAcademicYearNamesAsync();
         
     }

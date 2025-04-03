@@ -28,7 +28,7 @@ namespace Project_LMS.Services
             _mapper = mapper;
         }
 
-        public async Task<PaginatedResponse<AcademicYearResponse>> GetPagedAcademicYears(PaginationRequest request)
+        public async Task<PaginatedResponse<AcademicYearResponse>> GetPagedAcademicYears(PaginationRequest request, string? keyword)
         {
             if (request.PageNumber <= 0 || request.PageSize <= 0)
             {
@@ -45,6 +45,16 @@ namespace Project_LMS.Services
             }
 
             var query = _academicYearRepository.GetQueryable();
+
+            // Nếu có keyword, lọc theo year
+            if (!string.IsNullOrEmpty(keyword))
+            {
+                if (int.TryParse(keyword, out int year))
+                {
+                    query = query.Where(a => (a.StartDate.HasValue && a.StartDate.Value.Year == year) || 
+                                               (a.EndDate.HasValue && a.EndDate.Value.Year == year));
+                }
+            }
 
             int totalItems = await query.CountAsync();
 
@@ -66,7 +76,6 @@ namespace Project_LMS.Services
                 HasNextPage = request.PageNumber * pageSize < totalItems
             };
         }
-
         public async Task<PaginatedResponse<AcademicYearResponse>> SearchAcademicYear(int year, int pageNumber = 1,
             int pageSize = 10)
         {
