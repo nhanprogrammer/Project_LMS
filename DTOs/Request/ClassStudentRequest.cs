@@ -55,6 +55,9 @@ namespace Project_LMS.DTOs.Request
             RuleFor(cs => cs.UserId)
                 .Must(StudentExists)
                 .WithMessage("UserId không tồn tại trong hệ thống.");
+            RuleFor(cs => cs.ChangeDate)
+    .GreaterThanOrEqualTo(DateTime.Now)
+    .WithMessage("Ngày thay đổi không được nhỏ hơn ngày hiện tại.");
         }
 
         private bool ClassExists(int classId)

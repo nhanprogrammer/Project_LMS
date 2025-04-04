@@ -28,14 +28,14 @@ namespace Project_LMS.Repositories
             {
                 throw new Exception("Lớp học hoặc niên khóa không hợp lệ.");
             }
-            var newAcademicYearStartDate = newClass.AcademicYear.StartDate.Value;
+            //var newAcademicYearStartDate = newClass.AcademicYear.StartDate.Value;
 
             // Lấy tất cả các bản ghi ClassStudent có UserId và IsActive = true
             var activeClasses = await _context.ClassStudents
                 .Include(cs => cs.Class)
                 .ThenInclude(c => c.AcademicYear)
-                .Where(cs => cs.UserId.HasValue && cs.UserId.Value == request.UserId && cs.ClassId != request.ClassId && cs.IsActive == true && cs.IsDelete == false)
-                .FirstOrDefaultAsync(); // Sử dụng ToListAsync để lấy tất cả bản ghi
+                .Where(cs => cs.UserId.HasValue && cs.UserId.Value == request.UserId && cs.IsActive == true && cs.IsDelete == false)
+                .FirstOrDefaultAsync();
 
             if (activeClasses != null )
             {
