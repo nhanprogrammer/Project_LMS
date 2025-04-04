@@ -35,31 +35,12 @@ namespace Project_LMS.Repositories
                 .Include(cs => cs.Class)
                 .ThenInclude(c => c.AcademicYear)
                 .Where(cs => cs.UserId.HasValue && cs.UserId.Value == request.UserId && cs.ClassId != request.ClassId && cs.IsActive == true && cs.IsDelete == false)
-                .ToListAsync(); // Sử dụng ToListAsync để lấy tất cả bản ghi
+                .FirstOrDefaultAsync(); // Sử dụng ToListAsync để lấy tất cả bản ghi
 
-            if (activeClasses != null && activeClasses.Any())
+            if (activeClasses != null )
             {
-                foreach (var activeClass in activeClasses)
-                {
-                    // Kiểm tra niên khóa của bản ghi hiện tại
-                    if (activeClass.Class != null && activeClass.Class.AcademicYear != null &&
-                        activeClass.Class.AcademicYear.StartDate.HasValue &&
-                        activeClass.Class.AcademicYear.StartDate.Value > newAcademicYearStartDate)
-                    {
-                        activeClass.IsActive = false;
-                        if (activeClass.IsClassTransitionStatus == false)
-                        {
-                            activeClass.IsClassTransitionStatus = true;
-                        }
-                        _logger.LogInformation("Đánh dấu bản ghi ClassStudent không hoạt động do thêm bản ghi mới: UserId={UserId}, ClassId={ClassId}, SchoolYear={SchoolYear}",
-                            activeClass.UserId, activeClass.ClassId, activeClass.Class.AcademicYearId);
-                    }
-                    else
-                    {
-                        _logger.LogInformation("Bỏ qua bản ghi ClassStudent vì niên khóa không thỏa mãn: UserId={UserId}, ClassId={ClassId}, SchoolYear={SchoolYear}",
-                            activeClass.UserId, activeClass.ClassId, activeClass.Class?.AcademicYearId);
-                    }
-                }
+                activeClasses.IsActive = false;
+                activeClasses.IsClassTransitionStatus = true;
                 _context.ClassStudents.UpdateRange(activeClasses);
                 await _context.SaveChangesAsync();
             }
@@ -83,6 +64,9 @@ namespace Project_LMS.Repositories
                     IsDelete = false,
                     IsActive = true,
                     IsClassTransitionStatus = false,
+                    Reason = request.Reason,
+                    FileName = request.FileName,
+                    ChangeDate = request.ChangeDate,
                     CreateAt = DateTime.Now,
                     UpdateAt = DateTime.Now
                 };

@@ -9,10 +9,12 @@ namespace Project_LMS.Models
         public int Id { get; set; }
         public int? ClassId { get; set; }
         public int? UserId { get; set; }
-
-        public string Reason { get; set; }
-        public string  FileName  { get; set; }
-        public DateTime ChangeDate  { get; set; }
+        [Column("reason")]
+        public string? Reason { get; set; }
+        [Column("file_name")]
+        public string?  FileName  { get; set; }
+        [Column("change_date")]
+        public DateTime? ChangeDate  { get; set; }
         public DateTime? CreateAt { get; set; }
         public DateTime? UpdateAt { get; set; }
         public int? UserCreate { get; set; }

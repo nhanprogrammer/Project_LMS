@@ -1210,9 +1210,7 @@ public class StudentService : IStudentService
                 await _classStudentRepository.AddAsync(new ClassStudentRequest
                 {
                     UserId = studentFind.Id,
-                    ClassId = request.ClassId,
-                    IsActive = true,
-                    IsDelete = false
+                    ClassId = request.ClassId
                 });
                 Console.WriteLine("Runhere");
                 _logger.LogInformation("Thêm học viên vào lớp mới cho niên khóa {SchoolYear}: UserId={UserId}, ClassId={ClassId}",
@@ -1239,9 +1237,7 @@ public class StudentService : IStudentService
                     await _classStudentRepository.AddAsync(new ClassStudentRequest
                     {
                         UserId = studentFind.Id,
-                        ClassId = request.ClassId,
-                        IsActive = true,
-                        IsDelete = false
+                        ClassId = request.ClassId
                     });
                     _logger.LogInformation("Thêm học viên vào lớp mới cho niên khóa {SchoolYear}: UserId={UserId}, ClassId={ClassId}",
                         request.SchoolYear, studentFind.Id, request.ClassId);

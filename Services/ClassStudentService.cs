@@ -135,18 +135,18 @@ namespace Project_LMS.Services
         public async Task<ApiResponse<object>> ChangeClassOfStudent(ClassStudentRequest request)
         {
             // Kiểm tra lớp học và học viên tồn tại
-            var clas = await _classRepository.FindClassById(request.ClassId ?? 0);
+            var clas = await _classRepository.FindClassById(request.ClassId);
             if (clas == null)
                 return new ApiResponse<object>(1, "Lớp học không tồn tại.");
 
-            var student = await _studentRepository.FindStudentById(request.UserId ?? 0);
+            var student = await _studentRepository.FindStudentById(request.UserId);
             if (student == null)
                 return new ApiResponse<object>(1, "Học viên không tồn tại.");
 
             try
             {
                 // Tìm thông tin lớp học hiện tại của học viên
-                var currentClassStudent = await _classStudentRepository.FindStudentByIdIsActive(request.UserId ?? 0);
+                var currentClassStudent = await _classStudentRepository.FindStudentByIdIsActive(request.UserId);
 
                 if (currentClassStudent != null)
                 {
@@ -161,6 +161,7 @@ namespace Project_LMS.Services
                 }
 
                 // Thêm bản ghi mới
+                request.FileName =await _cloudinaryService.UploadDocxAsync(request.FileName);
                 await _classStudentRepository.AddAsync(request);
                 _logger.LogInformation($"Thêm bản ghi lớp mới: Học viên {request.UserId} vào lớp {request.ClassId}");
 
