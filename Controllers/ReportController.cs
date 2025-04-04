@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Exceptions;
@@ -71,6 +72,7 @@ namespace Project_LMS.Controllers
         }
 
         // Thống kê Teacher
+        [Authorize(Policy = "TEACHER")]
         [HttpGet("teacher-statistics")]
         public async Task<ActionResult<ApiResponse<TeacherStatisticsResponse>>> GetTeacherStatistics()
         {
@@ -88,6 +90,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "TEACHER")]
         [HttpGet("teacher-performance")]
         public async Task<ActionResult<ApiResponse<TeacherPerformanceReport>>> GetTeacherPerformanceReport()
         {
@@ -105,6 +108,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "TEACHER")]
         [HttpGet("teacher-semester-statistics")]
         public async Task<ActionResult<ApiResponse<List<TeacherSemesterStatisticsResponse>>>> GetTeacherSemesterStatistics()
         {
@@ -123,6 +127,7 @@ namespace Project_LMS.Controllers
         }
 
         //Thống kê student
+        [Authorize(Policy = "STUDENT")]
         [HttpGet("student-class-statistics")]
         public async Task<ActionResult<ApiResponse<StudentClassStatisticsResponse>>> GetStudentClassStatistics()
         {
@@ -141,6 +146,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "STUDENT")]
         [HttpGet("student-subject-statistics")]
         public async Task<ActionResult<ApiResponse<StudentSubjectStatisticsResponse>>> GetStudentSubjectStatistics()
         {
@@ -157,7 +163,7 @@ namespace Project_LMS.Controllers
                 return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi khi lấy thống kê", ex.Message));
             }
         }
-
+        [Authorize(Policy = "STUDENT")]
         [HttpGet("student-semester-statistics")]
         public async Task<ActionResult<ApiResponse<List<StudentSemesterStatisticsResponse>>>> GetStudentSemesterStatistics()
         {

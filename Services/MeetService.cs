@@ -31,6 +31,70 @@ namespace Project_LMS.Services
             TwilioClient.Init(_twilioAccountSid, _twilioAuthToken);
         }
 
+        public async Task<MeetResponse?> GetJitsiClassRoom(CreateRoomRequest request)
+        {
+            var user = await _authService.GetUserAsync();
+            if (user == null)
+                throw new UnauthorizedAccessException("Không thể xác thực user.");
+
+            // 🔹 Tìm lesson theo LessonId
+            var lesson = await _context.Lessons
+                .Include(l => l.User)
+                .FirstOrDefaultAsync(l => l.Id == request.LessonId);
+
+            if (lesson == null)
+                throw new KeyNotFoundException($"Không tìm thấy lesson với Id: {request.LessonId}");
+
+            if (string.IsNullOrEmpty(lesson.ClassLessonCode))
+                throw new InvalidOperationException($"Lesson {request.LessonId} không có mã LessonCode.");
+
+            // 🔹 Kiểm tra quyền của user (Teacher hay Student)
+            if (user.Role == null)
+                throw new InvalidOperationException("User không có Role xác định.");
+
+            bool isTeacher = user.Role.Name.Equals("TEACHER", StringComparison.OrdinalIgnoreCase);
+
+            // 🔹 Kiểm tra ClassOnline có tồn tại cho lesson này chưa
+            var classOnline = await _context.ClassOnlines
+                .FirstOrDefaultAsync(c => c.LessonCode == lesson.ClassLessonCode);
+
+            if (isTeacher)
+            {
+                if (classOnline == null)
+                {
+                    // 🔹 Nếu chưa có, giáo viên tạo mới ClassOnline với mã phòng UUID
+                    classOnline = new ClassOnline
+                    {
+                        LessonCode = lesson.ClassLessonCode,
+                        ClassOnlineCode = Guid.NewGuid().ToString(), // Tạo mã duy nhất
+                        UserId = user.Id,
+                        UserCreate = user.Id
+                    };
+
+                    _context.ClassOnlines.Add(classOnline);
+                    await _context.SaveChangesAsync();
+                }
+
+                return new MeetResponse
+                {
+                    ClassTitle = $"{lesson.Topic} - GV: {lesson.User?.FullName ?? "Không xác định"}",
+                    Link = $"https://meet.jit.si/{classOnline.ClassOnlineCode}"
+                };
+            }
+            else
+            {
+                if (classOnline == null)
+                    throw new InvalidOperationException("Lớp học chưa được bắt đầu. Vui lòng chờ giáo viên.");
+
+                return new MeetResponse
+                {
+                    ClassTitle = $"{lesson.Topic} - GV: {lesson.User?.FullName ?? "Không xác định"}",
+                    Link = $"https://meet.jit.si/{classOnline.ClassOnlineCode}"
+                };
+            }
+        }
+
+        
         public async Task<ClassOnlineResponse?> GetOrCreateTeacherOnlineClass(CreateRoomRequest request)
         {
             var user = await _authService.GetUserAsync();

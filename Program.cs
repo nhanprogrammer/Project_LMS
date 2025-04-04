@@ -28,6 +28,7 @@ using Project_LMS.Middleware;
 using Hangfire;
 using Hangfire.PostgreSql;
 using Project_LMS.Controllers;
+using System.IdentityModel.Tokens.Jwt;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddCors(options =>
@@ -56,10 +57,27 @@ builder.Services.AddHangfire(config => config
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
     .UseSimpleAssemblyNameTypeSerializer()
     .UseRecommendedSerializerSettings()
-    .UsePostgreSqlStorage(c =>
-        c.UseNpgsqlConnection(builder.Configuration.GetConnectionString("DefaultConnection"))));
+    .UsePostgreSqlStorage(
+        options => options.UseNpgsqlConnection(builder.Configuration.GetConnectionString("DefaultConnection")),
+        new PostgreSqlStorageOptions
+        {
+            QueuePollInterval = TimeSpan.FromSeconds(30),
+            InvisibilityTimeout = TimeSpan.FromMinutes(10),
+            DistributedLockTimeout = TimeSpan.FromMinutes(5),
+            PrepareSchemaIfNecessary = true,
+            EnableTransactionScopeEnlistment = true // Bật TransactionScope
+        }
+    )
+);
 
-builder.Services.AddHangfireServer();
+builder.Services.AddHangfireServer(options =>
+{
+    options.WorkerCount = 5;                                     // Giảm số lượng workers (mặc định là 20)
+    options.Queues = new[] { "default", "critical" };            // Phân chia hàng đợi theo mức độ ưu tiên
+    options.ServerName = $"{Environment.MachineName}:{Guid.NewGuid()}"; // Đặt tên server
+    options.SchedulePollingInterval = TimeSpan.FromMinutes(1);    // Giảm tần suất kiểm tra lịch
+    options.CancellationCheckInterval = TimeSpan.FromMinutes(5);  // Giảm tần suất kiểm tra hủy
+});
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<ValidationFilter>();
@@ -182,7 +200,7 @@ builder.Services.AddScoped<ITopicRepository, TopicRepository>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAddressService, AddressService>();
-// builder.Services.AddScoped<IDepartmentsService, Deparmen>();
+builder.Services.AddScoped<ICodeGeneratorService, CodeGeneratorService>();
 builder.Services.AddScoped<IClassRepository, ClassRepository>();
 builder.Services.AddScoped<IClassStudentRepository, ClassStudentRepository>();
 builder.Services.AddScoped<IClassSubjectRepository, ClassSubjectRepository>();
@@ -211,7 +229,7 @@ builder.Services.AddLogging(); // Đăng ký logging
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IMeetService, MeetService>(); // Đăng ký IMeetService với MeetService
-builder.Services.AddScoped<IWorkProcessService, WorkProcessService>(); 
+builder.Services.AddScoped<IWorkProcessService, WorkProcessService>();
 builder.Services.AddScoped<IEducationInformationService, EducationInformationService>();
 
 // Đọc cấu hình JWT từ appsettings.json
@@ -228,9 +246,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
-            ValidateAudience = false,
+            ValidateAudience = false,  // Đảm bảo API hỗ trợ nhiều client nếu cần
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
+            ClockSkew = TimeSpan.Zero, // Loại bỏ độ trễ mặc định của JWT
             ValidIssuer = jwtSettings["Issuer"],
             IssuerSigningKey = new SymmetricSecurityKey(key)
         };
@@ -240,25 +259,32 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             OnMessageReceived = async context =>
             {
                 var memoryCache = context.HttpContext.RequestServices.GetRequiredService<IMemoryCache>();
-                var token = context.Request.Cookies["AuthToken"];
-                Console.WriteLine($"Cookie AuthToken: {token}");
+                var token = context.Request.Cookies["AccessToken"];
 
                 if (string.IsNullOrEmpty(token) && context.Request.Headers.ContainsKey("Authorization"))
                 {
                     var authHeader = context.Request.Headers["Authorization"].ToString();
-                    Console.WriteLine($"Authorization Header: {authHeader}");
-                    if (authHeader.StartsWith("Bearer "))
+                    if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
                     {
                         token = authHeader.Substring("Bearer ".Length).Trim();
                     }
                 }
 
-                Console.WriteLine($"Extracted Token: {token}");
+                // var handler = new JwtSecurityTokenHandler();
+                // var jwtToken = handler.ReadToken(token) as JwtSecurityToken;
+
+                // if (jwtToken == null)
+                // {
+                //     context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                //     context.Response.ContentType = "application/json";
+                //     var response = new ApiResponse<string>(1, "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", null);
+                //     await context.Response.WriteAsync(JsonSerializer.Serialize(response));
+                //     return;
+                // }
 
                 // Kiểm tra token trong blacklist
                 if (!string.IsNullOrEmpty(token) && memoryCache.TryGetValue($"blacklist:{token}", out _))
                 {
-                    Console.WriteLine($"Token {token} is blacklisted");
                     context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                     context.Response.ContentType = "application/json";
                     var response = new ApiResponse<string>(1, "Token đã bị vô hiệu hóa. Vui lòng đăng nhập lại.", null);
@@ -275,7 +301,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             },
             OnChallenge = context =>
             {
-                Console.WriteLine("OnChallenge");
                 context.HandleResponse();
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 context.Response.ContentType = "application/json";
@@ -292,10 +317,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+
 builder.Services.AddSignalR();
 
 // Thêm Authorization
-builder.Services.AddAuthorization();
 builder.Services.AddPermissionAuthorization();
 
 builder.Services.AddHttpContextAccessor();
@@ -344,7 +369,7 @@ app.UseExceptionHandler(errorApp =>
         context.Response.StatusCode = 500;
         context.Response.ContentType = "application/json";
         var error = new
-            { Status = 1, Message = "Lỗi hệ thống không mong muốn.", Details = "Xem log để biết thêm chi tiết." };
+        { Status = 1, Message = "Lỗi hệ thống không mong muốn.", Details = "Xem log để biết thêm chi tiết." };
         await context.Response.WriteAsync(JsonSerializer.Serialize(error));
     });
 });
@@ -353,7 +378,7 @@ app.UseExceptionHandler(errorApp =>
 app.UseCors("AllowAll");
 app.UseHttpsRedirection();
 app.MapHub<RealtimeHub>("/realtimeHub");
-app.MapHub<TestExamHub>("/testExamHub"); 
+app.MapHub<TestExamHub>("/testExamHub");
 app.UseAuthentication();
 app.UseAuthorization();
 

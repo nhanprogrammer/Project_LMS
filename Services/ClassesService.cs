@@ -19,9 +19,12 @@ namespace Project_LMS.Services
     {
         private readonly ApplicationDbContext _context;
 
-        public ClassService(ApplicationDbContext context)
+        private readonly ICloudinaryService _cloudinaryService;
+
+        public ClassService(ApplicationDbContext context, ICloudinaryService cloudinaryService)
         {
             _context = context;
+            _cloudinaryService = cloudinaryService;
         }
 
         public async Task<ApiResponse<PaginatedResponse<ClassListResponse>>> GetClassList(ClassRequest classRequest)
@@ -81,7 +84,9 @@ namespace Project_LMS.Services
             try
             {
                 // Kiểm tra ID hợp lệ trước khi thực hiện logic
-                if (!await _context.AcademicYears.AnyAsync(a => a.Id == classSaveRequest.AcademicYearId))
+                var academicYear = await _context.AcademicYears
+                    .FirstOrDefaultAsync(a => a.Id == classSaveRequest.AcademicYearId);
+                if (academicYear == null)
                 {
                     throw new NotFoundException("Niên khóa không tồn tại.");
                 }
@@ -101,6 +106,23 @@ namespace Project_LMS.Services
                     throw new NotFoundException("Giáo viên chủ nhiệm không tồn tại hoặc không hợp lệ.");
                 }
 
+                // Kiểm tra StartDate và EndDate của niên khóa
+                if (!academicYear.StartDate.HasValue || !academicYear.EndDate.HasValue)
+                {
+                    throw new InvalidOperationException("Niên khóa không có thông tin ngày bắt đầu hoặc ngày kết thúc hợp lệ.");
+                }
+
+                // Tạo ClassCode theo định dạng: ClassName-StartYear-EndYear
+                var classCode = $"{classSaveRequest.ClassName}-{academicYear.StartDate.Value.Year}-{academicYear.EndDate.Value.Year}";
+
+                // Kiểm tra ClassCode đã tồn tại chưa
+                var isDuplicateClassCode = await _context.Classes
+                    .AnyAsync(c => c.ClassCode == classCode && !(c.IsDelete ?? false));
+                if (isDuplicateClassCode)
+                {
+                    throw new InvalidOperationException($"Mã lớp '{classCode}' đã tồn tại. Vui lòng chọn tên lớp khác.");
+                }
+
                 Class classEntity;
 
                 if (classSaveRequest.Id == 0) // Trường hợp thêm mới
@@ -111,12 +133,10 @@ namespace Project_LMS.Services
                         DepartmentId = classSaveRequest.DepartmentId,
                         ClassTypeId = classSaveRequest.ClassTypeId,
                         UserId = classSaveRequest.UserId,
-                        ClassCode = StringHelper.NormalizeClassCode(classSaveRequest.ClassName)
-                                    + DateTime.Now.ToString("yyyyMMddHHmmss"),
+                        ClassCode = classCode,
                         Name = classSaveRequest.ClassName,
                         StudentCount = classSaveRequest.StudentCount,
                         Description = classSaveRequest.Description,
-
                         PasswordClass = "123456",
                         IsDelete = false
                     };
@@ -143,6 +163,7 @@ namespace Project_LMS.Services
                     classEntity.DepartmentId = classSaveRequest.DepartmentId;
                     classEntity.ClassTypeId = classSaveRequest.ClassTypeId;
                     classEntity.UserId = classSaveRequest.UserId;
+                    classEntity.ClassCode = classCode;
                     classEntity.Name = classSaveRequest.ClassName;
                     classEntity.StudentCount = classSaveRequest.StudentCount;
                     classEntity.Description = classSaveRequest.Description;
@@ -188,7 +209,6 @@ namespace Project_LMS.Services
                     await _context.ClassSubjects.AddRangeAsync(newClassSubjects);
                     await _context.SaveChangesAsync();
                 }
-
             }
             catch (NotFoundException ex)
             {
@@ -206,11 +226,6 @@ namespace Project_LMS.Services
                 throw new Exception("Đã xảy ra lỗi trong quá trình lưu lớp học. Vui lòng thử lại.");
             }
         }
-
-
-
-
-
 
         // Lấy danh sách môn học, nhưng loại trừ các môn có ID trong danh sách đã chọn
         public async Task<ApiResponse<List<SubjectListResponse>>> GetSubjectsExcluding(string excludedSubjectIds)
@@ -471,12 +486,10 @@ namespace Project_LMS.Services
                 worksheet.Cells.AutoFitColumns();
 
                 var byteArray = package.GetAsByteArray();
-                return Convert.ToBase64String(byteArray);
+                string excelBase64 = Convert.ToBase64String(byteArray);
+                return await _cloudinaryService.UploadExcelAsync(excelBase64);
             }
         }
-
-
-
 
         public async Task CreateClassByBase64(string base64File)
         {
@@ -702,7 +715,8 @@ namespace Project_LMS.Services
                 byte[] fileBytes = package.GetAsByteArray();
 
                 // Chuyển đổi byte array sang chuỗi Base64
-                return Convert.ToBase64String(fileBytes);
+                string excelBase64 = Convert.ToBase64String(fileBytes);
+                return await _cloudinaryService.UploadExcelAsync(excelBase64);
             }
         }
 
@@ -1111,6 +1125,21 @@ namespace Project_LMS.Services
                 {
                     ClassId = c.Id,
                     ClassName = c.Name ?? string.Empty,
+                })
+                .ToListAsync();
+
+            return classes;
+        }
+
+        public async Task<List<ClassDropdownResponse>> GetClassesDropdown(int academicYearId, int departmentId)
+        {
+            var classes = await _context.Classes
+                .Where(c => c.AcademicYearId == academicYearId && c.DepartmentId == departmentId && c.IsDelete == false)
+                .OrderBy(c => c.Name)
+                .Select(c => new ClassDropdownResponse
+                {
+                    Id = c.Id,
+                    Name = c.Name
                 })
                 .ToListAsync();
 

@@ -52,12 +52,13 @@ namespace Project_LMS.Services
                 throw new Exception("Username hoặc mật khẩu không đúng!");
 
             var permissions = await _permissionService.ListPermission(user.Id);
-            var token = await GenerateJwtToken(user);
+            var accessToken = await GenerateAccessToken(user);
+            var refreshToken = await GenerateRefreshToken(user);
 
             // Lấy role từ DB
             string role = user.Role.Name.ToUpper();
 
-            return new AuthUserLoginResponse(user.Username, user.FullName, token, role, permissions);
+            return new AuthUserLoginResponse(user.Username, user.FullName, accessToken, refreshToken, role, permissions);
         }
 
 
@@ -77,7 +78,8 @@ namespace Project_LMS.Services
             }
 
             // Xóa cookie chứa token
-            context.Response.Cookies.Delete("AuthToken");
+            context.Response.Cookies.Delete("AccessToken");
+            context.Response.Cookies.Delete("RefreshToken");
 
             // Xóa token trong context
             context.Items.Remove("Token");
@@ -158,7 +160,7 @@ namespace Project_LMS.Services
         }
 
 
-        private async Task<string> GenerateJwtToken(User user)
+        private async Task<string> GenerateAccessToken(User user)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -175,6 +177,29 @@ namespace Project_LMS.Services
                 _config["Jwt:Issuer"],
                 claims,
                 expires: DateTime.UtcNow.AddHours(24),
+                signingCredentials: creds
+            );
+
+            return await Task.FromResult(new JwtSecurityTokenHandler().WriteToken(token));
+        }
+
+        private async Task<string> GenerateRefreshToken(User user)
+        {
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var claims = new List<Claim>
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, user.Email),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()), // UUID đảm bảo token luôn khác nhau
+                new Claim(ClaimTypes.Email, user.Email)
+            };
+
+            var token = new JwtSecurityToken(
+                _config["Jwt:Issuer"],
+                _config["Jwt:Issuer"],
+                claims,
+                expires: DateTime.UtcNow.AddMonths(6),
                 signingCredentials: creds
             );
 
@@ -215,7 +240,7 @@ namespace Project_LMS.Services
                 await client.SendAsync(message);
                 await client.DisconnectAsync(true);
 
-                Console.WriteLine($"[✅] Email gửi thành công tới {toEmail}");
+                Console.WriteLine($"Email gửi thành công tới {toEmail}");
             }
             catch (SmtpCommandException smtpEx)
             {
@@ -231,6 +256,48 @@ namespace Project_LMS.Services
             {
                 Console.WriteLine($"Lỗi gửi email: {ex.Message}");
                 throw new InvalidOperationException($"Lỗi gửi email: {ex.Message}");
+            }
+        }
+
+        public async Task<string?> RefreshAccessTokenAsync(string refreshToken)
+        {
+            try
+            {
+                var handler = new JwtSecurityTokenHandler();
+                var jwtToken = handler.ReadToken(refreshToken) as JwtSecurityToken;
+
+                if (jwtToken == null)
+                {
+                    throw new UnauthorizedAccessException("Refresh token không hợp lệ.");
+                }
+
+                // Kiểm tra hạn sử dụng của refresh token
+                if (jwtToken.ValidTo < DateTime.UtcNow)
+                {
+                    throw new UnauthorizedAccessException("Refresh token đã hết hạn. Vui lòng đăng nhập lại!");
+                }
+
+                // Lấy email từ refresh token
+                var email = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
+                if (string.IsNullOrEmpty(email))
+                {
+                    throw new UnauthorizedAccessException("Refresh token không hợp lệ.");
+                }
+
+                // Tìm user trong database
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email && u.IsDelete == false);
+                if (user == null)
+                {
+                    throw new UnauthorizedAccessException("Người dùng không tồn tại hoặc đã bị xóa.");
+                }
+
+                // Tạo access token mới
+                return await GenerateAccessToken(user);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Lỗi khi xử lý refresh token: " + ex.Message);
+                throw new UnauthorizedAccessException("Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại!");
             }
         }
 
@@ -264,23 +331,34 @@ namespace Project_LMS.Services
             {
                 var handler = new JwtSecurityTokenHandler();
                 var jwtToken = handler.ReadToken(token) as JwtSecurityToken;
-                var email = jwtToken?.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
 
+                if (jwtToken == null)
+                {
+                    throw new UnauthorizedAccessException("Token không hợp lệ.");
+                }
+
+                //  Kiểm tra hạn sử dụng của token
+                if (jwtToken.ValidTo < DateTime.UtcNow)
+                {
+                    throw new UnauthorizedAccessException("Token đã hết hạn. Vui lòng đăng nhập lại!");
+                }
+
+                var email = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
                 if (email == null)
                 {
                     throw new UnauthorizedAccessException("Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại!");
                 }
 
-                return await _context.Users.FirstOrDefaultAsync(u => u.Email == email && u.IsDelete == false);
+                return await _context.Users
+                        .Include(u => u.Role)
+                        .FirstOrDefaultAsync(u => u.Email == email && u.IsDelete == false);
+
             }
             catch (Exception ex)
             {
                 Console.WriteLine("Lỗi khi đọc token: " + ex.Message);
-
                 throw new UnauthorizedAccessException("Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại!");
-
             }
         }
-
     }
 }

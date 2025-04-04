@@ -21,6 +21,8 @@ namespace Project_LMS.DTOs.Request
         public int? UserCreate { get; set; }
         [JsonIgnore]
         public int? UserUpdate { get; set; }
+        public bool IsActive { get; set; }
+        public bool IsDelete { get; set; }
     }
     public class ClassStudentRequestValiator : AbstractValidator<ClassStudentRequest>
     {

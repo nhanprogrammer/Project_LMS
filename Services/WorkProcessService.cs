@@ -15,26 +15,51 @@ public class WorkProcessService : IWorkProcessService
         _context = context;
     }
 
-    // Lấy tất cả WorkProcess
     public async Task<IEnumerable<WorkProcessesResponse>> GetAllAsync(WorkProcessRequest request)
     {
-        var academicYear = await _context.AcademicYears.FindAsync(request.AcademicYearId);
+        // Lấy thông tin AcademicYear nếu có
+        var academicYear = request.AcademicYearId > 0
+            ? await _context.AcademicYears.FindAsync(request.AcademicYearId)
+            : null;
 
-        var assignmentsTeaching = await _context.TeachingAssignments
-            .Where(at => at.ClassId == request.ClassId && at.UserId == request.UserId)
-            .ToListAsync();
+        // Lấy danh sách TeachingAssignments theo UserId
+        var teachingAssignmentsQuery = _context.TeachingAssignments
+            .Where(at => at.UserId == request.UserId);
 
+        // Chỉ lọc theo ClassId nếu ClassId > 0
+        if (request.ClassId > 0)
+        {
+            teachingAssignmentsQuery = teachingAssignmentsQuery.Where(at => at.ClassId == request.ClassId);
+        }
+
+        // Lấy danh sách TeachingAssignments (không gán null)
+        var assignmentsTeaching = await teachingAssignmentsQuery.ToListAsync();
+
+        // Truy vấn WorkProcesses
         var query = _context.WorkProcesses
-        .Include(wp => wp.Department) // Nạp dữ liệu Department
-        .Include(wp => wp.Position)   // Nạp dữ liệu Position
-        .Where(wp =>
-            wp.IsDeleted == false &&
-            wp.UserId == request.UserId &&
-            wp.StartDate >= academicYear.StartDate && wp.EndDate <= academicYear.EndDate &&
-            assignmentsTeaching.Any(at => at.StartDate <= wp.StartDate && at.EndDate >= wp.EndDate)
-        );
+            .Include(wp => wp.Department)
+            .Include(wp => wp.Position)
+            .Where(wp =>
+                wp.IsDeleted == false &&
+                wp.UserId == request.UserId);
 
-        // Thêm điều kiện tìm kiếm
+        // Điều kiện AcademicYear
+        if (academicYear != null)
+        {
+            query = query.Where(wp => wp.StartDate >= academicYear.StartDate && wp.EndDate <= academicYear.EndDate);
+        }
+
+        // Nếu có TeachingAssignments và ClassId > 0, sử dụng join để lọc
+        if (assignmentsTeaching.Any() && request.ClassId > 0)
+        {
+            query = from wp in query
+                    join ta in teachingAssignmentsQuery
+                    on wp.UserId equals ta.UserId
+                    where ta.StartDate <= wp.StartDate && ta.EndDate >= wp.EndDate
+                    select wp;
+        }
+
+        // Thêm điều kiện tìm kiếm nếu có
         if (!string.IsNullOrEmpty(request.Search))
         {
             query = query.Where(wp =>
@@ -43,16 +68,20 @@ public class WorkProcessService : IWorkProcessService
                 (wp.PositionId != null && wp.Position.Name.Contains(request.Search))
             );
         }
+
+        // Trả về danh sách
         return await query.Select(wp => new WorkProcessesResponse
         {
             Id = wp.Id,
             OrganizationUnit = wp.OrganizationUnit,
-            Department = wp.Department.Name,
-            Position = wp.Position.Name,
+            Department = wp.Department != null ? wp.Department.Name : null,
+            Position = wp.Position != null ? wp.Position.Name : null,
             StartDate = wp.StartDate,
             EndDate = wp.EndDate
         }).ToListAsync();
     }
+
+
 
     public async Task<WorkProcessResponse> GetById(WorkProcessDeleteRequest request)
     {
@@ -96,11 +125,15 @@ public class WorkProcessService : IWorkProcessService
     public async Task<bool> CreateAsync(WorkProcessCreateRequest request)
     {
         // Kiểm tra xem có AcademicYear phù hợp không
+        var startDate = DateTime.Parse(request.StartDate);
+        var endDate = DateTime.Parse(request.EndDate);
+
         var academicYear = await _context.AcademicYears
             .Where(ay => ay.IsDelete == false &&
-                         DateTime.Parse(request.StartDate) >= ay.StartDate &&
-                         DateTime.Parse(request.EndDate) <= ay.EndDate)
+                         startDate >= ay.StartDate &&
+                         endDate <= ay.EndDate)
             .FirstOrDefaultAsync();
+
 
         if (academicYear == null)
         {
@@ -166,11 +199,19 @@ public class WorkProcessService : IWorkProcessService
             throw new KeyNotFoundException($"Không tìm thấy WorkProcess với ID: {request.Id}.");
         }
 
+        if (workProcess.IsDeleted == true)
+        {
+            throw new InvalidOperationException($"WorkProcess với ID {request.Id} đã bị xóa trước đó.");
+        }
+
         // Kiểm tra xem có AcademicYear phù hợp không
+        var startDate = DateTime.Parse(request.StartDate);
+        var endDate = DateTime.Parse(request.EndDate);
+
         var academicYear = await _context.AcademicYears
             .Where(ay => ay.IsDelete == false &&
-                         DateTime.Parse(request.StartDate) >= ay.StartDate &&
-                         DateTime.Parse(request.EndDate) <= ay.EndDate)
+                         startDate >= ay.StartDate &&
+                         endDate <= ay.EndDate)
             .FirstOrDefaultAsync();
 
         if (academicYear == null)

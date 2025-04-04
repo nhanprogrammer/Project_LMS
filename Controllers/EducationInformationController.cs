@@ -33,7 +33,7 @@ public class EducationInformationController : ControllerBase
     }
 
     [HttpGet("get-by-id")]
-    public async Task<IActionResult> GetById(EducationInformationDeleteRequest request)
+    public async Task<IActionResult> GetById([FromQuery] EducationInformationDeleteRequest request)
     {
         try
         {
@@ -99,6 +99,10 @@ public class EducationInformationController : ControllerBase
         catch (KeyNotFoundException ex)
         {
             return NotFound(new ApiResponse<string>(1, ex.Message, null));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new ApiResponse<string>(1, ex.Message, null));
         }
         catch (ArgumentException ex)
         {

@@ -60,49 +60,57 @@ namespace Project_LMS.Services
 
         private async Task<string> UploadFileAsync(string base64String, string fileExtension, string folder, string uploadPreset)
         {
-            if (string.IsNullOrEmpty(base64String))
-            {
-                throw new ArgumentException("Base64 string cannot be null or empty");
-            }
-
-            string base64Data = base64String;
-            if (base64String.Contains(","))
-            {
-                var parts = base64String.Split(',');
-                if (parts.Length < 2)
-                {
-                    throw new ArgumentException("Invalid Base64 data URL format");
-                }
-                base64Data = parts[1];
-            }
-
-            byte[] fileBytes;
             try
             {
-                fileBytes = Convert.FromBase64String(base64Data);
+                if (string.IsNullOrEmpty(base64String))
+                {
+                    throw new ArgumentException("Base64 string cannot be null or empty");
+                }
+
+                string base64Data = base64String;
+                if (base64String.Contains(","))
+                {
+                    var parts = base64String.Split(',');
+                    if (parts.Length < 2)
+                    {
+                        throw new ArgumentException("Invalid Base64 data URL format");
+                    }
+                    base64Data = parts[1];
+                }
+
+                byte[] fileBytes;
+                try
+                {
+                    fileBytes = Convert.FromBase64String(base64Data);
+                }
+                catch (FormatException ex)
+                {
+                    throw new ArgumentException("Invalid Base64 string: " + ex.Message);
+                }
+
+                using var ms = new MemoryStream(fileBytes);
+                var uniqueFileName = $"{Guid.NewGuid()}.{fileExtension}";
+
+                var uploadParams = new AutoUploadParams
+                {
+                    File = new FileDescription(uniqueFileName, ms),
+                    Folder = folder,
+                    UploadPreset = uploadPreset
+                };
+
+                var uploadResult = await _cloudinary.UploadAsync(uploadParams);
+                if (uploadResult.StatusCode != System.Net.HttpStatusCode.OK)
+                {
+                    throw new Exception($"Failed to upload file: {uploadResult.Error?.Message}");
+                }
+
+                return uploadResult.SecureUrl.AbsoluteUri;
             }
-            catch (FormatException ex)
+            catch (Exception ex)
             {
-                throw new ArgumentException("Invalid Base64 string: " + ex.Message);
+                Console.WriteLine($"Lỗi khi upload ảnh: {ex.Message}");
+                throw;
             }
-
-            using var ms = new MemoryStream(fileBytes);
-            var uniqueFileName = $"{Guid.NewGuid()}.{fileExtension}";
-
-            var uploadParams = new AutoUploadParams
-            {
-                File = new FileDescription(uniqueFileName, ms),
-                Folder = folder,
-                UploadPreset = uploadPreset
-            };
-
-            var uploadResult = await _cloudinary.UploadAsync(uploadParams);
-            if (uploadResult.StatusCode != System.Net.HttpStatusCode.OK)
-            {
-                throw new Exception($"Failed to upload file: {uploadResult.Error?.Message}");
-            }
-
-            return uploadResult.SecureUrl.AbsoluteUri;
         }
 
         public async Task DeleteFileByUrlAsync(string url)

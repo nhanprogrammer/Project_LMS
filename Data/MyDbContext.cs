@@ -557,7 +557,9 @@ namespace Project_LMS.Data
                  .HasForeignKey(d => d.UserId)
                  .HasConstraintName("fk_class_online_user");
 
+                entity.Property(e => e.LessonCode).HasColumnName("lesson_code");
                 entity.Property(e => e.LessonId).HasColumnName("lesson_id");
+
 
                 entity.HasOne(d => d.Lesson)
                 .WithMany(p => p.ClassOnlines)
@@ -1138,6 +1140,11 @@ namespace Project_LMS.Data
                     .WithMany(p => p.Lessons)
                     .HasForeignKey(d => d.UserId)
                     .HasConstraintName("fk_lessons_user");
+
+                entity.HasMany(l => l.QuestionAnswers)
+                    .WithOne(q => q.Lesson)
+                    .HasForeignKey(q => q.LessonId)
+                    .HasConstraintName("fk_question_answers_lesson");
             });
 
             modelBuilder.Entity<Module>(entity =>
@@ -1287,7 +1294,7 @@ namespace Project_LMS.Data
                 entity.Property(e => e.Mark).HasColumnName("mark");
 
                 entity.Property(e => e.QuestionText).HasColumnName("question");
-                
+
                 entity.Property(e => e.QuestionType).HasColumnName("question_type");
 
                 entity.Property(e => e.TestExamId).HasColumnName("test_exam_id");
@@ -1325,6 +1332,7 @@ namespace Project_LMS.Data
                 entity.Property(e => e.Message).HasColumnName("message");
 
                 entity.Property(e => e.QuestionsAnswerId).HasColumnName("questions_answer_id");
+                entity.Property(e => e.LessonId).HasColumnName("lesson_id");
 
                 entity.Property(e => e.TeachingAssignmentId).HasColumnName("teaching_assignment_id");
 
@@ -1353,6 +1361,11 @@ namespace Project_LMS.Data
                     .WithMany(p => p.QuestionAnswers)
                     .HasForeignKey(d => d.UserId)
                     .HasConstraintName("fk_questions_answers_user");
+
+                entity.HasOne(q => q.Lesson)
+                    .WithMany(l => l.QuestionAnswers)
+                    .HasForeignKey(q => q.LessonId)
+                    .HasConstraintName("fk_question_answers_lesson");
             });
 
             modelBuilder.Entity<QuestionAnswerTopicView>(entity =>
@@ -2790,9 +2803,9 @@ namespace Project_LMS.Data
                     .HasColumnName("update_at")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                entity.Property(e => e.CreatedBy).HasColumnName("user_create");
+                entity.Property(e => e.UserCreate).HasColumnName("user_create");
 
-                entity.Property(e => e.UpdatedBy).HasColumnName("user_update");
+                entity.Property(e => e.UserUpdate).HasColumnName("user_update");
 
                 entity.Property(e => e.IsDeleted)
                     .HasColumnName("is_delete")
@@ -2856,9 +2869,9 @@ namespace Project_LMS.Data
                     .HasColumnName("update_at")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                entity.Property(e => e.CreatedBy).HasColumnName("user_create");
+                entity.Property(e => e.UserCreate).HasColumnName("user_create");
 
-                entity.Property(e => e.UpdatedBy).HasColumnName("user_update");
+                entity.Property(e => e.UserUpdate).HasColumnName("user_update");
 
                 entity.Property(e => e.IsDeleted)
                     .HasColumnName("is_delete")
@@ -2893,8 +2906,8 @@ namespace Project_LMS.Data
                     .HasColumnName("update_at")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                entity.Property(e => e.CreatedBy).HasColumnName("user_create");
-                entity.Property(e => e.UpdatedBy).HasColumnName("user_update");
+                entity.Property(e => e.UserCreate).HasColumnName("user_create");
+                entity.Property(e => e.UserUpdate).HasColumnName("user_update");
 
                 entity.Property(e => e.IsDeleted)
                     .HasColumnName("is_delete")
@@ -2925,8 +2938,8 @@ namespace Project_LMS.Data
                     .HasColumnName("update_at")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                entity.Property(e => e.CreatedBy).HasColumnName("user_create");
-                entity.Property(e => e.UpdatedBy).HasColumnName("user_update");
+                entity.Property(e => e.UserCreate).HasColumnName("user_create");
+                entity.Property(e => e.UserUpdate).HasColumnName("user_update");
 
                 entity.Property(e => e.IsDeleted)
                     .HasColumnName("is_delete")
