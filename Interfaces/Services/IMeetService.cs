@@ -13,5 +13,6 @@ namespace Project_LMS.Services
         Task<bool> CloseRoom(MeetCloseRequest request);
         Task<bool> KickUserFromRoom(string RoomId, int userId);
         Task<bool> AddQuestionAnswer(QuestionAnswerRequest request);
+        Task<MeetResponse?> GetJitsiClassRoom(CreateRoomRequest request);
     }
 }
