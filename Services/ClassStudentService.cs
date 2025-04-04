@@ -132,9 +132,9 @@ namespace Project_LMS.Services
 
         public async Task<ApiResponse<object>> ChangeClassOfStudent(ClassStudentRequest request)
         {
-            var clas = await _classRepository.FindClassById(request.ClassId??0);
+            var clas = await _classRepository.FindClassById(request.ClassId);
             if (clas == null) return new ApiResponse<object>(1, "Lớp học không tồn tại.");
-            var student = await _studentRepository.FindStudentById(request.UserId??0);
+            var student = await _studentRepository.FindStudentById(request.UserId);
             if (student == null) return new ApiResponse<object>(1, "Học viên không tồn tại.");
             await _classStudentRepository.AddAsync(request);
             return new ApiResponse<object>(0, "Chuyển lớp thành công.");
