@@ -15,6 +15,7 @@ namespace Project_LMS.Models
         public string? ClassOnlineCode { get; set; }
         public string? ChatCode { get; set; }
         public int? LessonId { get; set; }
+          public string? LessonCode { get; set; }
         public string? ClassTitle { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }

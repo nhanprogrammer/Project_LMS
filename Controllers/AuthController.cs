@@ -59,6 +59,13 @@ namespace Project_LMS.Controllers
             {
                 var newAccessToken = await _authService.RefreshAccessTokenAsync(request.RefreshToken);
 
+                Response.Cookies.Append("AccessToken", newAccessToken, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = false, // Tắt tạm thời nếu frontend không có HTTPS
+                    Expires = DateTime.Now.AddHours(24)
+                });
+
                 return Ok(new ApiResponse<string>(0, "Làm mới token thành công!", newAccessToken));
             }
             catch (UnauthorizedAccessException ex)

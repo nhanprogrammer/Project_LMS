@@ -557,7 +557,9 @@ namespace Project_LMS.Data
                  .HasForeignKey(d => d.UserId)
                  .HasConstraintName("fk_class_online_user");
 
+                entity.Property(e => e.LessonCode).HasColumnName("lesson_code");
                 entity.Property(e => e.LessonId).HasColumnName("lesson_id");
+
 
                 entity.HasOne(d => d.Lesson)
                 .WithMany(p => p.ClassOnlines)

@@ -18,9 +18,27 @@ namespace Project_LMS.Controllers
         {
             _meetService = meetService ?? throw new ArgumentNullException(nameof(meetService));
         }
+        
+        [HttpPost("get-room")]
+        public async Task<IActionResult> GetJitsiClassRoom([FromBody] CreateRoomRequest request)
+        {
+            try
+            {
+                var response = await _meetService.GetJitsiClassRoom(request);
+                if (response == null)
+                    return NotFound(new { message = "Không thể tạo phòng họp." });
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
 
         // Tạo hoặc tham gia phòng cho giáo viên
-         // [Authorize(Policy = "DATA-MNG-VIEW")]
+        // [Authorize(Policy = "DATA-MNG-VIEW")]
         [HttpPost("join-room-teacher")]
         public async Task<ActionResult<ApiResponse<ClassOnlineResponse>>> JoinOrCreateRoomTeacher([FromBody] CreateRoomRequest request)
         {
@@ -38,7 +56,7 @@ namespace Project_LMS.Controllers
                 }
                 return Ok(new ApiResponse<ClassOnlineResponse>(0, "Tạo hoặc tham gia phòng thành công!", room));
             }
-           
+
             catch (Exception ex)
             {
                 return StatusCode(500, new ApiResponse<ClassOnlineResponse>(1, $"Lỗi khi tạo/tham gia phòng cho giáo viên: {ex.Message}", null));
@@ -56,7 +74,7 @@ namespace Project_LMS.Controllers
 
             try
             {
-                var room = await _meetService.JoinOnlineClass (request);
+                var room = await _meetService.JoinOnlineClass(request);
                 if (room == null)
                 {
                     return StatusCode(500, new ApiResponse<ClassOnlineResponse>(1, "Không thể tham gia phòng.", null));
