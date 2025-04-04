@@ -405,7 +405,8 @@ namespace Project_LMS.Services
                             isStudentInClass = await _context.ClassStudents
                                 .AnyAsync(cs => cs.ClassId == teachingAssignment.ClassId.Value
                                             && cs.UserId == request.UserUpdate.Value
-                                            && cs.IsDelete == false);
+                                            && cs.IsDelete == false
+                                            && cs.IsActive == true);
                         }
 
                         // Cho phép học viên cập nhật nếu họ thuộc lớp học hoặc tham gia buổi học
@@ -445,7 +446,7 @@ namespace Project_LMS.Services
                         "Bạn không có quyền cập nhật câu hỏi/câu trả lời này!", null);
                 }
 
-                // 10. Kiểm tra user có thuộc lớp học không (bỏ qua nếu là admin hoặc đã kiểm tra ở trên cho giáo viên)
+                // Kiểm tra học viên có thuộc lớp học không (bỏ qua nếu là admin hoặc đã kiểm tra ở trên cho giáo viên)
                 bool isUserInClass = true;
                 if (user.RoleId != 1 &&
                     user.RoleId != 2) // Bỏ qua kiểm tra cho admin (RoleId = 1) và giáo viên (RoleId = 2)
@@ -457,7 +458,7 @@ namespace Project_LMS.Services
                         var classInfos = await _context.Classes
                             .FirstOrDefaultAsync(c => c.Id == teachingAssignment.ClassId);
                         return new ApiResponse<QuestionsAnswerResponse?>(1,
-                            $"Bạn không thuộc lớp học {classInfos?.Name} để cập nhật câu hỏi này!", null);
+                            $"Bạn không thuộc lớp học {classInfos?.Name} hoặc đã bị chuyển lớp!", null);
                     }
                 }
 
@@ -577,7 +578,7 @@ namespace Project_LMS.Services
                 // 16. Map và trả về phản hồi
                 var responseDto = _mapper.Map<QuestionsAnswerResponse>(updatedQuestionAnswer);
                 responseDto.RoleName = roleName;
-                
+
                 // Thêm thông tin người dùng vào response như trong AddAsync
                 var userInfo = await _context.Users.FindAsync(existingQuestionAnswer.UserId);
                 if (userInfo != null)
@@ -585,7 +586,7 @@ namespace Project_LMS.Services
                     responseDto.Avatar = userInfo.Image;
                     responseDto.FullName = userInfo.FullName;
                 }
-                
+
                 return new ApiResponse<QuestionsAnswerResponse?>(0, "Cập nhật thông tin thành công!", responseDto);
             }
             catch (Exception ex)
@@ -784,15 +785,15 @@ namespace Project_LMS.Services
                 if (lessonId.HasValue && lessonId > 0 && tab.ToLower() != "topics")
                 {
                     var lesson = await _context.Lessons
-                        .FirstOrDefaultAsync(l => l.Id == lessonId.Value 
-                                               && l.TeachingAssignmentId == teachingAssignmentId 
+                        .FirstOrDefaultAsync(l => l.Id == lessonId.Value
+                                               && l.TeachingAssignmentId == teachingAssignmentId
                                                && l.IsDelete == false);
                     if (lesson == null)
                     {
                         // Kiểm tra chính xác xem buổi học có tồn tại không
                         var lessonExists = await _context.Lessons
                             .AnyAsync(l => l.Id == lessonId.Value && l.IsDelete == false);
-                        
+
                         if (lessonExists)
                         {
                             return new ApiResponse<QuestionsAnswerTabResponse>(1,
@@ -817,7 +818,7 @@ namespace Project_LMS.Services
                             .Where(c => c.Id == teachingAssignment.ClassId)
                             .FirstOrDefaultAsync();
                         return new ApiResponse<QuestionsAnswerTabResponse>(1,
-                            $"Bạn không thuộc lớp học {classMembers?.Name} để xem dữ liệu này!", null);
+                            $"Bạn không thuộc lớp học {classMembers?.Name} hoặc đã bị chuyển lớp!", null);
                     }
                 }
 
@@ -839,13 +840,13 @@ namespace Project_LMS.Services
                                 .Where(qa => qa.TeachingAssignmentId == teachingAssignmentId
                                              && qa.QuestionsAnswerId == null
                                              && qa.IsDelete == false);
-                            
+
                             // Lọc theo lessonId nếu được cung cấp
                             if (lessonId.HasValue && lessonId.Value > 0)
                             {
                                 questionsQuery = questionsQuery.Where(qa => qa.LessonId == lessonId.Value);
                             }
-                                     
+
                             var questions = await questionsQuery
                                 .Join(
                                     _context.Users,
@@ -933,13 +934,13 @@ namespace Project_LMS.Services
                                              && qa.IsDelete == false)
                                 .Where(qa => _context.QuestionAnswers
                                     .Any(reply => reply.QuestionsAnswerId == qa.Id && reply.IsDelete == false));
-                            
+
                             // Lọc theo lessonId nếu được cung cấp
                             if (lessonId.HasValue && lessonId.Value > 0)
                             {
                                 questionsQuery = questionsQuery.Where(qa => qa.LessonId == lessonId.Value);
                             }
-                            
+
                             var questions = await questionsQuery
                                 .Join(
                                     _context.Users,
@@ -1018,44 +1019,56 @@ namespace Project_LMS.Services
                             break;
                         }
 
-                    case "near-deadline": // Tab "Gần đến hạn"
+                    case "near-deadline": // Tab "Gần đây" 
                         {
-                            // Xác định ngưỡng "gần đến hạn" (ví dụ: 3 ngày trước EndDate)
-                            const int nearDeadlineDays = 3;
-                            var nearDeadlineThreshold = teachingAssignment.EndDate?.AddDays(-nearDeadlineDays);
+                            // Lấy thời gian 7 ngày gần đây
+                            var recentThreshold = TimeHelper.NowUsingTimeZone.AddDays(-7);
 
-                            if (nearDeadlineThreshold == null)
-                            {
-                                return new ApiResponse<QuestionsAnswerTabResponse>(1,
-                                    "EndDate của phân công giảng dạy không hợp lệ!", null);
-                            }
+                            // Lấy danh sách buổi học được tạo trong 7 ngày gần đây
+                            var recentLessons = await _context.Lessons
+                                .Where(l => l.TeachingAssignmentId == teachingAssignmentId 
+                                            && l.IsDelete == false
+                                            && l.CreateAt >= recentThreshold) // Changed from StartTime to CreateAt
+                                .Select(l => l.Id)
+                                .ToListAsync();
 
-                            // Lấy các câu hỏi gốc chưa có câu trả lời và gần đến hạn
+                            // Lấy các câu hỏi gốc từ các buổi học gần đây
                             var questionsQuery = _context.QuestionAnswers
                                 .Where(qa => qa.TeachingAssignmentId == teachingAssignmentId
                                              && qa.QuestionsAnswerId == null
                                              && qa.IsDelete == false
-                                             && !_context.QuestionAnswers.Any(reply =>
-                                                 reply.QuestionsAnswerId == qa.Id && reply.IsDelete == false)
-                                             && qa.CreateAt <= nearDeadlineThreshold);
-                            
-                            // Lọc theo lessonId nếu được cung cấp
+                                             && qa.LessonId.HasValue
+                                             && recentLessons.Contains(qa.LessonId.Value));
+
+                            // Lọc theo lessonId cụ thể nếu được cung cấp
                             if (lessonId.HasValue && lessonId.Value > 0)
                             {
                                 questionsQuery = questionsQuery.Where(qa => qa.LessonId == lessonId.Value);
                             }
-                            
+
                             var questions = await questionsQuery
                                 .Join(
                                     _context.Users,
                                     qa => qa.UserId,
                                     u => u.Id,
                                     (qa, u) => new { QuestionAnswer = qa, UserAvatar = u.Image, UserFullName = u.FullName })
-                                .OrderBy(x => x.QuestionAnswer.CreateAt)
+                                .OrderByDescending(x => x.QuestionAnswer.CreateAt) // Sắp xếp theo thời gian tạo mới nhất
                                 .ToListAsync();
 
-                            // Tính số lượt xem cho từng câu hỏi
+                            // Tính số lượt xem và map dữ liệu
                             var questionIds = questions.Select(x => x.QuestionAnswer.Id).ToList();
+                            
+                            // Lấy câu trả lời cho các câu hỏi
+                            var repliesQuery = await _context.QuestionAnswers
+                                .Where(qa => questionIds.Contains(qa.QuestionsAnswerId.Value) && qa.IsDelete == false)
+                                .Join(
+                                    _context.Users,
+                                    qa => qa.UserId,
+                                    u => u.Id,
+                                    (qa, u) => new { Reply = qa, UserAvatar = u.Image, UserFullName = u.FullName })
+                                .ToListAsync();
+
+                            // Tính lượt xem
                             var viewsQuery = await _context.QuestionAnswerTopicViews
                                 .Where(qatv => questionIds.Contains(qatv.QuestionsAnswerId.Value)
                                                && (qatv.IsDelete == false || qatv.IsDelete == null))
@@ -1063,28 +1076,40 @@ namespace Project_LMS.Services
                                 .Select(g => new { QuestionId = g.Key, ViewCount = g.Count() })
                                 .ToListAsync();
 
-                            // Tạo dictionary để tra cứu số lượt xem theo QuestionId
                             var viewsDict = viewsQuery.ToDictionary(v => v.QuestionId.Value, v => v.ViewCount);
 
-                            // Tính tổng số lượt xem (Views) cho tab
+                            // Tính tổng số lượt xem và câu trả lời
                             response.Views = viewsQuery.Sum(v => v.ViewCount);
+                            response.Replies = repliesQuery.Count;
 
-                            // Tính tổng số câu trả lời (Replies) - sẽ là 0 vì đây là các câu hỏi chưa có câu trả lời
-                            response.Replies = 0;
-
-                            // Map câu hỏi sang DTO
+                            // Map câu hỏi và câu trả lời sang DTO
                             response.Questions = questions.Select(x =>
                             {
                                 var questionResponse = _mapper.Map<QuestionsAnswerResponse>(x.QuestionAnswer);
                                 questionResponse.Avatar = x.UserAvatar;
                                 questionResponse.FullName = x.UserFullName;
-                                questionResponse.ReplyCount = 0;
-                                questionResponse.Replies = new List<QuestionsAnswerResponse>();
 
-                                // Gán số lượt xem cho câu hỏi
                                 questionResponse.Views = viewsDict.ContainsKey(x.QuestionAnswer.Id)
                                     ? viewsDict[x.QuestionAnswer.Id]
                                     : 0;
+
+                                // Map câu trả lời
+                                var repliesForQuestion = repliesQuery
+                                    .Where(r => r.Reply.QuestionsAnswerId == x.QuestionAnswer.Id)
+                                    .Select(r =>
+                                    {
+                                        var replyResponse = _mapper.Map<QuestionsAnswerResponse>(r.Reply);
+                                        replyResponse.Avatar = r.UserAvatar;
+                                        replyResponse.FullName = r.UserFullName;
+                                        replyResponse.Views = viewsDict.ContainsKey(r.Reply.Id) ? viewsDict[r.Reply.Id] : 0;
+                                        replyResponse.ReplyCount = 0;
+                                        replyResponse.Replies = new List<QuestionsAnswerResponse>();
+                                        return replyResponse;
+                                    })
+                                    .ToList();
+
+                                questionResponse.Replies = repliesForQuestion;
+                                questionResponse.ReplyCount = repliesForQuestion.Count;
 
                                 return questionResponse;
                             }).ToList();
@@ -1291,6 +1316,8 @@ namespace Project_LMS.Services
                     return new ApiResponse<QuestionDetailResponse>(1, "Câu hỏi không tồn tại hoặc đã bị xóa.", null);
                 }
 
+                System.Console.WriteLine($"GETBYID DEBUG: Question={id}, TeachingAssignmentId={question.TeachingAssignmentId}, UserId={userId}");
+
                 // Kiểm tra user có thuộc lớp học không (nếu userId được cung cấp)
                 if (userId.HasValue)
                 {
@@ -1301,14 +1328,40 @@ namespace Project_LMS.Services
                         return new ApiResponse<QuestionDetailResponse>(2, "Phân công giảng dạy không hợp lệ.", null);
                     }
 
-                    bool isUserInClass =
-                        await _topicRepository.IsUserInClassAsync(userId.Value, teachingAssignment.ClassId.Value);
-                    var classMembers = await _context.Classes.Where(c => c.Id == teachingAssignment.ClassId)
-                        .FirstOrDefaultAsync();
-                    if (!isUserInClass)
+                    System.Console.WriteLine($"GETBYID DEBUG: Found TeachingAssignment with ClassId={teachingAssignment.ClassId}");
+
+                    // Kiểm tra nếu là giáo viên được phân công dạy lớp này
+                    var user = await _context.Users.FindAsync(userId.Value);
+                    if (user != null && user.RoleId == 2 && teachingAssignment.UserId == userId)
                     {
-                        return new ApiResponse<QuestionDetailResponse>(2,
-                            $"Bạn không thuộc lớp học {classMembers?.Name} để xem câu hỏi này!", null);
+                        System.Console.WriteLine($"GETBYID DEBUG: User is teacher assigned to this class");
+                        // Nếu là giáo viên phụ trách lớp này, cho phép truy cập
+                    }
+                    else
+                    {
+                        // Kiểm tra quyền truy cập của học sinh
+                        // Lấy bản ghi mới nhất từ class_students
+                        var latestClassStudent = await _context.ClassStudents
+                            .Where(cs => cs.UserId == userId && cs.ClassId == teachingAssignment.ClassId)
+                            .OrderByDescending(cs => cs.Id) // Sắp xếp theo ID giảm dần
+                            .FirstOrDefaultAsync();
+
+                        System.Console.WriteLine($"GETBYID DEBUG: LatestClassStudent found={latestClassStudent != null}, " +
+                                               $"IsDelete={(latestClassStudent?.IsDelete)}, " +
+                                               $"IsActive={(latestClassStudent?.IsActive)}");
+
+                        bool isUserInClass = latestClassStudent != null &&
+                                            latestClassStudent.IsDelete == false &&
+                                            latestClassStudent.IsActive == true;
+
+                        var classMembers = await _context.Classes.Where(c => c.Id == teachingAssignment.ClassId)
+                            .FirstOrDefaultAsync();
+
+                        if (!isUserInClass)
+                        {
+                            return new ApiResponse<QuestionDetailResponse>(2,
+                                $"Bạn không thuộc lớp học {classMembers?.Name} hoặc đã bị chuyển lớp!", null);
+                        }
                     }
 
                     // Ghi lượt xem (nếu đây là câu hỏi gốc và user chưa xem)

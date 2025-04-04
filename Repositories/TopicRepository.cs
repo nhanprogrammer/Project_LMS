@@ -93,7 +93,7 @@ namespace Project_LMS.Repositories
                     t => t.UserId,
                     u => u.Id,
                     (t, u) => new
-                        { Comment = t, UserAvatar = u.Image, UserFullName = u.FullName, UserRoleId = u.RoleId })
+                    { Comment = t, UserAvatar = u.Image, UserFullName = u.FullName, UserRoleId = u.RoleId })
                 .Join(
                     _context.Roles,
                     cu => cu.UserRoleId,
@@ -123,8 +123,9 @@ namespace Project_LMS.Repositories
                 topicResponse.Avatar = x.UserAvatar;
                 topicResponse.FullName = x.UserFullName;
                 topicResponse.RoleName = x.RoleName;
-
-                // Gán số lượt xem cho topic
+                topicResponse.IsClosed = x.Topic.CloseAt.HasValue &&
+                                         x.Topic.CloseAt.Value < TimeHelper.NowUsingTimeZones;
+                // Gán số lượt xem cho topicF
                 topicResponse.Views = viewsDict.ContainsKey(x.Topic.Id) ? viewsDict[x.Topic.Id] : 0;
 
                 // Tính số câu trả lời (Replies) cho topic
@@ -151,7 +152,7 @@ namespace Project_LMS.Repositories
 
             return topicResponses;
         }
-        
+
         public async Task<TopicResponse?> GetTopicById(int userId, int teachingAssignmentId, int id)
         {
             // Kiểm tra user
@@ -225,7 +226,8 @@ namespace Project_LMS.Repositories
             topicResponse.Avatar = topicQuery.UserAvatar;
             topicResponse.FullName = topicQuery.UserFullName;
             topicResponse.RoleName = topicQuery.RoleName;
-
+            topicResponse.IsClosed = topicQuery.Topic.CloseAt.HasValue &&
+                                     topicQuery.Topic.CloseAt.Value < TimeHelper.NowUsingTimeZone;
             // Tính Views và Replies cho topic
             topicResponse.Views = await _context.QuestionAnswerTopicViews
                 .CountAsync(qatv => qatv.TopicId == id && (qatv.IsDelete == false || qatv.IsDelete == null));
@@ -243,7 +245,7 @@ namespace Project_LMS.Repositories
                         t => t.UserId,
                         u => u.Id,
                         (t, u) => new
-                            { Comment = t, UserAvatar = u.Image, UserFullName = u.FullName, UserRoleId = u.RoleId })
+                        { Comment = t, UserAvatar = u.Image, UserFullName = u.FullName, UserRoleId = u.RoleId })
                     .Join(
                         _context.Roles,
                         cu => cu.UserRoleId,
@@ -715,7 +717,7 @@ namespace Project_LMS.Repositories
                     t => t.UserId,
                     u => u.Id,
                     (t, u) => new
-                        { Comment = t, UserAvatar = u.Image, UserFullName = u.FullName, UserRoleId = u.RoleId })
+                    { Comment = t, UserAvatar = u.Image, UserFullName = u.FullName, UserRoleId = u.RoleId })
                 .Join(
                     _context.Roles,
                     cu => cu.UserRoleId,
@@ -771,18 +773,15 @@ namespace Project_LMS.Repositories
 
         public async Task<bool> IsUserInClassAsync(int userId, int classId)
         {
-            var isUserInClass = await _context.TeachingAssignments
-                .Where(ta => ta.ClassId == classId && ta.UserId == userId && ta.IsDelete == false)
-                .Select(ta => true)
-                .Union(
-                    _context.ClassStudents
-                        .Where(cs =>
-                            cs.UserId == userId && cs.ClassId == classId &&
-                            (cs.IsDelete == false || cs.IsDelete == null))
-                        .Select(cs => true)
-                )
-                .AnyAsync();
-            return isUserInClass;
+            // Cách đơn giản hơn mà Entity Framework có thể dịch thành SQL
+            var latestRecord = await _context.ClassStudents
+                .Where(cs => cs.UserId == userId && cs.ClassId == classId)
+                .OrderByDescending(cs => cs.Id)
+                .FirstOrDefaultAsync();
+
+            return latestRecord != null &&
+                   latestRecord.IsDelete == false &&
+                   latestRecord.IsActive == true;
         }
     }
 }
