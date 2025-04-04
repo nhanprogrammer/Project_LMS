@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Project_LMS.Data;
+using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces.Responsitories;
 using Project_LMS.Models;
 
@@ -14,6 +15,11 @@ public class AcademicYearRepository : IAcademicYearRepository
         _context = context;
     }
 
+    public async Task<AcademicYear> GetByIdAsync(int id)
+    {
+        return await _context.AcademicYears.FindAsync(id);
+    }
+
     public async Task<IEnumerable<AcademicYear>> GetAllAsync()
     {
         return await _context.AcademicYears
@@ -22,9 +28,41 @@ public class AcademicYearRepository : IAcademicYearRepository
             .ToListAsync();
     }
 
-    public async Task<AcademicYear> GetByIdAsync(int id)
+    public async Task<AcademicYearWithSemestersDto> GetByIdAcademicYearAsync(int id)
     {
-        return await _context.AcademicYears.FindAsync(id);
+        var academicYear = _context.AcademicYears
+            .Where(s => s.Id == id && s.IsDelete == false).FirstOrDefault();
+        if (academicYear == null)
+        {
+            throw new Exception($"Academic Year with ID: {id} not found");
+        }
+
+        var semesters = await _context.Semesters
+            .Where(s => s.AcademicYearId == id && s.IsDelete == false)
+            .Select(se => new SemesterDto
+            {
+                Id = se.Id,
+                Name = se.Name,
+                StartDate = se.StartDate.Value,
+                EndDate = se.EndDate.Value,
+                IsDelete = se.IsDelete.Value
+            })
+            .ToListAsync();
+        var result = new AcademicYearWithSemestersDto
+        {
+            Id = academicYear.Id,
+            StartDate = academicYear.StartDate.Value,
+            EndDate = academicYear.EndDate.Value,
+            IsInherit = academicYear.IsInherit.Value,
+            AcademicParent = academicYear.AcademicParent,
+            CreateAt = academicYear.CreateAt.Value,
+            UpdateAt = academicYear.UpdateAt.Value,
+            UserCreate = academicYear.UserCreate,
+            UserUpdate = academicYear.UserUpdate,
+            IsDelete = academicYear.IsDelete.Value,
+            Semesters = semesters
+        };
+        return result;
     }
 
     public async Task AddAsync(AcademicYear academicYear)
@@ -82,6 +120,10 @@ public class AcademicYearRepository : IAcademicYearRepository
     {
         return await _context.AcademicYears.AnyAsync(a => a.Id == academicYearId);
     }
-
-
+    public async Task<AcademicYear> FindById(int id)
+    {
+        return await _context.AcademicYears
+            .FirstOrDefaultAsync(ay => ay.Id == id && !(ay.IsDelete ?? false))
+            ?? throw new InvalidOperationException($"AcademicYear with ID {id} not found.");
+    }
 }

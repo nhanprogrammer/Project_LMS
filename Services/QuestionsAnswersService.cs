@@ -71,13 +71,13 @@ namespace Project_LMS.Services
                     .FirstOrDefaultAsync(ta => ta.Id == replyRequest.TeachingAssignmentId && ta.IsDelete == false);
                 if (teachingAssignment == null)
                 {
-                    return new ApiResponse<QuestionsAnswerResponse>(1, "TeachingAssignmentId không hợp lệ", null);
+                    return new ApiResponse<QuestionsAnswerResponse?>(1, "TeachingAssignmentId không hợp lệ", null);
                 }
 
                 // Kiểm tra ClassId không null
                 if (teachingAssignment.ClassId == null)
                 {
-                    return new ApiResponse<QuestionsAnswerResponse>(1, "ClassId của phân công giảng dạy không hợp lệ!",
+                    return new ApiResponse<QuestionsAnswerResponse?>(1, "ClassId của phân công giảng dạy không hợp lệ!",
                         null);
                 }
 
@@ -88,13 +88,13 @@ namespace Project_LMS.Services
                         .FirstOrDefaultAsync(qa => qa.Id == replyRequest.ParentCommentId && qa.IsDelete == false);
                     if (parentComment == null)
                     {
-                        return new ApiResponse<QuestionsAnswerResponse>(1, "Không tìm thấy bình luận gốc", null);
+                        return new ApiResponse<QuestionsAnswerResponse?>(1, "Không tìm thấy bình luận gốc", null);
                     }
 
                     // Kiểm tra ParentComment thuộc cùng TeachingAssignmentId
                     if (parentComment.TeachingAssignmentId != replyRequest.TeachingAssignmentId)
                     {
-                        return new ApiResponse<QuestionsAnswerResponse>(1,
+                        return new ApiResponse<QuestionsAnswerResponse?>(1,
                             "Câu hỏi gốc không thuộc phân công giảng dạy này!", null);
                     }
                 }
@@ -103,7 +103,36 @@ namespace Project_LMS.Services
                 var user = await _context.Users.FindAsync(replyRequest.UserId);
                 if (user == null)
                 {
-                    return new ApiResponse<QuestionsAnswerResponse>(1, "Người dùng không tồn tại!", null);
+                    return new ApiResponse<QuestionsAnswerResponse?>(1, "Người dùng không tồn tại!", null);
+                }
+
+                // Kiểm tra "Q & A - Học viên hỏi - giảng viên hoặc học viên khác trả lời"
+                if (replyRequest.ParentCommentId == 0) // Nếu là câu hỏi mới
+                {
+                    // Chỉ cho phép học viên (role 3) tạo câu hỏi mới
+                    if (user.RoleId != 3)
+                    {
+                        return new ApiResponse<QuestionsAnswerResponse?>(1,
+                            "Chỉ học viên mới được phép đặt câu hỏi mới trong hệ thống Q&A!", null);
+                    }
+                }
+                else // Nếu là câu trả lời
+                {
+                    // Chỉ cho phép giảng viên (role 2) hoặc học viên khác (role 3) trả lời
+                    if (user.RoleId != 2 && user.RoleId != 3)
+                    {
+                        return new ApiResponse<QuestionsAnswerResponse?>(1,
+                            "Chỉ giảng viên hoặc học viên mới được phép trả lời câu hỏi trong hệ thống Q&A!", null);
+                    }
+
+                    // Kiểm tra người trả lời không phải là người đặt câu hỏi
+                    var parentQuestion = await _context.QuestionAnswers
+                        .FirstOrDefaultAsync(qa => qa.Id == replyRequest.ParentCommentId);
+                    if (parentQuestion != null && parentQuestion.UserId == replyRequest.UserId)
+                    {
+                        return new ApiResponse<QuestionsAnswerResponse?>(1,
+                            "Bạn không thể tự trả lời câu hỏi của chính mình!", null);
+                    }
                 }
 
                 // Kiểm tra user có thuộc phân công giảng dạy không (đối với giáo viên)
@@ -116,26 +145,35 @@ namespace Project_LMS.Services
                                         && ta.IsDelete == false);
                     if (!isUserInTeachingAssignment)
                     {
-                        return new ApiResponse<QuestionsAnswerResponse>(1,
+                        return new ApiResponse<QuestionsAnswerResponse?>(1,
                             "Bạn không được gán vào phân công giảng dạy này để tạo câu hỏi hoặc câu trả lời!", null);
                     }
                 }
 
-                // Kiểm tra user có thuộc lớp học không (bỏ qua nếu là admin hoặc đã kiểm tra ở trên cho giáo viên)
-                bool isUserInClass = true;
-                if (user.RoleId != 1 &&
-                    user.RoleId != 2) // Bỏ qua kiểm tra cho admin (RoleId = 1) và giáo viên (RoleId = 2)
+                // Kiểm tra buổi học (LessonId) nếu có
+                if (replyRequest.LessonId.HasValue && replyRequest.LessonId > 0)
                 {
-                    isUserInClass =
-                        await _topicRepository.IsUserInClassAsync(replyRequest.UserId,
-                            teachingAssignment.ClassId.Value);
-                    var classMembers = await _context.Classes
-                        .Where(c => c.Id == teachingAssignment.ClassId)
-                        .FirstOrDefaultAsync();
-                    if (!isUserInClass)
+                    // Kiểm tra buổi học tồn tại và thuộc về phân công giảng dạy
+                    var lesson = await _context.Lessons
+                        .FirstOrDefaultAsync(l => l.Id == replyRequest.LessonId
+                                                && l.TeachingAssignmentId == replyRequest.TeachingAssignmentId
+                                                && l.IsDelete == false);
+                    if (lesson == null)
                     {
-                        return new ApiResponse<QuestionsAnswerResponse>(1,
-                            $"Bạn không thuộc lớp học {classMembers?.Name} để bình luận câu hỏi này!", null);
+                        // Kiểm tra chính xác xem buổi học có tồn tại không
+                        var lessonExists = await _context.Lessons
+                            .AnyAsync(l => l.Id == replyRequest.LessonId && l.IsDelete == false);
+
+                        if (lessonExists)
+                        {
+                            return new ApiResponse<QuestionsAnswerResponse?>(1,
+                                "Buổi học không thuộc phân công giảng dạy này!", null);
+                        }
+                        else
+                        {
+                            return new ApiResponse<QuestionsAnswerResponse?>(1,
+                                "Buổi học không tồn tại!", null);
+                        }
                     }
                 }
 
@@ -227,7 +265,7 @@ namespace Project_LMS.Services
             }
             catch (Exception ex)
             {
-                return new ApiResponse<QuestionsAnswerResponse>(1, $"Lỗi: {ex.Message}", null);
+                return new ApiResponse<QuestionsAnswerResponse?>(1, $"Lỗi: {ex.Message}", null);
             }
         }
 
@@ -279,16 +317,108 @@ namespace Project_LMS.Services
                         ta.Id == existingQuestionAnswer.TeachingAssignmentId && ta.IsDelete == false);
                 if (teachingAssignment == null)
                 {
-                    return new ApiResponse<QuestionsAnswerResponse>(1, "TeachingAssignmentId không hợp lệ", null);
+                    return new ApiResponse<QuestionsAnswerResponse?>(1, "TeachingAssignmentId không hợp lệ", null);
                 }
 
                 if (teachingAssignment.ClassId == null)
                 {
-                    return new ApiResponse<QuestionsAnswerResponse>(1, "ClassId của phân công giảng dạy không hợp lệ!",
+                    return new ApiResponse<QuestionsAnswerResponse?>(1, "ClassId của phân công giảng dạy không hợp lệ!",
                         null);
                 }
 
-                // 7. Kiểm tra quyền sở hữu và phân công giảng dạy
+                // 7. Kiểm tra quy tắc "Q&A - Học viên hỏi - giảng viên hoặc học viên khác trả lời"
+                bool isCoreQuestion = existingQuestionAnswer.QuestionsAnswerId == null;
+
+                if (isCoreQuestion) // Nếu là câu hỏi gốc
+                {
+                    // Chỉ cho phép học viên (role 3) cập nhật câu hỏi của chính mình
+                    if (user.RoleId != 3 && user.RoleId != 1 && !(user.RoleId == 2 && teachingAssignment.UserId == user.Id))
+                    {
+                        return new ApiResponse<QuestionsAnswerResponse?>(1,
+                            "Chỉ học viên (tác giả), giáo viên phụ trách hoặc admin mới được phép cập nhật câu hỏi!", null);
+                    }
+
+                    // Nếu không phải tác giả, chỉ giáo viên phụ trách và admin mới có quyền cập nhật
+                    if (existingQuestionAnswer.UserId != request.UserUpdate.Value &&
+                        !(user.RoleId == 1 || (user.RoleId == 2 && teachingAssignment.UserId == user.Id)))
+                    {
+                        return new ApiResponse<QuestionsAnswerResponse?>(1,
+                            "Bạn không có quyền cập nhật câu hỏi của người khác!", null);
+                    }
+                }
+                else // Nếu là câu trả lời
+                {
+                    // Chỉ cho phép giảng viên (role 2) hoặc học viên (role 3) cập nhật câu trả lời của chính mình
+                    if (user.RoleId != 2 && user.RoleId != 3 && user.RoleId != 1)
+                    {
+                        return new ApiResponse<QuestionsAnswerResponse?>(1,
+                            "Chỉ giảng viên, học viên (tác giả) hoặc admin mới được phép cập nhật câu trả lời!", null);
+                    }
+
+                    // Nếu không phải tác giả, chỉ admin mới có quyền cập nhật
+                    if (existingQuestionAnswer.UserId != request.UserUpdate.Value && user.RoleId != 1)
+                    {
+                        return new ApiResponse<QuestionsAnswerResponse?>(1,
+                            "Bạn không có quyền cập nhật câu trả lời của người khác!", null);
+                    }
+                }
+
+                // 8. Kiểm tra buổi học (LessonId) nếu có thay đổi
+                if (request.LessonId.HasValue && request.LessonId > 0)
+                {
+                    // Kiểm tra buổi học tồn tại và thuộc về phân công giảng dạy
+                    var lesson = await _context.Lessons
+                        .FirstOrDefaultAsync(l => l.Id == request.LessonId
+                                                && l.TeachingAssignmentId == existingQuestionAnswer.TeachingAssignmentId
+                                                && l.IsDelete == false);
+                    if (lesson == null)
+                    {
+                        // Kiểm tra chính xác xem buổi học có tồn tại không
+                        var lessonExists = await _context.Lessons
+                            .AnyAsync(l => l.Id == request.LessonId && l.IsDelete == false);
+
+                        if (lessonExists)
+                        {
+                            return new ApiResponse<QuestionsAnswerResponse?>(1,
+                                "Buổi học không thuộc phân công giảng dạy này!", null);
+                        }
+                        else
+                        {
+                            return new ApiResponse<QuestionsAnswerResponse?>(1,
+                                "Buổi học không tồn tại!", null);
+                        }
+                    }
+
+                    // Kiểm tra học viên có tham gia buổi học này không (chỉ áp dụng cho học viên)
+                    if (user.RoleId == 3) // Nếu là học viên
+                    {
+                        // Kiểm tra học viên có trong danh sách tham gia buổi học online
+                        bool isStudentInLesson = await _context.ClassStudentOnlines
+                            .AnyAsync(cso => cso.ClassOnline.LessonId == request.LessonId
+                                          && cso.UserId == request.UserUpdate.Value
+                                          && cso.IsDelete == false);
+
+                        // Kiểm tra học viên có thuộc lớp của phân công giảng dạy
+                        bool isStudentInClass = false;
+                        if (!isStudentInLesson && teachingAssignment.ClassId.HasValue)
+                        {
+                            isStudentInClass = await _context.ClassStudents
+                                .AnyAsync(cs => cs.ClassId == teachingAssignment.ClassId.Value
+                                            && cs.UserId == request.UserUpdate.Value
+                                            && cs.IsDelete == false
+                                            && cs.IsActive == true);
+                        }
+
+                        // Cho phép học viên cập nhật nếu họ thuộc lớp học hoặc tham gia buổi học
+                        if (!isStudentInLesson && !isStudentInClass)
+                        {
+                            return new ApiResponse<QuestionsAnswerResponse?>(1,
+                                "Bạn không thuộc buổi học này để cập nhật câu hỏi/câu trả lời!", null);
+                        }
+                    }
+                }
+
+                // 9. Kiểm tra quyền sở hữu và phân công giảng dạy (kiểm tra thêm)
                 bool hasPermissionToUpdate = false;
                 if (user.RoleId == 1) // Admin có quyền cập nhật mọi thứ
                 {
@@ -312,11 +442,11 @@ namespace Project_LMS.Services
 
                 if (!hasPermissionToUpdate)
                 {
-                    return new ApiResponse<QuestionsAnswerResponse>(1,
+                    return new ApiResponse<QuestionsAnswerResponse?>(1,
                         "Bạn không có quyền cập nhật câu hỏi/câu trả lời này!", null);
                 }
 
-                // 8. Kiểm tra user có thuộc lớp học không (bỏ qua nếu là admin hoặc đã kiểm tra ở trên cho giáo viên)
+                // Kiểm tra học viên có thuộc lớp học không (bỏ qua nếu là admin hoặc đã kiểm tra ở trên cho giáo viên)
                 bool isUserInClass = true;
                 if (user.RoleId != 1 &&
                     user.RoleId != 2) // Bỏ qua kiểm tra cho admin (RoleId = 1) và giáo viên (RoleId = 2)
@@ -327,8 +457,8 @@ namespace Project_LMS.Services
                     {
                         var classInfos = await _context.Classes
                             .FirstOrDefaultAsync(c => c.Id == teachingAssignment.ClassId);
-                        return new ApiResponse<QuestionsAnswerResponse>(1,
-                            $"Bạn không thuộc lớp học {classInfos?.Name} để cập nhật câu hỏi này!", null);
+                        return new ApiResponse<QuestionsAnswerResponse?>(1,
+                            $"Bạn không thuộc lớp học {classInfos?.Name} hoặc đã bị chuyển lớp!", null);
                     }
                 }
 
@@ -337,12 +467,12 @@ namespace Project_LMS.Services
                     .FirstOrDefaultAsync(c => c.Id == teachingAssignment.ClassId);
                 if (classInfo == null)
                 {
-                    return new ApiResponse<QuestionsAnswerResponse>(1, "Lớp học không tồn tại!", null);
+                    return new ApiResponse<QuestionsAnswerResponse?>(1, "Lớp học không tồn tại!", null);
                 }
 
                 string roleName = await GetUserRoleNameAsync(request.UserUpdate.Value);
 
-                // 9. Map DTO sang entity
+                // 11. Map DTO sang entity
                 var updatedQuestionAnswerEntity = _mapper.Map<QuestionAnswer>(request);
                 updatedQuestionAnswerEntity.Id = existingQuestionAnswer.Id;
                 updatedQuestionAnswerEntity.TeachingAssignmentId = existingQuestionAnswer.TeachingAssignmentId;
@@ -350,6 +480,10 @@ namespace Project_LMS.Services
                 updatedQuestionAnswerEntity.CreateAt = existingQuestionAnswer.CreateAt;
                 updatedQuestionAnswerEntity.UpdateAt = DateTime.Now;
                 updatedQuestionAnswerEntity.IsDelete = existingQuestionAnswer.IsDelete;
+                updatedQuestionAnswerEntity.QuestionsAnswerId = existingQuestionAnswer.QuestionsAnswerId;
+
+                // Cập nhật LessonId từ request nếu có, nếu không giữ nguyên giá trị cũ
+                updatedQuestionAnswerEntity.LessonId = request.LessonId ?? existingQuestionAnswer.LessonId;
 
                 if (existingQuestionAnswer.User != null)
                 {
@@ -364,7 +498,7 @@ namespace Project_LMS.Services
                     updatedQuestionAnswerEntity.User.Image = null;
                 }
 
-                // 10. Nếu có file mới, upload và gán FileName mới
+                // 12. Nếu có file mới, upload và gán FileName mới
                 if (!string.IsNullOrEmpty(request.FileName))
                 {
                     try
@@ -386,7 +520,7 @@ namespace Project_LMS.Services
                     updatedQuestionAnswerEntity.FileName = existingQuestionAnswer.FileName;
                 }
 
-                // 11. Cập nhật thông tin
+                // 13. Cập nhật thông tin
                 var updatedQuestionAnswer = await _questionsAnswerRepository.UpdateAsync(
                     updatedQuestionAnswerEntity,
                     existingQuestionAnswer.TeachingAssignmentId
@@ -398,7 +532,7 @@ namespace Project_LMS.Services
                         null);
                 }
 
-                // 12. Gửi thông báo
+                // 14. Gửi thông báo
                 if (updatedQuestionAnswer.QuestionsAnswerId == null) // Nếu là câu hỏi gốc
                 {
                     if (teachingAssignment.UserId.HasValue && teachingAssignment.UserId != request.UserUpdate.Value)
@@ -430,7 +564,7 @@ namespace Project_LMS.Services
                     }
                 }
 
-                // 13. Gửi thông báo realtime
+                // 15. Gửi thông báo realtime
                 await _hubContext.Clients.All.SendAsync("ReceiveMessage",
                     "Có câu hỏi hoặc câu trả lời được cập nhật trong hệ thống!");
 
@@ -441,9 +575,18 @@ namespace Project_LMS.Services
                             "Có bình luận được cập nhật trong phân công giảng dạy của bạn!");
                 }
 
-                // 14. Map và trả về phản hồi
+                // 16. Map và trả về phản hồi
                 var responseDto = _mapper.Map<QuestionsAnswerResponse>(updatedQuestionAnswer);
                 responseDto.RoleName = roleName;
+
+                // Thêm thông tin người dùng vào response như trong AddAsync
+                var userInfo = await _context.Users.FindAsync(existingQuestionAnswer.UserId);
+                if (userInfo != null)
+                {
+                    responseDto.Avatar = userInfo.Image;
+                    responseDto.FullName = userInfo.FullName;
+                }
+
                 return new ApiResponse<QuestionsAnswerResponse?>(0, "Cập nhật thông tin thành công!", responseDto);
             }
             catch (Exception ex)
@@ -613,7 +756,7 @@ namespace Project_LMS.Services
         }
 
         public async Task<ApiResponse<QuestionsAnswerTabResponse>> GetQuestionsAnswersByTabAsync(int userId,
-            int teachingAssignmentId, string tab)
+            int teachingAssignmentId, string tab, int? lessonId = null)
         {
             try
             {
@@ -638,6 +781,32 @@ namespace Project_LMS.Services
                         "ClassId của phân công giảng dạy không hợp lệ!", null);
                 }
 
+                // Kiểm tra lessonId nếu được cung cấp
+                if (lessonId.HasValue && lessonId > 0 && tab.ToLower() != "topics")
+                {
+                    var lesson = await _context.Lessons
+                        .FirstOrDefaultAsync(l => l.Id == lessonId.Value
+                                               && l.TeachingAssignmentId == teachingAssignmentId
+                                               && l.IsDelete == false);
+                    if (lesson == null)
+                    {
+                        // Kiểm tra chính xác xem buổi học có tồn tại không
+                        var lessonExists = await _context.Lessons
+                            .AnyAsync(l => l.Id == lessonId.Value && l.IsDelete == false);
+
+                        if (lessonExists)
+                        {
+                            return new ApiResponse<QuestionsAnswerTabResponse>(1,
+                                "Buổi học không thuộc phân công giảng dạy này!", null);
+                        }
+                        else
+                        {
+                            return new ApiResponse<QuestionsAnswerTabResponse>(1,
+                                "Buổi học không tồn tại!", null);
+                        }
+                    }
+                }
+
                 // Kiểm tra user có quyền truy cập TeachingAssignment không
                 bool isUserInClass = true;
                 if (user.RoleId != 1)
@@ -649,7 +818,7 @@ namespace Project_LMS.Services
                             .Where(c => c.Id == teachingAssignment.ClassId)
                             .FirstOrDefaultAsync();
                         return new ApiResponse<QuestionsAnswerTabResponse>(1,
-                            $"Bạn không thuộc lớp học {classMembers?.Name} để xem dữ liệu này!", null);
+                            $"Bạn không thuộc lớp học {classMembers?.Name} hoặc đã bị chuyển lớp!", null);
                     }
                 }
 
@@ -665,319 +834,367 @@ namespace Project_LMS.Services
                 switch (tab.ToLower())
                 {
                     case "all": // Tab "Tất cả câu hỏi"
-                    {
-                        // Lấy tất cả câu hỏi gốc và join với Users để lấy Avatar và FullName
-                        var questionsQuery = await _context.QuestionAnswers
-                            .Where(qa => qa.TeachingAssignmentId == teachingAssignmentId
-                                         && qa.QuestionsAnswerId == null
-                                         && qa.IsDelete == false)
-                            .Join(
-                                _context.Users,
-                                qa => qa.UserId,
-                                u => u.Id,
-                                (qa, u) => new { QuestionAnswer = qa, UserAvatar = u.Image, UserFullName = u.FullName })
-                            .OrderByDescending(x => x.QuestionAnswer.CreateAt)
-                            .ToListAsync();
-
-                        // Lấy tất cả câu trả lời cho các câu hỏi gốc
-                        var questionIds = questionsQuery.Select(x => x.QuestionAnswer.Id).ToList();
-                        var repliesQuery = await _context.QuestionAnswers
-                            .Where(qa => questionIds.Contains(qa.QuestionsAnswerId.Value) && qa.IsDelete == false)
-                            .Join(
-                                _context.Users,
-                                qa => qa.UserId,
-                                u => u.Id,
-                                (qa, u) => new { Reply = qa, UserAvatar = u.Image, UserFullName = u.FullName })
-                            .ToListAsync();
-
-                        // Lấy tất cả ID của câu hỏi và câu trả lời để tính Views
-                        var replyIds = repliesQuery.Select(r => r.Reply.Id).ToList();
-                        var allIds = questionIds.Concat(replyIds).ToList();
-
-                        // Tính số lượt xem cho từng câu hỏi và câu trả lời
-                        var viewsQuery = await _context.QuestionAnswerTopicViews
-                            .Where(qatv => allIds.Contains(qatv.QuestionsAnswerId.Value)
-                                           && (qatv.IsDelete == false || qatv.IsDelete == null))
-                            .GroupBy(qatv => qatv.QuestionsAnswerId)
-                            .Select(g => new { QuestionId = g.Key, ViewCount = g.Count() })
-                            .ToListAsync();
-
-                        // Tạo dictionary để tra cứu số lượt xem theo QuestionId
-                        var viewsDict = viewsQuery.ToDictionary(v => v.QuestionId.Value, v => v.ViewCount);
-
-                        // Tính tổng số lượt xem (Views) cho tab
-                        response.Views = viewsQuery.Sum(v => v.ViewCount);
-
-                        // Tính tổng số câu trả lời (Replies)
-                        response.Replies = repliesQuery.Count;
-
-                        // Map câu hỏi và câu trả lời sang DTO
-                        response.Questions = questionsQuery.Select(x =>
                         {
-                            var questionResponse = _mapper.Map<QuestionsAnswerResponse>(x.QuestionAnswer);
-                            questionResponse.Avatar = x.UserAvatar;
-                            questionResponse.FullName = x.UserFullName;
+                            // Lấy tất cả câu hỏi gốc và join với Users để lấy Avatar và FullName
+                            var questionsQuery = _context.QuestionAnswers
+                                .Where(qa => qa.TeachingAssignmentId == teachingAssignmentId
+                                             && qa.QuestionsAnswerId == null
+                                             && qa.IsDelete == false);
 
-                            // Gán số lượt xem cho câu hỏi
-                            questionResponse.Views = viewsDict.ContainsKey(x.QuestionAnswer.Id)
-                                ? viewsDict[x.QuestionAnswer.Id]
-                                : 0;
+                            // Lọc theo lessonId nếu được cung cấp
+                            if (lessonId.HasValue && lessonId.Value > 0)
+                            {
+                                questionsQuery = questionsQuery.Where(qa => qa.LessonId == lessonId.Value);
+                            }
 
-                            // Lấy danh sách câu trả lời cho câu hỏi này
-                            var repliesForQuestion = repliesQuery
-                                .Where(r => r.Reply.QuestionsAnswerId == x.QuestionAnswer.Id)
-                                .Select(r =>
-                                {
-                                    var replyResponse = _mapper.Map<QuestionsAnswerResponse>(r.Reply);
-                                    replyResponse.Avatar = r.UserAvatar;
-                                    replyResponse.FullName = r.UserFullName;
-                                    replyResponse.ReplyCount = 0;
-                                    replyResponse.Replies = new List<QuestionsAnswerResponse>();
-                                    // Gán số lượt xem cho câu trả lời
-                                    replyResponse.Views = viewsDict.ContainsKey(r.Reply.Id) ? viewsDict[r.Reply.Id] : 0;
-                                    return replyResponse;
-                                })
-                                .ToList();
+                            var questions = await questionsQuery
+                                .Join(
+                                    _context.Users,
+                                    qa => qa.UserId,
+                                    u => u.Id,
+                                    (qa, u) => new { QuestionAnswer = qa, UserAvatar = u.Image, UserFullName = u.FullName })
+                                .OrderByDescending(x => x.QuestionAnswer.CreateAt)
+                                .ToListAsync();
 
-                            questionResponse.Replies = repliesForQuestion;
-                            questionResponse.ReplyCount = repliesForQuestion.Count;
+                            // Lấy tất cả câu trả lời cho các câu hỏi gốc
+                            var questionIds = questions.Select(x => x.QuestionAnswer.Id).ToList();
+                            var repliesQuery = await _context.QuestionAnswers
+                                .Where(qa => questionIds.Contains(qa.QuestionsAnswerId.Value) && qa.IsDelete == false)
+                                .Join(
+                                    _context.Users,
+                                    qa => qa.UserId,
+                                    u => u.Id,
+                                    (qa, u) => new { Reply = qa, UserAvatar = u.Image, UserFullName = u.FullName })
+                                .ToListAsync();
 
-                            return questionResponse;
-                        }).ToList();
+                            // Lấy tất cả ID của câu hỏi và câu trả lời để tính Views
+                            var replyIds = repliesQuery.Select(r => r.Reply.Id).ToList();
+                            var allIds = questionIds.Concat(replyIds).ToList();
 
-                        break;
-                    }
+                            // Tính số lượt xem cho từng câu hỏi và câu trả lời
+                            var viewsQuery = await _context.QuestionAnswerTopicViews
+                                .Where(qatv => allIds.Contains(qatv.QuestionsAnswerId.Value)
+                                               && (qatv.IsDelete == false || qatv.IsDelete == null))
+                                .GroupBy(qatv => qatv.QuestionsAnswerId)
+                                .Select(g => new { QuestionId = g.Key, ViewCount = g.Count() })
+                                .ToListAsync();
 
-                    case "answered": // Tab "Đã trả lời"
-                    {
-                        // Lấy các câu hỏi gốc có ít nhất một câu trả lời
-                        var questionsQuery = await _context.QuestionAnswers
-                            .Where(qa => qa.TeachingAssignmentId == teachingAssignmentId
-                                         && qa.QuestionsAnswerId == null
-                                         && qa.IsDelete == false)
-                            .Where(qa => _context.QuestionAnswers
-                                .Any(reply => reply.QuestionsAnswerId == qa.Id && reply.IsDelete == false))
-                            .Join(
-                                _context.Users,
-                                qa => qa.UserId,
-                                u => u.Id,
-                                (qa, u) => new { QuestionAnswer = qa, UserAvatar = u.Image, UserFullName = u.FullName })
-                            .OrderByDescending(x => x.QuestionAnswer.CreateAt)
-                            .ToListAsync();
+                            // Tạo dictionary để tra cứu số lượt xem theo QuestionId
+                            var viewsDict = viewsQuery.ToDictionary(v => v.QuestionId.Value, v => v.ViewCount);
 
-                        // Lấy tất cả câu trả lời cho các câu hỏi gốc
-                        var questionIds = questionsQuery.Select(x => x.QuestionAnswer.Id).ToList();
-                        var repliesQuery = await _context.QuestionAnswers
-                            .Where(qa => questionIds.Contains(qa.QuestionsAnswerId.Value) && qa.IsDelete == false)
-                            .Join(
-                                _context.Users,
-                                qa => qa.UserId,
-                                u => u.Id,
-                                (qa, u) => new { Reply = qa, UserAvatar = u.Image, UserFullName = u.FullName })
-                            .ToListAsync();
+                            // Tính tổng số lượt xem (Views) cho tab
+                            response.Views = viewsQuery.Sum(v => v.ViewCount);
 
-                        // Lấy tất cả ID của câu hỏi và câu trả lời để tính Views
-                        var replyIds = repliesQuery.Select(r => r.Reply.Id).ToList();
-                        var allIds = questionIds.Concat(replyIds).ToList();
+                            // Tính tổng số câu trả lời (Replies)
+                            response.Replies = repliesQuery.Count;
 
-                        // Tính số lượt xem cho từng câu hỏi và câu trả lời
-                        var viewsQuery = await _context.QuestionAnswerTopicViews
-                            .Where(qatv => allIds.Contains(qatv.QuestionsAnswerId.Value)
-                                           && (qatv.IsDelete == false || qatv.IsDelete == null))
-                            .GroupBy(qatv => qatv.QuestionsAnswerId)
-                            .Select(g => new { QuestionId = g.Key, ViewCount = g.Count() })
-                            .ToListAsync();
+                            // Map câu hỏi và câu trả lời sang DTO
+                            response.Questions = questions.Select(x =>
+                            {
+                                var questionResponse = _mapper.Map<QuestionsAnswerResponse>(x.QuestionAnswer);
+                                questionResponse.Avatar = x.UserAvatar;
+                                questionResponse.FullName = x.UserFullName;
 
-                        // Tạo dictionary để tra cứu số lượt xem theo QuestionId
-                        var viewsDict = viewsQuery.ToDictionary(v => v.QuestionId.Value, v => v.ViewCount);
+                                // Gán số lượt xem cho câu hỏi
+                                questionResponse.Views = viewsDict.ContainsKey(x.QuestionAnswer.Id)
+                                    ? viewsDict[x.QuestionAnswer.Id]
+                                    : 0;
 
-                        // Tính tổng số lượt xem (Views) cho tab
-                        response.Views = viewsQuery.Sum(v => v.ViewCount);
+                                // Lấy danh sách câu trả lời cho câu hỏi này
+                                var repliesForQuestion = repliesQuery
+                                    .Where(r => r.Reply.QuestionsAnswerId == x.QuestionAnswer.Id)
+                                    .Select(r =>
+                                    {
+                                        var replyResponse = _mapper.Map<QuestionsAnswerResponse>(r.Reply);
+                                        replyResponse.Avatar = r.UserAvatar;
+                                        replyResponse.FullName = r.UserFullName;
+                                        replyResponse.ReplyCount = 0;
+                                        replyResponse.Replies = new List<QuestionsAnswerResponse>();
+                                        // Gán số lượt xem cho câu trả lời
+                                        replyResponse.Views = viewsDict.ContainsKey(r.Reply.Id) ? viewsDict[r.Reply.Id] : 0;
+                                        return replyResponse;
+                                    })
+                                    .ToList();
 
-                        // Tính tổng số câu trả lời (Replies)
-                        response.Replies = repliesQuery.Count;
+                                questionResponse.Replies = repliesForQuestion;
+                                questionResponse.ReplyCount = repliesForQuestion.Count;
 
-                        // Map câu hỏi và câu trả lời sang DTO
-                        response.Questions = questionsQuery.Select(x =>
-                        {
-                            var questionResponse = _mapper.Map<QuestionsAnswerResponse>(x.QuestionAnswer);
-                            questionResponse.Avatar = x.UserAvatar;
-                            questionResponse.FullName = x.UserFullName;
+                                return questionResponse;
+                            }).ToList();
 
-                            // Gán số lượt xem cho câu hỏi
-                            questionResponse.Views = viewsDict.ContainsKey(x.QuestionAnswer.Id)
-                                ? viewsDict[x.QuestionAnswer.Id]
-                                : 0;
-
-                            // Lấy danh sách câu trả lời cho câu hỏi này
-                            var repliesForQuestion = repliesQuery
-                                .Where(r => r.Reply.QuestionsAnswerId == x.QuestionAnswer.Id)
-                                .Select(r =>
-                                {
-                                    var replyResponse = _mapper.Map<QuestionsAnswerResponse>(r.Reply);
-                                    replyResponse.Avatar = r.UserAvatar;
-                                    replyResponse.FullName = r.UserFullName;
-                                    replyResponse.ReplyCount = 0;
-                                    replyResponse.Replies = new List<QuestionsAnswerResponse>();
-                                    // Gán số lượt xem cho câu trả lời
-                                    replyResponse.Views = viewsDict.ContainsKey(r.Reply.Id) ? viewsDict[r.Reply.Id] : 0;
-                                    return replyResponse;
-                                })
-                                .ToList();
-
-                            questionResponse.Replies = repliesForQuestion;
-                            questionResponse.ReplyCount = repliesForQuestion.Count;
-
-                            return questionResponse;
-                        }).ToList();
-
-                        break;
-                    }
-
-                    case "near-deadline": // Tab "Gần đến hạn"
-                    {
-                        // Xác định ngưỡng "gần đến hạn" (ví dụ: 3 ngày trước EndDate)
-                        const int nearDeadlineDays = 3;
-                        var nearDeadlineThreshold = teachingAssignment.EndDate?.AddDays(-nearDeadlineDays);
-
-                        if (nearDeadlineThreshold == null)
-                        {
-                            return new ApiResponse<QuestionsAnswerTabResponse>(1,
-                                "EndDate của phân công giảng dạy không hợp lệ!", null);
+                            break;
                         }
 
-                        // Lấy các câu hỏi gốc chưa có câu trả lời và gần đến hạn
-                        var questionsQuery = await _context.QuestionAnswers
-                            .Where(qa => qa.TeachingAssignmentId == teachingAssignmentId
-                                         && qa.QuestionsAnswerId == null
-                                         && qa.IsDelete == false
-                                         && !_context.QuestionAnswers.Any(reply =>
-                                             reply.QuestionsAnswerId == qa.Id && reply.IsDelete == false)
-                                         && qa.CreateAt <= nearDeadlineThreshold)
-                            .Join(
-                                _context.Users,
-                                qa => qa.UserId,
-                                u => u.Id,
-                                (qa, u) => new { QuestionAnswer = qa, UserAvatar = u.Image, UserFullName = u.FullName })
-                            .OrderBy(x => x.QuestionAnswer.CreateAt)
-                            .ToListAsync();
-
-                        // Tính số lượt xem cho từng câu hỏi
-                        var questionIds = questionsQuery.Select(x => x.QuestionAnswer.Id).ToList();
-                        var viewsQuery = await _context.QuestionAnswerTopicViews
-                            .Where(qatv => questionIds.Contains(qatv.QuestionsAnswerId.Value)
-                                           && (qatv.IsDelete == false || qatv.IsDelete == null))
-                            .GroupBy(qatv => qatv.QuestionsAnswerId)
-                            .Select(g => new { QuestionId = g.Key, ViewCount = g.Count() })
-                            .ToListAsync();
-
-                        // Tạo dictionary để tra cứu số lượt xem theo QuestionId
-                        var viewsDict = viewsQuery.ToDictionary(v => v.QuestionId.Value, v => v.ViewCount);
-
-                        // Tính tổng số lượt xem (Views) cho tab
-                        response.Views = viewsQuery.Sum(v => v.ViewCount);
-
-                        // Tính tổng số câu trả lời (Replies) - sẽ là 0 vì đây là các câu hỏi chưa có câu trả lời
-                        response.Replies = 0;
-
-                        // Map câu hỏi sang DTO
-                        response.Questions = questionsQuery.Select(x =>
+                    case "answered": // Tab "Đã trả lời"
                         {
-                            var questionResponse = _mapper.Map<QuestionsAnswerResponse>(x.QuestionAnswer);
-                            questionResponse.Avatar = x.UserAvatar;
-                            questionResponse.FullName = x.UserFullName;
-                            questionResponse.ReplyCount = 0;
-                            questionResponse.Replies = new List<QuestionsAnswerResponse>();
+                            // Lấy các câu hỏi gốc có ít nhất một câu trả lời
+                            var questionsQuery = _context.QuestionAnswers
+                                .Where(qa => qa.TeachingAssignmentId == teachingAssignmentId
+                                             && qa.QuestionsAnswerId == null
+                                             && qa.IsDelete == false)
+                                .Where(qa => _context.QuestionAnswers
+                                    .Any(reply => reply.QuestionsAnswerId == qa.Id && reply.IsDelete == false));
 
-                            // Gán số lượt xem cho câu hỏi
-                            questionResponse.Views = viewsDict.ContainsKey(x.QuestionAnswer.Id)
-                                ? viewsDict[x.QuestionAnswer.Id]
-                                : 0;
+                            // Lọc theo lessonId nếu được cung cấp
+                            if (lessonId.HasValue && lessonId.Value > 0)
+                            {
+                                questionsQuery = questionsQuery.Where(qa => qa.LessonId == lessonId.Value);
+                            }
 
-                            return questionResponse;
-                        }).ToList();
+                            var questions = await questionsQuery
+                                .Join(
+                                    _context.Users,
+                                    qa => qa.UserId,
+                                    u => u.Id,
+                                    (qa, u) => new { QuestionAnswer = qa, UserAvatar = u.Image, UserFullName = u.FullName })
+                                .OrderByDescending(x => x.QuestionAnswer.CreateAt)
+                                .ToListAsync();
 
-                        break;
-                    }
+                            // Lấy tất cả câu trả lời cho các câu hỏi gốc
+                            var questionIds = questions.Select(x => x.QuestionAnswer.Id).ToList();
+                            var repliesQuery = await _context.QuestionAnswers
+                                .Where(qa => questionIds.Contains(qa.QuestionsAnswerId.Value) && qa.IsDelete == false)
+                                .Join(
+                                    _context.Users,
+                                    qa => qa.UserId,
+                                    u => u.Id,
+                                    (qa, u) => new { Reply = qa, UserAvatar = u.Image, UserFullName = u.FullName })
+                                .ToListAsync();
 
-                    case "topics": // Tab "Topics"
-                    {
-                        // Lấy danh sách topic gốc (TopicId == null) và join với Users để lấy Avatar và FullName
-                        var topicsQuery = await _context.Topics
-                            .Where(t => t.TeachingAssignmentId == teachingAssignmentId
-                                        && t.TopicId == null
-                                        && t.IsDelete == false)
-                            .Join(
-                                _context.Users,
-                                t => t.UserId,
-                                u => u.Id,
-                                (t, u) => new { Topic = t, UserAvatar = u.Image, UserFullName = u.FullName })
-                            .OrderByDescending(x => x.Topic.CreateAt)
-                            .ToListAsync();
+                            // Lấy tất cả ID của câu hỏi và câu trả lời để tính Views
+                            var replyIds = repliesQuery.Select(r => r.Reply.Id).ToList();
+                            var allIds = questionIds.Concat(replyIds).ToList();
 
-                        // Lấy tất cả bình luận (sub-topics) cho các topic gốc
-                        var topicIds = topicsQuery.Select(x => x.Topic.Id).ToList();
-                        var commentsQuery = await _context.Topics
-                            .Where(t => topicIds.Contains(t.TopicId.Value) && t.IsDelete == false)
-                            .Join(
-                                _context.Users,
-                                t => t.UserId,
-                                u => u.Id,
-                                (t, u) => new { Comment = t, UserAvatar = u.Image, UserFullName = u.FullName })
-                            .ToListAsync();
+                            // Tính số lượt xem cho từng câu hỏi và câu trả lời
+                            var viewsQuery = await _context.QuestionAnswerTopicViews
+                                .Where(qatv => allIds.Contains(qatv.QuestionsAnswerId.Value)
+                                               && (qatv.IsDelete == false || qatv.IsDelete == null))
+                                .GroupBy(qatv => qatv.QuestionsAnswerId)
+                                .Select(g => new { QuestionId = g.Key, ViewCount = g.Count() })
+                                .ToListAsync();
 
-                        // Lấy tất cả ID của topic và bình luận để tính Views
-                        var commentIds = commentsQuery.Select(c => c.Comment.Id).ToList();
-                        var allTopicIds = topicIds.Concat(commentIds).ToList();
+                            // Tạo dictionary để tra cứu số lượt xem theo QuestionId
+                            var viewsDict = viewsQuery.ToDictionary(v => v.QuestionId.Value, v => v.ViewCount);
 
-                        // Tính số lượt xem cho từng topic và bình luận
-                        var viewsQuery = await _context.QuestionAnswerTopicViews
-                            .Where(qatv => qatv.TopicId.HasValue && allTopicIds.Contains(qatv.TopicId.Value)
-                                                                 && (qatv.IsDelete == false || qatv.IsDelete == null))
-                            .GroupBy(qatv => qatv.TopicId)
-                            .Select(g => new { TopicId = g.Key, ViewCount = g.Count() })
-                            .ToListAsync();
+                            // Tính tổng số lượt xem (Views) cho tab
+                            response.Views = viewsQuery.Sum(v => v.ViewCount);
 
-                        // Tạo dictionary để tra cứu số lượt xem theo TopicId
-                        var viewsDict = viewsQuery.ToDictionary(v => v.TopicId.Value, v => v.ViewCount);
+                            // Tính tổng số câu trả lời (Replies)
+                            response.Replies = repliesQuery.Count;
 
-                        // Map sang DTO và gán Avatar, FullName
-                        response.Topics = topicsQuery.Select(x =>
+                            // Map câu hỏi và câu trả lời sang DTO
+                            response.Questions = questions.Select(x =>
+                            {
+                                var questionResponse = _mapper.Map<QuestionsAnswerResponse>(x.QuestionAnswer);
+                                questionResponse.Avatar = x.UserAvatar;
+                                questionResponse.FullName = x.UserFullName;
+
+                                // Gán số lượt xem cho câu hỏi
+                                questionResponse.Views = viewsDict.ContainsKey(x.QuestionAnswer.Id)
+                                    ? viewsDict[x.QuestionAnswer.Id]
+                                    : 0;
+
+                                // Lấy danh sách câu trả lời cho câu hỏi này
+                                var repliesForQuestion = repliesQuery
+                                    .Where(r => r.Reply.QuestionsAnswerId == x.QuestionAnswer.Id)
+                                    .Select(r =>
+                                    {
+                                        var replyResponse = _mapper.Map<QuestionsAnswerResponse>(r.Reply);
+                                        replyResponse.Avatar = r.UserAvatar;
+                                        replyResponse.FullName = r.UserFullName;
+                                        replyResponse.ReplyCount = 0;
+                                        replyResponse.Replies = new List<QuestionsAnswerResponse>();
+                                        // Gán số lượt xem cho câu trả lời
+                                        replyResponse.Views = viewsDict.ContainsKey(r.Reply.Id) ? viewsDict[r.Reply.Id] : 0;
+                                        return replyResponse;
+                                    })
+                                    .ToList();
+
+                                questionResponse.Replies = repliesForQuestion;
+                                questionResponse.ReplyCount = repliesForQuestion.Count;
+
+                                return questionResponse;
+                            }).ToList();
+
+                            break;
+                        }
+
+                    case "near-deadline": // Tab "Gần đây" 
                         {
-                            var topicResponse = _mapper.Map<TopicResponse>(x.Topic);
-                            topicResponse.Avatar = x.UserAvatar;
-                            topicResponse.FullName = x.UserFullName;
+                            // Lấy thời gian 7 ngày gần đây
+                            var recentThreshold = TimeHelper.NowUsingTimeZone.AddDays(-7);
 
-                            // Gán số lượt xem cho topic
-                            topicResponse.Views = viewsDict.ContainsKey(x.Topic.Id) ? viewsDict[x.Topic.Id] : 0;
-                            topicResponse.Replies = commentsQuery.Count(c => c.Comment.TopicId == topicResponse.Id);
+                            // Lấy danh sách buổi học được tạo trong 7 ngày gần đây
+                            var recentLessons = await _context.Lessons
+                                .Where(l => l.TeachingAssignmentId == teachingAssignmentId 
+                                            && l.IsDelete == false
+                                            && l.CreateAt >= recentThreshold) // Changed from StartTime to CreateAt
+                                .Select(l => l.Id)
+                                .ToListAsync();
 
-                            // Lấy danh sách bình luận cho topic này
-                            topicResponse.Comments = commentsQuery
-                                .Where(c => c.Comment.TopicId == topicResponse.Id)
-                                .Select(c =>
-                                {
-                                    var commentResponse = _mapper.Map<TopicResponse>(c.Comment);
-                                    commentResponse.Avatar = c.UserAvatar;
-                                    commentResponse.FullName = c.UserFullName;
-                                    // Gán số lượt xem cho bình luận
-                                    commentResponse.Views =
-                                        viewsDict.ContainsKey(c.Comment.Id) ? viewsDict[c.Comment.Id] : 0;
-                                    commentResponse.Replies = 0; // Bình luận không có bình luận con
-                                    commentResponse.Comments = new List<TopicResponse>();
-                                    return commentResponse;
-                                })
-                                .ToList();
+                            // Lấy các câu hỏi gốc từ các buổi học gần đây
+                            var questionsQuery = _context.QuestionAnswers
+                                .Where(qa => qa.TeachingAssignmentId == teachingAssignmentId
+                                             && qa.QuestionsAnswerId == null
+                                             && qa.IsDelete == false
+                                             && qa.LessonId.HasValue
+                                             && recentLessons.Contains(qa.LessonId.Value));
 
-                            return topicResponse;
-                        }).ToList();
+                            // Lọc theo lessonId cụ thể nếu được cung cấp
+                            if (lessonId.HasValue && lessonId.Value > 0)
+                            {
+                                questionsQuery = questionsQuery.Where(qa => qa.LessonId == lessonId.Value);
+                            }
 
-                        // Tính tổng số lượt xem (Views) và câu trả lời (Replies) cho tất cả topics
-                        response.Views = response.Topics.Sum(t => t.Views);
-                        response.Replies = response.Topics.Sum(t => t.Replies);
+                            var questions = await questionsQuery
+                                .Join(
+                                    _context.Users,
+                                    qa => qa.UserId,
+                                    u => u.Id,
+                                    (qa, u) => new { QuestionAnswer = qa, UserAvatar = u.Image, UserFullName = u.FullName })
+                                .OrderByDescending(x => x.QuestionAnswer.CreateAt) // Sắp xếp theo thời gian tạo mới nhất
+                                .ToListAsync();
 
-                        break;
-                    }
+                            // Tính số lượt xem và map dữ liệu
+                            var questionIds = questions.Select(x => x.QuestionAnswer.Id).ToList();
+                            
+                            // Lấy câu trả lời cho các câu hỏi
+                            var repliesQuery = await _context.QuestionAnswers
+                                .Where(qa => questionIds.Contains(qa.QuestionsAnswerId.Value) && qa.IsDelete == false)
+                                .Join(
+                                    _context.Users,
+                                    qa => qa.UserId,
+                                    u => u.Id,
+                                    (qa, u) => new { Reply = qa, UserAvatar = u.Image, UserFullName = u.FullName })
+                                .ToListAsync();
+
+                            // Tính lượt xem
+                            var viewsQuery = await _context.QuestionAnswerTopicViews
+                                .Where(qatv => questionIds.Contains(qatv.QuestionsAnswerId.Value)
+                                               && (qatv.IsDelete == false || qatv.IsDelete == null))
+                                .GroupBy(qatv => qatv.QuestionsAnswerId)
+                                .Select(g => new { QuestionId = g.Key, ViewCount = g.Count() })
+                                .ToListAsync();
+
+                            var viewsDict = viewsQuery.ToDictionary(v => v.QuestionId.Value, v => v.ViewCount);
+
+                            // Tính tổng số lượt xem và câu trả lời
+                            response.Views = viewsQuery.Sum(v => v.ViewCount);
+                            response.Replies = repliesQuery.Count;
+
+                            // Map câu hỏi và câu trả lời sang DTO
+                            response.Questions = questions.Select(x =>
+                            {
+                                var questionResponse = _mapper.Map<QuestionsAnswerResponse>(x.QuestionAnswer);
+                                questionResponse.Avatar = x.UserAvatar;
+                                questionResponse.FullName = x.UserFullName;
+
+                                questionResponse.Views = viewsDict.ContainsKey(x.QuestionAnswer.Id)
+                                    ? viewsDict[x.QuestionAnswer.Id]
+                                    : 0;
+
+                                // Map câu trả lời
+                                var repliesForQuestion = repliesQuery
+                                    .Where(r => r.Reply.QuestionsAnswerId == x.QuestionAnswer.Id)
+                                    .Select(r =>
+                                    {
+                                        var replyResponse = _mapper.Map<QuestionsAnswerResponse>(r.Reply);
+                                        replyResponse.Avatar = r.UserAvatar;
+                                        replyResponse.FullName = r.UserFullName;
+                                        replyResponse.Views = viewsDict.ContainsKey(r.Reply.Id) ? viewsDict[r.Reply.Id] : 0;
+                                        replyResponse.ReplyCount = 0;
+                                        replyResponse.Replies = new List<QuestionsAnswerResponse>();
+                                        return replyResponse;
+                                    })
+                                    .ToList();
+
+                                questionResponse.Replies = repliesForQuestion;
+                                questionResponse.ReplyCount = repliesForQuestion.Count;
+
+                                return questionResponse;
+                            }).ToList();
+
+                            break;
+                        }
+
+                    case "topics": // Tab "Topics" - không sử dụng lessonId
+                        {
+                            // Lấy danh sách topic gốc (TopicId == null) và join với Users để lấy Avatar và FullName
+                            var topicsQuery = await _context.Topics
+                                .Where(t => t.TeachingAssignmentId == teachingAssignmentId
+                                            && t.TopicId == null
+                                            && t.IsDelete == false)
+                                .Join(
+                                    _context.Users,
+                                    t => t.UserId,
+                                    u => u.Id,
+                                    (t, u) => new { Topic = t, UserAvatar = u.Image, UserFullName = u.FullName })
+                                .OrderByDescending(x => x.Topic.CreateAt)
+                                .ToListAsync();
+
+                            // Lấy tất cả bình luận (sub-topics) cho các topic gốc
+                            var topicIds = topicsQuery.Select(x => x.Topic.Id).ToList();
+                            var commentsQuery = await _context.Topics
+                                .Where(t => topicIds.Contains(t.TopicId.Value) && t.IsDelete == false)
+                                .Join(
+                                    _context.Users,
+                                    t => t.UserId,
+                                    u => u.Id,
+                                    (t, u) => new { Comment = t, UserAvatar = u.Image, UserFullName = u.FullName })
+                                .ToListAsync();
+
+                            // Lấy tất cả ID của topic và bình luận để tính Views
+                            var commentIds = commentsQuery.Select(c => c.Comment.Id).ToList();
+                            var allTopicIds = topicIds.Concat(commentIds).ToList();
+
+                            // Tính số lượt xem cho từng topic và bình luận
+                            var viewsQuery = await _context.QuestionAnswerTopicViews
+                                .Where(qatv => qatv.TopicId.HasValue && allTopicIds.Contains(qatv.TopicId.Value)
+                                                                     && (qatv.IsDelete == false || qatv.IsDelete == null))
+                                .GroupBy(qatv => qatv.TopicId)
+                                .Select(g => new { TopicId = g.Key, ViewCount = g.Count() })
+                                .ToListAsync();
+
+                            // Tạo dictionary để tra cứu số lượt xem theo TopicId
+                            var viewsDict = viewsQuery.ToDictionary(v => v.TopicId.Value, v => v.ViewCount);
+
+                            // Map sang DTO và gán Avatar, FullName
+                            response.Topics = topicsQuery.Select(x =>
+                            {
+                                var topicResponse = _mapper.Map<TopicResponse>(x.Topic);
+                                topicResponse.Avatar = x.UserAvatar;
+                                topicResponse.FullName = x.UserFullName;
+
+                                // Gán số lượt xem cho topic
+                                topicResponse.Views = viewsDict.ContainsKey(x.Topic.Id) ? viewsDict[x.Topic.Id] : 0;
+                                topicResponse.Replies = commentsQuery.Count(c => c.Comment.TopicId == topicResponse.Id);
+
+                                // Lấy danh sách bình luận cho topic này
+                                topicResponse.Comments = commentsQuery
+                                    .Where(c => c.Comment.TopicId == topicResponse.Id)
+                                    .Select(c =>
+                                    {
+                                        var commentResponse = _mapper.Map<TopicResponse>(c.Comment);
+                                        commentResponse.Avatar = c.UserAvatar;
+                                        commentResponse.FullName = c.UserFullName;
+                                        // Gán số lượt xem cho bình luận
+                                        commentResponse.Views =
+                                            viewsDict.ContainsKey(c.Comment.Id) ? viewsDict[c.Comment.Id] : 0;
+                                        commentResponse.Replies = 0; // Bình luận không có bình luận con
+                                        commentResponse.Comments = new List<TopicResponse>();
+                                        return commentResponse;
+                                    })
+                                    .ToList();
+
+                                return topicResponse;
+                            }).ToList();
+
+                            // Tính tổng số lượt xem (Views) và câu trả lời (Replies) cho tất cả topics
+                            response.Views = response.Topics.Sum(t => t.Views);
+                            response.Replies = response.Topics.Sum(t => t.Replies);
+
+                            break;
+                        }
 
                     default:
                         return new ApiResponse<QuestionsAnswerTabResponse>(1, "Tab không hợp lệ!", null);
@@ -1099,6 +1316,8 @@ namespace Project_LMS.Services
                     return new ApiResponse<QuestionDetailResponse>(1, "Câu hỏi không tồn tại hoặc đã bị xóa.", null);
                 }
 
+                System.Console.WriteLine($"GETBYID DEBUG: Question={id}, TeachingAssignmentId={question.TeachingAssignmentId}, UserId={userId}");
+
                 // Kiểm tra user có thuộc lớp học không (nếu userId được cung cấp)
                 if (userId.HasValue)
                 {
@@ -1109,14 +1328,40 @@ namespace Project_LMS.Services
                         return new ApiResponse<QuestionDetailResponse>(2, "Phân công giảng dạy không hợp lệ.", null);
                     }
 
-                    bool isUserInClass =
-                        await _topicRepository.IsUserInClassAsync(userId.Value, teachingAssignment.ClassId.Value);
-                    var classMembers = await _context.Classes.Where(c => c.Id == teachingAssignment.ClassId)
-                        .FirstOrDefaultAsync();
-                    if (!isUserInClass)
+                    System.Console.WriteLine($"GETBYID DEBUG: Found TeachingAssignment with ClassId={teachingAssignment.ClassId}");
+
+                    // Kiểm tra nếu là giáo viên được phân công dạy lớp này
+                    var user = await _context.Users.FindAsync(userId.Value);
+                    if (user != null && user.RoleId == 2 && teachingAssignment.UserId == userId)
                     {
-                        return new ApiResponse<QuestionDetailResponse>(2,
-                            $"Bạn không thuộc lớp học {classMembers?.Name} để xem câu hỏi này!", null);
+                        System.Console.WriteLine($"GETBYID DEBUG: User is teacher assigned to this class");
+                        // Nếu là giáo viên phụ trách lớp này, cho phép truy cập
+                    }
+                    else
+                    {
+                        // Kiểm tra quyền truy cập của học sinh
+                        // Lấy bản ghi mới nhất từ class_students
+                        var latestClassStudent = await _context.ClassStudents
+                            .Where(cs => cs.UserId == userId && cs.ClassId == teachingAssignment.ClassId)
+                            .OrderByDescending(cs => cs.Id) // Sắp xếp theo ID giảm dần
+                            .FirstOrDefaultAsync();
+
+                        System.Console.WriteLine($"GETBYID DEBUG: LatestClassStudent found={latestClassStudent != null}, " +
+                                               $"IsDelete={(latestClassStudent?.IsDelete)}, " +
+                                               $"IsActive={(latestClassStudent?.IsActive)}");
+
+                        bool isUserInClass = latestClassStudent != null &&
+                                            latestClassStudent.IsDelete == false &&
+                                            latestClassStudent.IsActive == true;
+
+                        var classMembers = await _context.Classes.Where(c => c.Id == teachingAssignment.ClassId)
+                            .FirstOrDefaultAsync();
+
+                        if (!isUserInClass)
+                        {
+                            return new ApiResponse<QuestionDetailResponse>(2,
+                                $"Bạn không thuộc lớp học {classMembers?.Name} hoặc đã bị chuyển lớp!", null);
+                        }
                     }
 
                     // Ghi lượt xem (nếu đây là câu hỏi gốc và user chưa xem)

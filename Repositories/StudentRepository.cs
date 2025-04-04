@@ -67,6 +67,7 @@ namespace Project_LMS.Repositories
                     .Include(u => u.Assignments).ThenInclude(asm => asm.TestExam).ThenInclude(te => te.Subject)
                     .Include(u => u.Rewards)
                     .Include(u => u.Disciplines)
+                    .Include(u => u.Role)
                     .AsSplitQuery()
                     .Where(u => u.Id == studentId && u.IsDelete ==false  && u.Role.Name.ToLower().Contains("student"))
                     .FirstOrDefaultAsync();

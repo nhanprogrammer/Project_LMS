@@ -7,6 +7,7 @@
         public string? Message { get; set; }
         public string? FileName { get; set; }
         public int TeachingAssignmentId { get; set; }
+        public int? LessonId { get; set; }
     }
 }
 

@@ -15,21 +15,24 @@ namespace Project_LMS.Controllers
     {
         private readonly ITranscriptService _transcriptService;
 
+
         public TranscriptController(ITranscriptService transcriptService)
         {
             _transcriptService = transcriptService;
+
         }
 
 
         [HttpGet]
-        public async Task<IActionResult> GetTranscriptAsync([FromQuery]TranscriptRequest transcriptRequest)
+        public async Task<IActionResult> GetTranscriptAsync([FromQuery] TranscriptRequest transcriptRequest)
         {
 
             var result = await _transcriptService.GetTranscriptAsync(transcriptRequest);
             return Ok(result);
-        }     
+        }
+
         [HttpGet("exportexcel")]
-        public async Task<IActionResult> ExportExcelTranscriptAsync([FromQuery]TranscriptRequest transcriptRequest)
+        public async Task<IActionResult> ExportExcelTranscriptAsync([FromQuery] TranscriptRequest transcriptRequest)
         {
             var result = await _transcriptService.ExportExcelTranscriptAsync(transcriptRequest);
             return Ok(result);

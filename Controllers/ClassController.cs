@@ -319,5 +319,30 @@ namespace Project_LMS.Controllers
                 return BadRequest(new ApiResponse<string>(1, ex.Message, null));
             }
         }
+
+        [HttpGet("get-all-classes")]
+        public async Task<IActionResult> GetClassesDropdown([FromQuery] int academicYearId, [FromQuery] int departmentId)
+        {
+            try
+            {
+                if (academicYearId <= 0 || departmentId <= 0)
+                {
+                    return BadRequest(new ApiResponse<string>(1, "ID niên khóa hoặc khoa khối không hợp lệ.", null));
+                }
+
+                var classes = await _classService.GetClassesDropdown(academicYearId, departmentId);
+
+                if (classes == null || !classes.Any())
+                {
+                    return Ok(new ApiResponse<List<ClassDropdownResponse>>(1, "Không tìm thấy lớp học nào.", null));
+                }
+
+                return Ok(new ApiResponse<List<ClassDropdownResponse>>(0, "Lấy danh sách lớp học thành công!", classes));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, $"Lỗi server: {ex.Message}", null));
+            }
+        }
     }
 }

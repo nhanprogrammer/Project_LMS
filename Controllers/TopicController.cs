@@ -3,9 +3,12 @@ using Project_LMS.DTOs.Request;
 using Project_LMS.Interfaces.Services;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Project_LMS.Controllers
 {
+    [Authorize(Policy = "TEACHER")]
+    [Authorize(Policy = "STUDENT")]
     [ApiController]
     [Route("api/[controller]")]
     public class TopicController : ControllerBase
@@ -93,6 +96,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "TEACHER")]
         [HttpPost]
         public async Task<IActionResult> CreateTopic([FromBody] CreateTopicRequest request)
         {
@@ -131,6 +135,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "TEACHER")]
         [HttpPut]
         public async Task<IActionResult> UpdateTopic([FromBody] UpdateTopicRequest request)
         {

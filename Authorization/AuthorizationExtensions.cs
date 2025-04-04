@@ -43,11 +43,10 @@ namespace Project_LMS.Authorization
                     "SYS-SET-DELETE",
                     "SYS-SET-ENTERSCORE",
 
-                    // Nhóm quyền mức dộ vai trò
+                    // Nhóm quyền mức độ vai trò
                     "SUPER-ADMIN",
                     "TEACHER",
                     "STUDENT"
-                   
                 };
 
                 foreach (var permission in permissions)
@@ -55,10 +54,15 @@ namespace Project_LMS.Authorization
                     options.AddPolicy(permission, policy =>
                         policy.Requirements.Add(new PermissionRequirement(permission)));
                 }
+                                
+                options.AddPolicy("TEACHER_OR_STUDENT", policy =>
+                {
+                    policy.Requirements.Add(new PermissionRequirement("TEACHER"));
+                    policy.Requirements.Add(new PermissionRequirement("STUDENT"));
+                });
             });
 
             return services;
         }
     }
-
 }

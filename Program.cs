@@ -57,10 +57,27 @@ builder.Services.AddHangfire(config => config
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
     .UseSimpleAssemblyNameTypeSerializer()
     .UseRecommendedSerializerSettings()
-    .UsePostgreSqlStorage(c =>
-        c.UseNpgsqlConnection(builder.Configuration.GetConnectionString("DefaultConnection"))));
+    .UsePostgreSqlStorage(
+        options => options.UseNpgsqlConnection(builder.Configuration.GetConnectionString("DefaultConnection")),
+        new PostgreSqlStorageOptions
+        {
+            QueuePollInterval = TimeSpan.FromSeconds(30),
+            InvisibilityTimeout = TimeSpan.FromMinutes(10),
+            DistributedLockTimeout = TimeSpan.FromMinutes(5),
+            PrepareSchemaIfNecessary = true,
+            EnableTransactionScopeEnlistment = true // Bật TransactionScope
+        }
+    )
+);
 
-builder.Services.AddHangfireServer();
+builder.Services.AddHangfireServer(options =>
+{
+    options.WorkerCount = 5;                                     // Giảm số lượng workers (mặc định là 20)
+    options.Queues = new[] { "default", "critical" };            // Phân chia hàng đợi theo mức độ ưu tiên
+    options.ServerName = $"{Environment.MachineName}:{Guid.NewGuid()}"; // Đặt tên server
+    options.SchedulePollingInterval = TimeSpan.FromMinutes(1);    // Giảm tần suất kiểm tra lịch
+    options.CancellationCheckInterval = TimeSpan.FromMinutes(5);  // Giảm tần suất kiểm tra hủy
+});
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<ValidationFilter>();
@@ -183,7 +200,7 @@ builder.Services.AddScoped<ITopicRepository, TopicRepository>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAddressService, AddressService>();
-// builder.Services.AddScoped<IDepartmentsService, Deparmen>();
+builder.Services.AddScoped<ICodeGeneratorService, CodeGeneratorService>();
 builder.Services.AddScoped<IClassRepository, ClassRepository>();
 builder.Services.AddScoped<IClassStudentRepository, ClassStudentRepository>();
 builder.Services.AddScoped<IClassSubjectRepository, ClassSubjectRepository>();
@@ -304,7 +321,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddSignalR();
 
 // Thêm Authorization
-builder.Services.AddAuthorization();
 builder.Services.AddPermissionAuthorization();
 
 builder.Services.AddHttpContextAccessor();

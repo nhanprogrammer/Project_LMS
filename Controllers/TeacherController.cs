@@ -43,7 +43,6 @@ namespace Project_LMS.Controllers
         {
             try
             {
-
                 var result = await _teacherService.AddAsync(request);
                 return Ok(result);
             }

@@ -22,6 +22,7 @@ namespace Project_LMS.Models
         public int? UserCreate { get; set; }
         public int? UserUpdate { get; set; }
         public bool? IsDelete { get; set; }
+        public int? LessonId { get; set; }
 
         public virtual QuestionAnswer? QuestionsAnswer { get; set; }
         public virtual TeachingAssignment? TeachingAssignment { get; set; }
@@ -29,6 +30,7 @@ namespace Project_LMS.Models
         public virtual ICollection<Favourite> Favourites { get; set; }
         public virtual ICollection<QuestionAnswer> InverseQuestionsAnswer { get; set; }
         public virtual ICollection<QuestionAnswerTopicView> QuestionAnswerTopicViews { get; set; }
+        public virtual Lesson? Lesson { get; set; }
 
     }
 }
