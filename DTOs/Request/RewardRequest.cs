@@ -14,7 +14,7 @@ namespace Project_LMS.DTOs.Request
         public int? SemesterId { get; set; }
 
         //public int? RewardCode { get; set; }
-        public string? RewardName { get; set; } = null!;
+        public string? FileName { get; set; } = null!;
 
         public string RewardContent { get; set; } = null!;
         [JsonIgnore]
