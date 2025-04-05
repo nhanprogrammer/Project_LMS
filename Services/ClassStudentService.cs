@@ -177,7 +177,7 @@ namespace Project_LMS.Services
                     request.FileName = await _cloudinaryService.UploadDocxAsync(request.FileName);
                 }
                 
-                request.UserCreate = userId;
+                request.UserUpdate = userId;
                 await _classStudentRepository.AddChangeClassAsync(request);
                 _logger.LogInformation($"Thêm bản ghi lớp mới: Học viên {request.UserId} vào lớp {request.ClassId}");
 
@@ -189,5 +189,32 @@ namespace Project_LMS.Services
                 return new ApiResponse<object>(5, "Đã xảy ra lỗi khi chuyển lớp. Vui lòng thử lại sau.");
             }
         }
+         public async Task<ApiResponse<ClassStudentChangeResponse>> GetClassStudentChangeInfo(int userId, int classId)
+        {
+            try
+            {
+                var classStudent = await _classStudentRepository.GetClassStudentChangeInfo(userId, classId);
+
+                if (classStudent == null)
+                    return new ApiResponse<ClassStudentChangeResponse>(1, "Không tìm thấy thông tin chuyển lớp của học viên.");
+
+                var response = new ClassStudentChangeResponse
+                {
+                    UserId = classStudent.UserId ?? 0,
+                    UserCode = classStudent.User?.UserCode,
+                    FullName = classStudent.User?.FullName,
+                    ClassId = classStudent.ClassId ?? 0,
+                    ClassName = classStudent.Class?.Name,
+                };
+
+                return new ApiResponse<ClassStudentChangeResponse>(0, "Lấy thông tin chuyển lớp thành công.", response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi lấy thông tin chuyển lớp: userId={UserId}, classId={ClassId}", userId, classId);
+                return new ApiResponse<ClassStudentChangeResponse>(1, "Đã xảy ra lỗi khi lấy thông tin chuyển lớp.");
+            }
+        }
+
     }
 }

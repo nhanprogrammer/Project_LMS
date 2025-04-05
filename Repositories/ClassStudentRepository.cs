@@ -398,5 +398,14 @@ namespace Project_LMS.Repositories
                 .Include(cs => cs.Class) // Bao gồm thông tin lớp để truy cập AcademicYearId
                 .FirstOrDefaultAsync(cs => cs.UserId == userId && cs.Class.AcademicYearId == schoolYear && cs.IsDelete == false && cs.IsActive == true);
         }
+        public async Task<ClassStudent> GetClassStudentChangeInfo(int userId, int classId)
+        {
+            return await _context.ClassStudents
+                .Include(cs => cs.User)
+                .Include(cs => cs.Class)
+                .FirstOrDefaultAsync(cs => cs.UserId == userId
+                    && cs.ClassId == classId
+                    && cs.IsDelete == false && cs.IsActive == true);
+        }
     }
 }
