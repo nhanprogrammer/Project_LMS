@@ -17,7 +17,82 @@ namespace Project_LMS.Repositories
             _context = context;
             _logger = logger;
         }
+        public async Task AddChangeClassAsync(ClassStudentRequest request)
+        {
+            var newClass = await _context.Classes
+                .Include(c => c.AcademicYear)
+                .FirstOrDefaultAsync(c => c.Id == request.ClassId);
+            if (newClass == null || newClass.AcademicYear == null || !newClass.AcademicYear.StartDate.HasValue)
+            {
+                throw new Exception("Lớp học hoặc niên khóa không hợp lệ.");
+            }
 
+            // Lấy tất cả các bản ghi ClassStudent đang active của học sinh
+            var activeClasses = await _context.ClassStudents
+                .Include(cs => cs.Class)
+                    .ThenInclude(c => c.AcademicYear)
+                .Where(cs => cs.UserId == request.UserId
+                    && cs.IsActive == true
+                    && cs.IsDelete == false
+                    && cs.ClassId != request.ClassId) // Không lấy lớp đang chuyển đến
+                .ToListAsync();
+
+            if (activeClasses.Any())
+            {
+                // Cập nhật trạng thái các lớp cũ
+                foreach (var activeClass in activeClasses)
+                {
+                    activeClass.IsActive = false;
+                    activeClass.IsClassTransitionStatus = true;
+                    activeClass.UserUpdate = request.UserUpdate;
+                    activeClass.UpdateAt = DateTime.Now;
+                }
+                _context.ClassStudents.UpdateRange(activeClasses);
+                await _context.SaveChangesAsync();
+            }
+
+            // Kiểm tra xem đã có bản ghi ClassStudent với lớp mới chưa
+            var existingClassStudent = await _context.ClassStudents
+                .FirstOrDefaultAsync(cs => cs.UserId == request.UserId
+                    && cs.ClassId == request.ClassId
+                    && cs.IsDelete == false);
+
+            if (existingClassStudent != null)
+            {
+                // Nếu đã có bản ghi, cập nhật trạng thái
+                existingClassStudent.IsDelete = false;
+                existingClassStudent.IsActive = true;
+                existingClassStudent.IsClassTransitionStatus = false;
+                existingClassStudent.UserUpdate = request.UserUpdate;
+                existingClassStudent.UpdateAt = DateTime.Now;
+                existingClassStudent.Reason = request.Reason;
+                existingClassStudent.FileName = request.FileName;
+                existingClassStudent.ChangeDate = request.ChangeDate;
+
+                _context.ClassStudents.Update(existingClassStudent);
+            }
+            else
+            {
+                // Tạo bản ghi mới
+                var newClassStudent = new ClassStudent
+                {
+                    UserId = request.UserId,
+                    ClassId = request.ClassId,
+                    IsDelete = false,
+                    IsActive = true,
+                    IsClassTransitionStatus = false,
+                    Reason = request.Reason,
+                    FileName = request.FileName,
+                    ChangeDate = request.ChangeDate,
+                    UserCreate = request.UserCreate,
+                    CreateAt = DateTime.Now,
+                    UpdateAt = DateTime.Now
+                };
+                await _context.ClassStudents.AddAsync(newClassStudent);
+            }
+
+            await _context.SaveChangesAsync();
+        }
         public async Task AddAsync(ClassStudentRequest request)
         {
             // Lấy thông tin lớp và niên khóa của bản ghi mới
@@ -28,19 +103,38 @@ namespace Project_LMS.Repositories
             {
                 throw new Exception("Lớp học hoặc niên khóa không hợp lệ.");
             }
-            //var newAcademicYearStartDate = newClass.AcademicYear.StartDate.Value;
+            var newAcademicYearStartDate = newClass.AcademicYear.StartDate.Value;
 
             // Lấy tất cả các bản ghi ClassStudent có UserId và IsActive = true
             var activeClasses = await _context.ClassStudents
                 .Include(cs => cs.Class)
                 .ThenInclude(c => c.AcademicYear)
-                .Where(cs => cs.UserId.HasValue && cs.UserId.Value == request.UserId && cs.IsActive == true && cs.IsDelete == false)
-                .FirstOrDefaultAsync();
+                .Where(cs => cs.UserId.HasValue && cs.UserId.Value == request.UserId && cs.ClassId != request.ClassId && cs.IsActive == true && cs.IsDelete == false)
+                .ToListAsync(); // Sử dụng ToListAsync để lấy tất cả bản ghi
 
-            if (activeClasses != null )
+            if (activeClasses != null && activeClasses.Any())
             {
-                activeClasses.IsActive = false;
-                activeClasses.IsClassTransitionStatus = true;
+                foreach (var activeClass in activeClasses)
+                {
+                    // Kiểm tra niên khóa của bản ghi hiện tại
+                    if (activeClass.Class != null && activeClass.Class.AcademicYear != null &&
+                        activeClass.Class.AcademicYear.StartDate.HasValue &&
+                        activeClass.Class.AcademicYear.StartDate.Value > newAcademicYearStartDate)
+                    {
+                        activeClass.IsActive = false;
+                        if (activeClass.IsClassTransitionStatus == false)
+                        {
+                            activeClass.IsClassTransitionStatus = true;
+                        }
+                        _logger.LogInformation("Đánh dấu bản ghi ClassStudent không hoạt động do thêm bản ghi mới: UserId={UserId}, ClassId={ClassId}, SchoolYear={SchoolYear}",
+                            activeClass.UserId, activeClass.ClassId, activeClass.Class.AcademicYearId);
+                    }
+                    else
+                    {
+                        _logger.LogInformation("Bỏ qua bản ghi ClassStudent vì niên khóa không thỏa mãn: UserId={UserId}, ClassId={ClassId}, SchoolYear={SchoolYear}",
+                            activeClass.UserId, activeClass.ClassId, activeClass.Class?.AcademicYearId);
+                    }
+                }
                 _context.ClassStudents.UpdateRange(activeClasses);
                 await _context.SaveChangesAsync();
             }
@@ -64,9 +158,6 @@ namespace Project_LMS.Repositories
                     IsDelete = false,
                     IsActive = true,
                     IsClassTransitionStatus = false,
-                    Reason = request.Reason,
-                    FileName = request.FileName,
-                    ChangeDate = request.ChangeDate,
                     CreateAt = DateTime.Now,
                     UpdateAt = DateTime.Now
                 };
@@ -294,6 +385,7 @@ namespace Project_LMS.Repositories
                 existingClassStudent.ClassId = classStudent.ClassId;
                 existingClassStudent.IsActive = classStudent.IsActive;
                 existingClassStudent.IsDelete = classStudent.IsDelete;
+                existingClassStudent.UserUpdate = classStudent.UserUpdate;
                 existingClassStudent.IsClassTransitionStatus = classStudent.IsClassTransitionStatus;
 
                 _context.ClassStudents.Update(existingClassStudent);
@@ -305,6 +397,15 @@ namespace Project_LMS.Repositories
             return await _context.ClassStudents
                 .Include(cs => cs.Class) // Bao gồm thông tin lớp để truy cập AcademicYearId
                 .FirstOrDefaultAsync(cs => cs.UserId == userId && cs.Class.AcademicYearId == schoolYear && cs.IsDelete == false && cs.IsActive == true);
+        }
+        public async Task<ClassStudent> GetClassStudentChangeInfo(int userId, int classId)
+        {
+            return await _context.ClassStudents
+                .Include(cs => cs.User)
+                .Include(cs => cs.Class)
+                .FirstOrDefaultAsync(cs => cs.UserId == userId
+                    && cs.ClassId == classId
+                    && cs.IsDelete == false && cs.IsActive == true);
         }
     }
 }
