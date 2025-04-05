@@ -21,6 +21,7 @@ namespace Project_LMS.DTOs.Request
         public string Address { get; set; } = null!;       
         public string? FileName { get; set; } = null!;
         public string? TransferFrom { get; set; }
+        public string? TransferTo { get; set; } 
         public string? ProvinceId { get; set; }
         public string? DistrictId { get; set; }
     }
