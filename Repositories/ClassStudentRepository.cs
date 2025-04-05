@@ -232,6 +232,18 @@ namespace Project_LMS.Repositories
                 .FirstOrDefaultAsync();
         }
 
+        public async Task<List<ClassStudent>> FindAllStudentByIdIsActive(int studentId)
+        {
+            return await _context.ClassStudents
+                .Include(cs => cs.User)
+                .Include(cs => cs.Class)
+                .Where(cs => cs.UserId == studentId
+                    && cs.IsActive == true
+                    && cs.IsDelete == false
+                    && cs.User.IsDelete == false
+            )
+                .ToListAsync(); // Thay đổi FirstOrDefaultAsync thành ToListAsync
+        }
         public async Task<List<ClassStudent>> FindStudentByStudentAcademic(int studentId, int academicId)
         {
             return await _context.ClassStudents

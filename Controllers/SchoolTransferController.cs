@@ -5,6 +5,7 @@ using Project_LMS.DTOs.Response;
 using Project_LMS.Exceptions;
 using Project_LMS.Helpers;
 using System.Text.Json;
+using Project_LMS.Interfaces;
 
 namespace Project_LMS.Controllers
 {
@@ -13,11 +14,13 @@ namespace Project_LMS.Controllers
     public class SchoolTransferController : ControllerBase
     {
         private readonly ISchoolTransferService _schoolTransferService;
-
-        public SchoolTransferController(ISchoolTransferService schoolTransferService)
+        private readonly IAuthService _authService;
+        public SchoolTransferController(ISchoolTransferService schoolTransferService, IAuthService authService)
         {
             _schoolTransferService = schoolTransferService;
+            _authService = authService;
         }
+        
 
         [HttpGet]
         public async Task<ActionResult<ApiResponse<IEnumerable<SchoolTransferResponse>>>> GetAll(int academicId,[FromQuery] PaginationRequest request, bool isOrder, string column, string? searchItem)
@@ -60,8 +63,15 @@ namespace Project_LMS.Controllers
         {
             try
             {
-                var schoolTransfer = await _schoolTransferService.CreateAsync(schoolTransferRequest);
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+                var schoolTransfer = await _schoolTransferService.CreateAsync(schoolTransferRequest,user.Id);
                 return CreatedAtAction(nameof(GetById), new { id = schoolTransfer.Id }, new ApiResponse<SchoolTransferResponse>(1, "Tạo chuyển trường thành công", schoolTransfer));
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(new ApiResponse<string>(0, ex.Message, null));
             }
             catch (BadRequestException ex)
             {

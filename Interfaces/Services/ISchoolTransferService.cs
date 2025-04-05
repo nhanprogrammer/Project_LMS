@@ -7,7 +7,7 @@ public interface ISchoolTransferService
 {
     Task<ApiResponse<List<object>>> GetAllAsync(int academicId, PaginationRequest request, bool isOrder, string column, string searchItem);
     Task<SchoolTransferResponse> GetByIdAsync(int id);
-    Task<SchoolTransferResponse> CreateAsync(SchoolTransferRequest request);
+    Task<SchoolTransferResponse> CreateAsync(SchoolTransferRequest request, int StudentId);
     Task<SchoolTransferResponse> UpdateAsync(int id, SchoolTransferRequest request);
     Task<SchoolTransferResponse> DeleteAsync(int id);
 }

@@ -109,6 +109,7 @@ namespace Project_LMS.Services
             }
             var classStudentsResponse = classStudents.Select(cs => (object)new
             {
+                cs.UserId,
                 cs.User?.UserCode,
                 cs.User?.FullName,
                 cs.User?.BirthDate,
