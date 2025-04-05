@@ -347,6 +347,10 @@ builder.Services.AddLogging(logging =>
     logging.SetMinimumLevel(LogLevel.Information); // Cấu hình mức log tối thiểu
 });
 
+// Đăng ký NotificationQueueService
+builder.Services.AddSingleton<NotificationQueueService>();
+builder.Services.AddHostedService(provider => provider.GetRequiredService<NotificationQueueService>());
+
 var app = builder.Build();
 app.MapHub<MeetHubService>("/meetHub");
 app.Use(async (context, next) =>

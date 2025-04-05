@@ -66,7 +66,6 @@ public sealed class NotificationsRepository : INotificationsRepository
             {
                 throw new Exception("Người nhận thông báo không tồn tại!");
             }
-
             // Kiểm tra senderId (người gửi) có tồn tại không
             var sender = await _context.Users.FindAsync(senderId);
             if (sender == null)

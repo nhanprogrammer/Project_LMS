@@ -68,7 +68,7 @@ public class NotificationsController : ControllerBase
     public async Task<IActionResult> SendMessageNotification(AddManualNotificationRequest request)
     {
         var user = await _authService.GetUserAsync();
-        request.UserId = user.Id;
+        request.SenderId = user.Id;
         var notifications = await _notificationsService.AddManualNotificationAsync(request);
         if (notifications.Status == 1)
         {
@@ -117,4 +117,5 @@ public class NotificationsController : ControllerBase
 
         return BadRequest(response);
     }
+
 }

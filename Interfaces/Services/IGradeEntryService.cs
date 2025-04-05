@@ -5,7 +5,7 @@ namespace Project_LMS.Interfaces.Services;
 
 public interface IGradeEntryService
 {
-    Task<ApiResponse<GradingDataResponse>> GetGradingData(int testId, int teacherId);
+    Task<ApiResponse<GradingDataResponse>> GetGradingData(int testId, int teacherId, int? classId = null);
 
     Task<ApiResponse<bool>> SaveGrades(SaveGradesRequest request, int teacherId);
 }

@@ -45,9 +45,11 @@ public class AcademicYearRepository : IAcademicYearRepository
                 Name = se.Name,
                 StartDate = se.StartDate.Value,
                 EndDate = se.EndDate.Value,
-                IsDelete = se.IsDelete.Value
+                IsDelete = se.IsDelete.Value,
+                SemestersName = $"{se.StartDate.Value.Year} - {se.EndDate.Value.Year}"
             })
             .ToListAsync();
+
         var result = new AcademicYearWithSemestersDto
         {
             Id = academicYear.Id,
@@ -60,7 +62,8 @@ public class AcademicYearRepository : IAcademicYearRepository
             UserCreate = academicYear.UserCreate,
             UserUpdate = academicYear.UserUpdate,
             IsDelete = academicYear.IsDelete.Value,
-            Semesters = semesters
+            Semesters = semesters,
+            AcademicYearName = $"{academicYear.StartDate.Value.Year} - {academicYear.EndDate.Value.Year}"
         };
         return result;
     }

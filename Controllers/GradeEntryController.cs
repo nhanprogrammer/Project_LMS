@@ -5,6 +5,7 @@ using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces;
 using Project_LMS.Interfaces.Services;
+using Microsoft.Extensions.Logging;
 
 namespace Project_LMS.Controllers;
 
@@ -16,19 +17,21 @@ public class GradeEntryController : ControllerBase
 {
     private readonly IGradeEntryService _gradeEntryService;
     private readonly IAuthService _authService;
+    private readonly ILogger<GradeEntryController> _logger;
 
-    public GradeEntryController(IGradeEntryService gradeEntryService, IAuthService authService)
+    public GradeEntryController(IGradeEntryService gradeEntryService, IAuthService authService, ILogger<GradeEntryController> logger)
     {
         _gradeEntryService = gradeEntryService;
         _authService = authService;
+        _logger = logger;
     }
     [Authorize(Policy = "TEACHER")]
     [HttpGet("test/{testId}")]
-    public async Task<IActionResult> GetGradingData(int testId)
+    public async Task<IActionResult> GetGradingData(int testId, [FromQuery] int? classId = null)
     {
         var user = await _authService.GetUserAsync();
-        int teacherId = user.Id; // Thay bằng cách lấy từ token thực tế
-        var response = await _gradeEntryService.GetGradingData(testId, teacherId);
+        int teacherId = user.Id;
+        var response = await _gradeEntryService.GetGradingData(testId, teacherId, classId);
 
         if (response.Status == 0)
         {
@@ -43,6 +46,8 @@ public class GradeEntryController : ControllerBase
     {
         // Lấy teacherId từ token JWT
         var teacherIdClaim = await _authService.GetUserAsync();
+        
+        _logger.LogInformation($"SaveGrades - TestId: {request.TestId}, ClassId: {request.ClassId}, TeacherId: {teacherIdClaim.Id}, Grades count: {request.Grades?.Count ?? 0}");
 
         // Gọi service để lưu điểm
         var response = await _gradeEntryService.SaveGrades(request, teacherIdClaim.Id);
