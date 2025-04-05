@@ -1,11 +1,17 @@
-﻿using System.Collections;
-
-namespace Project_LMS.DTOs.Response
+﻿namespace Project_LMS.DTOs.Response
 {
+    public class IdNamePair
+    {
+        public int Id { get; set; }
+        public string? Name { get; set; }
+    }
+
     public class StudentResponse
     {
         public int? StudentStatusId { get; set; }
-        public int ClassId { get; set; }
+        public IdNamePair? AcademicYear { get; set; } // Niên khóa: { Id, Name }
+        public IdNamePair? Department { get; set; } // Khối: { Id, Name }
+        public IdNamePair? Class { get; set; } // Lớp: { Id, Name }
         public string? UserCode { get; set; }
         public string? FullName { get; set; }
         public string? Email { get; set; }

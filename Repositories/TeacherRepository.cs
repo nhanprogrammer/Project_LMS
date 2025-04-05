@@ -216,9 +216,10 @@ namespace Project_LMS.Repositories
                     Id = u.Id,
                     FullName = u.FullName
                 })
-                .ToListAsync();
+                .ToListAsync(); // Lấy dữ liệu từ DB trước
 
-            return teachers;
+            // Sắp xếp trong bộ nhớ
+            return teachers.OrderBy(u => u.FullName != null ? u.FullName.Substring(u.FullName.LastIndexOf(' ') + 1) : string.Empty).ToList();
         }
     }
 }

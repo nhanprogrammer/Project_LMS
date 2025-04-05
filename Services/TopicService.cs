@@ -101,7 +101,21 @@ public class TopicService : ITopicService
                 }
             }
 
-            return new ApiResponse<TopicResponse>(0, "Lấy topic thành công!", topic);
+            var topicResponse = _mapper.Map<TopicResponse>(topic);
+            var user = await _context.Users.FindAsync(topic.UserId);
+            topicResponse.Avatar = user?.Image;
+            topicResponse.FullName = user?.FullName;
+            topicResponse.RoleName = user?.RoleId switch
+            {
+                1 => "Admin",
+                2 => "Teacher",
+                3 => "Student",
+                _ => "Unknown"
+            };
+            topicResponse.IsClosed = topic.CloseAt.HasValue &&
+                                     topic.CloseAt.Value < TimeHelper.NowUsingTimeZone;
+
+            return new ApiResponse<TopicResponse>(0, "Lấy topic thành công!", topicResponse);
         }
         catch (Exception ex)
         {
@@ -182,6 +196,12 @@ public class TopicService : ITopicService
                 }
 
                 request.TeachingAssignmentId = parentTopic.TeachingAssignmentId.Value;
+
+                // Thêm kiểm tra thời gian đóng
+                if (parentTopic.CloseAt.HasValue && parentTopic.CloseAt.Value < TimeHelper.NowUsingTimeZone)
+                {
+                    throw new Exception("Không thể thêm comment, topic đã hết thời gian cho phép bình luận!");
+                }
             }
 
             // 6) Map DTO -> Entity
@@ -198,21 +218,27 @@ public class TopicService : ITopicService
                 // Kiểm tra thời gian closeAt (nếu có)
                 if (topicEntity.CloseAt.HasValue)
                 {
-                    var currentTime = TimeHelper.NowUsingTimeZone; // Thời điểm hiện tại
-                    var lowerBoundTime = currentTime.AddMinutes(-10); // Thời gian giới hạn dưới (hiện tại - 10 phút)
+                    var currentTime = TimeHelper.NowUsingTimeZone;
+                    var lowerBoundTime = currentTime.AddMinutes(-10);
+
+                    if (topicEntity.CloseAt.Value < currentTime)
+                    {
+                        return new ApiResponse<TopicResponse>(1,
+                            "Thời gian đóng (CloseAt) không thể đặt trong quá khứ!", null);
+                    }
 
                     if (topicEntity.CloseAt.Value < lowerBoundTime)
                     {
                         return new ApiResponse<TopicResponse>(1,
-                            $"Thời gian đóng (CloseAt) không hợp lệ: không được sớm hơn {lowerBoundTime:yyyy-MM-dd HH:mm:ss} (hiện tại - 10 phút)!",
+                            $"Thời gian đóng (CloseAt) không hợp lệ: không được sớm hơn {lowerBoundTime:yyyy-MM-dd HH:mm:ss}!",
                             null);
                     }
                 }
             }
-            else // Nếu là comment (TopicId có giá trị)
+            else // Nếu là comment
             {
-                // Gán closeAt bằng thời gian hiện tại, bỏ qua giá trị closeAt từ request
-                topicEntity.CloseAt = TimeHelper.NowUsingTimeZone;
+                // Comment không cần set closeAt vì sẽ theo closeAt của topic gốc
+                topicEntity.CloseAt = null;
             }
 
             // 8) Upload file nếu có
@@ -246,6 +272,8 @@ public class TopicService : ITopicService
                 3 => "Student",
                 _ => "Unknown"
             };
+            topicResponse.IsClosed = savedTopic.CloseAt.HasValue &&
+                                     savedTopic.CloseAt.Value < TimeHelper.NowUsingTimeZone;
             // 11) Gửi thông báo
             if (!request.TopicId.HasValue) // Nếu là topic gốc
             {
@@ -340,6 +368,16 @@ public class TopicService : ITopicService
                 return new ApiResponse<TopicResponse>(1, "Topic không tồn tại hoặc đã bị xóa!", null);
             }
 
+            // Thêm kiểm tra thời gian đóng
+            if (existingTopic.CloseAt.HasValue && existingTopic.CloseAt.Value < TimeHelper.NowUsingTimeZone)
+            {
+                // Cho phép giáo viên (RoleId == 2) sửa topic dù đã đóng
+                if (existingTopic.TopicId.HasValue || users.RoleId != 2)
+                {
+                    throw new Exception("Không thể cập nhật, topic đã hết thời gian cho phép chỉnh sửa!");
+                }
+            }
+
             // 4) Lấy thông tin user để kiểm tra vai trò
             var user = await _context.Users.FindAsync(request.UserId);
             if (user == null)
@@ -395,26 +433,31 @@ public class TopicService : ITopicService
             var topicEntity = _mapper.Map<Topic>(request);
 
             // 8) Xử lý thời gian closeAt
-            if (!existingTopic.TopicId.HasValue) // Nếu là topic gốc (giáo viên cập nhật)
+            if (!existingTopic.TopicId.HasValue) // Nếu là topic gốc
             {
-                // Kiểm tra thời gian closeAt (nếu có)
                 if (topicEntity.CloseAt.HasValue)
                 {
-                    var currentTime = TimeHelper.NowUsingTimeZone; // Thời điểm hiện tại
-                    var lowerBoundTime = currentTime.AddMinutes(-10); // Thời gian giới hạn dưới (hiện tại - 10 phút)
+                    var currentTime = TimeHelper.NowUsingTimeZone;
 
-                    if (topicEntity.CloseAt.Value < lowerBoundTime)
+                    // Nếu topic đã đóng thì không cho update closeAt
+                    if (existingTopic.CloseAt.HasValue && existingTopic.CloseAt.Value < currentTime)
                     {
                         return new ApiResponse<TopicResponse>(1,
-                            $"Thời gian đóng (CloseAt) không hợp lệ: không được sớm hơn {lowerBoundTime:yyyy-MM-dd HH:mm:ss} (hiện tại - 10 phút)!",
-                            null);
+                            "Topic đã đóng, không thể thay đổi thời gian đóng!", null);
+                    }
+
+                    // Không cho phép đặt thời gian trong quá khứ
+                    if (topicEntity.CloseAt.Value < currentTime)
+                    {
+                        return new ApiResponse<TopicResponse>(1,
+                            $"Thời gian đóng (CloseAt) không thể đặt trong quá khứ!", null);
                     }
                 }
             }
-            else // Nếu là comment (TopicId có giá trị)
+            else // Nếu là comment
             {
-                // Gán closeAt bằng thời gian hiện tại, bỏ qua giá trị closeAt từ request
-                topicEntity.CloseAt = TimeHelper.NowUsingTimeZone;
+                // Comment không cần set closeAt vì sẽ theo closeAt của topic gốc
+                topicEntity.CloseAt = null;
             }
 
             // 9) Xử lý file: Xóa file cũ và upload file mới nếu có
@@ -459,6 +502,8 @@ public class TopicService : ITopicService
                 3 => "Student",
                 _ => "Unknown"
             };
+            topicResponse.IsClosed = updatedTopic.CloseAt.HasValue &&
+                                     updatedTopic.CloseAt.Value < TimeHelper.NowUsingTimeZone;
             // 12) Gửi thông báo
             if (!request.TopicId.HasValue) // Nếu là topic gốc
             {
@@ -563,6 +608,18 @@ public class TopicService : ITopicService
                 }
             }
 
+            // Kiểm tra thời gian đóng
+            var parentTopic = !topic.TopicId.HasValue ? topic :
+                await _topicRepository.GetTopicById(userId, teachingAssignmentId, topic.TopicId.Value);
+
+            if (parentTopic.CloseAt.HasValue && parentTopic.CloseAt.Value < TimeHelper.NowUsingTimeZone)
+            {
+                if (user.RoleId != 2) // Nếu không phải giáo viên
+                {
+                    throw new Exception("Topic đã đóng, không thể thêm/sửa/xóa comment!");
+                }
+            }
+
             // 4) Xóa topic
             var success = await _topicRepository.DeleteTopic(userId, teachingAssignmentId, id);
             if (!success)
@@ -604,13 +661,13 @@ public class TopicService : ITopicService
             }
             else // Nếu là comment
             {
-                var parentTopic =
+                var parentTopicDetails =
                     await _topicRepository.GetTopicById(userId, teachingAssignmentId, topic.TopicId.Value);
                 if (parentTopic != null && parentTopic.UserId != userId)
                 {
                     await _notificationsService.AddNotificationAsync(
                         senderId: userId, // Người xóa comment
-                        userId: parentTopic.UserId.Value,
+                        userId: parentTopicDetails.UserId.Value,
                         subject: "Comment trong topic của bạn đã bị xóa!",
                         content: $"{user.FullName} đã xóa một comment trong topic '{parentTopic.Title}'.",
                         type: false // Thông báo người dùng

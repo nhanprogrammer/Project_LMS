@@ -11,5 +11,7 @@
         public string? FileName { get; set; } // Tên file hoặc dữ liệu file mới (tùy chọn)
 
         public int? TeachingAssignmentId { get; set; } // Phân công giảng dạy mới (tùy chọn, dùng để cập nhật TeachingAssignmentId)
+        
+        public int? LessonId { get; set; } // ID của buổi học liên quan đến câu hỏi/câu trả lời
     }
 }

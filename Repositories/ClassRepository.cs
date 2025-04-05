@@ -54,7 +54,9 @@ public class ClassRepository : IClassRepository
     public async Task<Class> FindClassById(int id)
     {
         return await _context.Classes
-            .Include(c=>c.TestExams).ThenInclude(te=>te.TestExamType)
+            .Include(c=>c.Department)
+            .Include(c=>c.TestExams)
+            .ThenInclude(te=>te.TestExamType)
             .FirstOrDefaultAsync(c => c.Id == id && c.IsDelete ==false);
     }
 

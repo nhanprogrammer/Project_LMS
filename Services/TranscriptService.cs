@@ -5,6 +5,7 @@ using OfficeOpenXml;
 
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Interfaces;
 using Project_LMS.Interfaces.Repositories;
 using Project_LMS.Interfaces.Responsitories;
 using Project_LMS.Interfaces.Services;
@@ -26,14 +27,16 @@ namespace Project_LMS.Services
         private readonly ITestExamTypeRepository _testExamTypeRepository;
         private readonly ICloudinaryService _cloudinaryService;
         private readonly IAssignmentRepository _assignmentRepository;
+        private readonly IAuthService _authService;
 
-        public TranscriptService(IClassStudentRepository classStudentRepository, IStudentRepository studentRepository, ITestExamTypeRepository testExamTypeRepository, ICloudinaryService cloudinaryService, IAssignmentRepository assignmentRepository)
+        public TranscriptService(IClassStudentRepository classStudentRepository, IStudentRepository studentRepository, ITestExamTypeRepository testExamTypeRepository, ICloudinaryService cloudinaryService, IAssignmentRepository assignmentRepository, IAuthService authService)
         {
             _classStudentRepository = classStudentRepository;
             _studentRepository = studentRepository;
             _testExamTypeRepository = testExamTypeRepository;
             _cloudinaryService = cloudinaryService;
             _assignmentRepository = assignmentRepository;
+            _authService = authService;
         }
 
         public async Task<ApiResponse<object>> ExportExcelTranscriptAsync(TranscriptRequest request)
@@ -429,20 +432,24 @@ namespace Project_LMS.Services
             };
         }
 
-
-
-
-
-
         public async Task<ApiResponse<object>> GetTranscriptAsync(TranscriptRequest request)
         {
             //if (string.IsNullOrWhiteSpace(request.UserCode))
             //    return new ApiResponse<object>(1, "UserCode không được bỏ trống.");
-
+            var user = await _authService.GetUserAsync();
+            if (user != null)
+            {
+                var studentAuth = await _studentRepository.FindStudentById(user.Id);
+                if (studentAuth != null && studentAuth.Role.Name == "Student")
+                {
+                    request.StudentId = studentAuth.Id;
+                }
+            }
+            Console.WriteLine("RoleNameeeee " + user.Role?.Name);
             var student = await _studentRepository.FindStudentById(request.StudentId);
             if (student == null)
                 return new ApiResponse<object>(1, "Học viên không tồn tại.");
-
+            
             var classStudents = await _classStudentRepository.FindStudentByStudentAcademic(student.Id, (int)request.DepartmentId);
             var classStudent = classStudents.FirstOrDefault(cs => cs.IsClassTransitionStatus == false);
 

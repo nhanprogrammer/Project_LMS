@@ -28,6 +28,6 @@ namespace Project_LMS.Interfaces
         Task<ApiResponse<TeachingAssignmentDetailResponse>> GetClassFutureDetail(int teachingAssignmentId);
         Task<List<Class_UserResponse>> GetClassesByAcademicYear(int academicYearId);
         Task<ApiResponse<TeachingAssignmentDetailResponse>> GetClassLessonStudentDetail(int teachingAssignmentId);
-
+        Task<List<ClassDropdownResponse>> GetClassesDropdown(int academicYearId, int departmentId);
     }
 }

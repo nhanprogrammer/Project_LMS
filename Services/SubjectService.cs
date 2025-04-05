@@ -31,6 +31,8 @@ namespace Project_LMS.Services
                     return new ApiResponse<PaginatedResponse<SubjectResponse>>(1, "Không có quyền truy cập", null);
 
                 var query = _context.Subjects
+                    .Include(s => s.SubjectType)
+                    .Include(s => s.SubjectGroupSubjects) 
                     .Where(s => !s.IsDelete.HasValue || !s.IsDelete.Value);
 
                 if (!string.IsNullOrWhiteSpace(keyword))
@@ -42,9 +44,7 @@ namespace Project_LMS.Services
                     );
                 }
 
-                query = query
-                    .Include(s => s.SubjectType)
-                    .OrderByDescending(s => s.Id);
+                query = query.OrderByDescending(s => s.Id);
 
                 var totalItems = await query.CountAsync();
                 var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
