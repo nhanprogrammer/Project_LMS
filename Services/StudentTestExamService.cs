@@ -3,6 +3,7 @@ using AutoMapper;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using HtmlAgilityPack;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
@@ -23,7 +24,8 @@ public class StudentTestExamService : IStudentTestExamService
     private readonly IServiceProvider _serviceProvider;
     private readonly IHubContext<RealtimeHub> _hubContext;
 
-    public StudentTestExamService(ApplicationDbContext context, IMapper mapper, IServiceProvider serviceProvider, IHubContext<RealtimeHub> hubContext)
+    public StudentTestExamService(ApplicationDbContext context, IMapper mapper, IServiceProvider serviceProvider,
+        IHubContext<RealtimeHub> hubContext)
     {
         _context = context;
         _mapper = mapper;
@@ -34,8 +36,45 @@ public class StudentTestExamService : IStudentTestExamService
 
     public async Task<ApiResponse<PaginatedResponse<StudentTestExamResponse>>> GetStudentTestExamAsync(
         int studentId, int? pageNumber, int? pageSize, string? sortDirection,
-        string? topicName, string? subjectName, string? department, string? startDate, string? option)
+        string? topicName, int? subjectId, int? departmentId, string? startDate, string? option)
     {
+        var today = DateTime.Now.Date;
+
+        var testExamQuery = _context.TestExams
+            .Where(te => te.IsDelete == false && te.IsExam ==false
+                         && te.ClassTestExams.Any(cte =>
+                             cte.Class.ClassStudents.Any(sc => sc.UserId == studentId)));
+
+        // Cập nhật trạng thái bài kiểm tra
+        var testExamsToUpdate = await testExamQuery.ToListAsync();
+        foreach (var testExam in testExamsToUpdate)
+        {
+            // Cập nhật trạng thái của bài kiểm tra
+            if (testExam.EndDate.Value <= today)
+            {
+                testExam.ScheduleStatusId = 7; // Đã kết thúc
+            }
+            else if (testExam.StartDate.Value == today)
+            {
+                testExam.ScheduleStatusId = 6; // Đang diễn ra
+            }
+            else if (testExam.StartDate.Value < today && testExam.EndDate.Value >= today)
+            {
+                testExam.ScheduleStatusId = 3; // Đang diễn ra
+            }
+            else if (testExam.StartDate.Value == testExam.EndDate.Value)
+            {
+                if (testExam.StartDate.Value < today)
+                {
+                    testExam.ScheduleStatusId = 7; // Đã kết thúc
+                }
+            }
+            _context.TestExams.Update(testExam);
+        }
+
+        // Lưu các thay đổi
+        await _context.SaveChangesAsync();
+        
         // Kiểm tra đầu vào
         if (pageNumber.HasValue && pageNumber <= 0)
         {
@@ -58,11 +97,18 @@ public class StudentTestExamService : IStudentTestExamService
         }
 
         // Truy vấn cơ sở dữ liệu
-        var testExamQuery = _context.TestExams
-            .Where(te => te.IsDelete == false && te.IsExam == false
-                                              && te.ClassTestExams.Any(cte =>
-                                                  cte.Class.ClassStudents.Any(sc => sc.UserId == studentId)));
+        // var testExamQuery = _context.TestExams
+        //     .Where(te => te.IsDelete == false && te.IsExam == false
+        //                                       && te.ClassTestExams.Any(cte =>
+        //                                           cte.Class.ClassStudents.Any(sc => sc.UserId == studentId)));
 
+        
+        // Truy vấn cơ sở dữ liệu
+        // var testExamQuery = _context.TestExams
+        //     .Where(te => te.IsDelete == false 
+        //                                       && te.ClassTestExams.Any(cte =>
+        //                                           cte.Class.ClassStudents.Any(sc => sc.UserId == studentId)));
+        //
         // Các điều kiện lọc
         if (!string.IsNullOrEmpty(topicName))
         {
@@ -70,14 +116,14 @@ public class StudentTestExamService : IStudentTestExamService
             testExamQuery = testExamQuery.Where(te => EF.Functions.Like(te.Topic, $"%{decodedTopicName}%"));
         }
 
-        if (!string.IsNullOrEmpty(subjectName))
+        if (subjectId.HasValue)
         {
-            testExamQuery = testExamQuery.Where(te => te.Subject.SubjectName.Contains(subjectName));
+            testExamQuery = testExamQuery.Where(te => te.Subject.Id == subjectId.Value);
         }
 
-        if (!string.IsNullOrEmpty(department))
+        if (departmentId.HasValue)
         {
-            testExamQuery = testExamQuery.Where(te => te.Department.Name.Contains(department));
+            testExamQuery =  testExamQuery.Where(te => te.Department.Id == departmentId.Value);
         }
 
         if (!string.IsNullOrEmpty(startDate) && DateTime.TryParseExact(startDate, "dd-MM-yyyy",
@@ -162,7 +208,12 @@ public class StudentTestExamService : IStudentTestExamService
         {
             return new ApiResponse<List<QuestionResponse>>(1, "Không tìm thấy bài kiểm tra", null);
         }
-
+        
+        if (testExam.EndDate.HasValue && DateTime.Now > testExam.EndDate.Value)
+        {
+            return new ApiResponse<List<QuestionResponse>>(1, "Bài kiểm tra đã kết thúc, không thể truy cập!", null);
+        }
+        
         // Lọc các câu hỏi dựa trên hình thức của bài kiểm tra
         List<Question> filteredQuestions;
         if (testExam.Form.IndexOf("trắc nghiệm", StringComparison.OrdinalIgnoreCase) >= 0)
@@ -256,6 +307,31 @@ public class StudentTestExamService : IStudentTestExamService
 
     public async Task<ApiResponse<object>> SubmitYourAssignment(int UserId, SubmitMultipleChoiceQuestionRequest request)
     {
+        var userClasses = await _context.ClassStudents
+            .Where(cls => cls.UserId == UserId)
+            .Select(cls => cls.ClassId)
+            .ToListAsync();
+
+        var examClasses = await _context.ClassTestExams
+            .Where(exam => exam.TestExamId == request.TestExamId)
+            .Select(exam => exam.ClassId)
+            .ToListAsync();
+
+        if (!userClasses.Intersect(examClasses).Any())
+        {
+            return new ApiResponse<object>(1, $"User {UserId} không có bài kiểm tra {request.TestExamId}", null);
+        }
+
+        // ✅ Kiểm tra thời gian hợp lệ
+        var testExam = await _context.TestExams.FirstOrDefaultAsync(ts => ts.Id == request.TestExamId);
+        if (testExam == null) return new ApiResponse<object>(1, "Bài kiểm tra không tồn tại", null);
+        if (testExam.StartDate.HasValue && DateTime.Now < testExam.StartDate.Value)
+            return new ApiResponse<object>(1, "Chưa đến thời gian làm bài", null);
+        if (testExam.EndDate.HasValue && DateTime.Now > testExam.EndDate.Value)
+            return new ApiResponse<object>(1, "Hết thời gian làm bài", null);
+
+
+
         // Create a new Assignment first
         var assignment = new Assignment
         {
@@ -315,177 +391,360 @@ public class StudentTestExamService : IStudentTestExamService
 
         return new ApiResponse<object>(0, "Nộp bài thành công!", new { TotalScore = totalScore });
     }
+public async Task<ApiResponse<object>> SaveEssay(int UserId, SaveEssayRequest request)
+{
+    // ✅ Kiểm tra User có bài kiểm tra không
+    var userClasses = await _context.ClassStudents
+        .Where(cls => cls.UserId == UserId)
+        .Select(cls => cls.ClassId)
+        .ToListAsync();
 
+    var examClasses = await _context.ClassTestExams
+        .Where(exam => exam.TestExamId == request.TestExamId)
+        .Select(exam => exam.ClassId)
+        .ToListAsync();
 
-    public async Task<ApiResponse<object>> SaveEssay(int UserId, SaveEssayRequest request)
+    if (!userClasses.Intersect(examClasses).Any())
     {
-        // Kiểm tra xem đã có bài nộp chưa
-        var existingAssignment = await _context.Assignments
-            .FirstOrDefaultAsync(a => a.UserId == UserId && a.TestExamId == request.TestExamId);
+        return new ApiResponse<object>(1, $"User {UserId} không có bài kiểm tra {request.TestExamId}", null);
+    }
 
-        string fileUrl = await SaveEssayToFile(request.SubmissionFile);
+    // ✅ Kiểm tra thời gian hợp lệ
+    var testExam = await _context.TestExams.FirstOrDefaultAsync(ts => ts.Id == request.TestExamId);
+    if (testExam == null) return new ApiResponse<object>(1, "Bài kiểm tra không tồn tại", null);
+    if (testExam.StartDate.HasValue && DateTime.Now < testExam.StartDate.Value)
+        return new ApiResponse<object>(1, "Chưa đến thời gian làm bài", null);
+    if (testExam.EndDate.HasValue && DateTime.Now > testExam.EndDate.Value)
+        return new ApiResponse<object>(1, "Hết thời gian làm bài", null);
 
-        if (existingAssignment != null)
+    // ✅ Kiểm tra xem User đã có bài nộp chưa
+    var existingAssignment = await _context.Assignments
+        .FirstOrDefaultAsync(a => a.UserId == UserId && a.TestExamId == request.TestExamId);
+
+    if (existingAssignment == null)
+    {
+        existingAssignment = new Assignment
         {
-            // Nếu bài đã tồn tại -> Cập nhật nội dung mới
-            existingAssignment.SubmissionFile = fileUrl;
-            _context.Assignments.Update(existingAssignment);
+            UserId = UserId,
+            TestExamId = request.TestExamId,
+            SubmissionDate = DateTime.Now,
+            IsSubmit = true
+        };
+        await _context.Assignments.AddAsync(existingAssignment);
+        await _context.SaveChangesAsync();
+    }
+
+    // ✅ Lấy danh sách định dạng file được phép
+    var fileFormats = await _context.FileFormats
+        .Where(ts => ts.TestExamId == request.TestExamId)
+        .ToListAsync();
+
+    if (!fileFormats.Any())
+    {
+        return new ApiResponse<object>(1, "Không có định dạng file nào được phép!", null);
+    }
+
+    bool isDocAllowed = fileFormats.Any(f => f.IsDoc == true);
+    bool isPptAllowed = fileFormats.Any(f => f.IsPowerpoint == true);
+    bool isXlsAllowed = fileFormats.Any(f => f.IsXxls == true);
+    bool isJpegAllowed = fileFormats.Any(f => f.IsJpeg == true);
+
+    // ✅ Tính dung lượng tối đa cho phép
+    long maxSize = fileFormats.Max(f =>
+        (f.Is10 == true ? 10 : 0) +
+        (f.Is20 == true ? 20 : 0) +
+        (f.Is30 == true ? 30 : 0) +
+        (f.Is40 == true ? 40 : 0)) * 1024 * 1024;
+
+
+    var cloudinaryService = _serviceProvider.GetService<ICloudinaryService>();
+    var uploadedFiles = new List<SubmissionFile>();
+
+    foreach (var file in request.AttachedFiles)
+    {
+        // ✅ Kiểm tra dung lượng file
+        string base64Data = Regex.Match(file, @"base64,(?<data>.*)").Groups["data"].Value;
+        if (string.IsNullOrEmpty(base64Data)) continue;
+
+        byte[] fileBytes = Convert.FromBase64String(base64Data);
+        if (fileBytes.Length > maxSize)
+        {
+            return new ApiResponse<object>(1, $"File {file.Substring(0, 30)}... vượt quá dung lượng cho phép!", null);
+        }
+
+        // ✅ Xác định loại file và upload
+        string uploadResult = null;
+        if (file.Contains("application/msword") && isDocAllowed)
+        {
+            uploadResult = await cloudinaryService.UploadDocxAsync(file);
+        }
+        else if (file.Contains("application/vnd.ms-powerpoint") && isPptAllowed)
+        {
+            uploadResult = await cloudinaryService.UploadPowerPointAsync(file);
+        }
+        else if (file.Contains("application/vnd.ms-excel") && isXlsAllowed)
+        {
+            uploadResult = await cloudinaryService.UploadExcelAsync(file);
+        }
+        else if (file.Contains("image/jpeg") && isJpegAllowed)
+        {
+            uploadResult = await cloudinaryService.UploadImageAsync(file);
         }
         else
         {
-            // Nếu chưa có bài -> Tạo mới
-            var assignment = new Assignment
-            {
-                UserId = UserId,
-                TestExamId = request.TestExamId,
-                SubmissionFile = fileUrl,
-                SubmissionDate = DateTime.Now,
-                IsSubmit = true
-            };
-            await _context.Assignments.AddAsync(assignment);
-            await _context.SaveChangesAsync();
-            var fileFormats = await _context.FileFormats
-                .Where(ts => ts.TestExamId == request.TestExamId)
-                .ToListAsync();
-
-            var cloudinaryService = _serviceProvider.GetService<ICloudinaryService>();
-            long fileSize = 0; // Initialize fileSize outside the loop
-            string base64Data = string.Empty;
-            byte[] fileBytes = null;
-            string uploadResult = null;
-
-            if (!string.IsNullOrEmpty(request.AttachedFile))
-            {
-                // Xác định dung lượng tối đa cho file
-                long maxSize = 0;
-
-                foreach (var file in fileFormats)
-                {
-                    // Kiểm tra loại file và dung lượng tối đa
-                    if (file.IsDoc == true)
-                    {
-                        if (file.Is10 == true) maxSize = Math.Max(maxSize, 10 * 1024 * 1024);
-                        if (file.Is20 == true) maxSize = Math.Max(maxSize, 20 * 1024 * 1024);
-                        if (file.Is30 == true) maxSize = Math.Max(maxSize, 30 * 1024 * 1024);
-                        if (file.Is40 == true) maxSize = Math.Max(maxSize, 40 * 1024 * 1024);
-
-                        var match = Regex.Match(request.AttachedFile, @"data:application/msword;base64,(?<data>.*)");
-                        if (match.Success)
-                        {
-                            base64Data = match.Groups["data"].Value;
-                            fileBytes = Convert.FromBase64String(base64Data);
-                            fileSize = fileBytes.Length; // Calculate file size from base64 data
-                        }
-                        uploadResult = await cloudinaryService.UploadDocxAsync(request.AttachedFile);
-                    }
-
-                    // Kiểm tra các loại file khác như PowerPoint, Excel, JPEG
-                    if (file.IsPowerpoint == true &&
-                        Regex.IsMatch(request.AttachedFile, @"data:application/vnd.ms-powerpoint;base64,"))
-                    {
-                        var match = Regex.Match(request.AttachedFile,
-                            @"data:application/vnd.ms-powerpoint;base64,(?<data>.*)");
-                        if (match.Success)
-                        {
-                            base64Data = match.Groups["data"].Value;
-                            fileBytes = Convert.FromBase64String(base64Data);
-                            fileSize = fileBytes.Length;
-                        }
-                        uploadResult = await cloudinaryService.UploadPowerPointAsync(request.AttachedFile);
-                    }
-
-                    if (file.IsXxls == true &&
-                        Regex.IsMatch(request.AttachedFile, @"data:application/vnd.ms-excel;base64,"))
-                    {
-                        var match = Regex.Match(request.AttachedFile,
-                            @"data:application/vnd.ms-excel;base64,(?<data>.*)");
-                        if (match.Success)
-                        {
-                            base64Data = match.Groups["data"].Value;
-                            fileBytes = Convert.FromBase64String(base64Data);
-                            fileSize = fileBytes.Length;
-                        }
-                        uploadResult = await cloudinaryService.UploadExcelAsync(request.AttachedFile);
-                    }
-
-                    if (file.IsJpeg == true && Regex.IsMatch(request.AttachedFile, @"data:image/jpeg;base64,"))
-                    {
-                        var match = Regex.Match(request.AttachedFile, @"data:image/jpeg;base64,(?<data>.*)");
-                        if (match.Success)
-                        {
-                            base64Data = match.Groups["data"].Value;
-                            fileBytes = Convert.FromBase64String(base64Data);
-                            fileSize = fileBytes.Length;
-                        }
-                        uploadResult = await cloudinaryService.UploadImageAsync(request.AttachedFile);
-                    }
-                }
-
-                // Kiểm tra dung lượng file
-                if (fileSize <= maxSize)
-                {
-                    // Nếu upload thành công
-                    if (!string.IsNullOrEmpty(uploadResult))
-                    {
-                        var existingSubmissionFile = await _context.SubmissionFiles
-                            .FirstOrDefaultAsync(sf => sf.AssignmentId == assignment.Id);
-
-                        if (existingSubmissionFile != null)
-                        {
-                       
-                            existingSubmissionFile.FileName = uploadResult;
-                            _context.SubmissionFiles.Update(existingSubmissionFile);
-                        }
-                        else
-                        {
-                    
-                            var submissionFile = new SubmissionFile
-                            {
-                                AssignmentId = assignment.Id,
-                                FileName = uploadResult
-                            };
-                            await _context.SubmissionFiles.AddAsync(submissionFile);
-                        }
-                    }
-                    else
-                    {
-                        return new ApiResponse<object>(1, "Lỗi khi tải file lên Cloudinary!", null);
-                    }
-                }
-                else
-                {
-                    // Nếu file vượt quá dung lượng cho phép
-                    return new ApiResponse<object>(1,
-                        $"File vượt quá dung lượng cho phép! Tối đa {maxSize / (1024 * 1024)}MB.",
-                        null);
-                }
-            }
+            return new ApiResponse<object>(1, $"File {file.Substring(0, 30)}... có định dạng không hợp lệ!", null);
         }
 
-        await _context.SaveChangesAsync();
-        return new ApiResponse<object>(0, "Nộp bài thành công!", null);
+        if (string.IsNullOrEmpty(uploadResult))
+        {
+            return new ApiResponse<object>(1, $"Lỗi khi tải file {file.Substring(0, 30)}... lên Cloudinary!", null);
+        }
+
+        // ✅ Lưu file vào SubmissionFiles
+        uploadedFiles.Add(new SubmissionFile
+        {
+            AssignmentId = existingAssignment.Id,
+            FileName = uploadResult
+        });
     }
+
+    if (uploadedFiles.Any())
+    {
+        await _context.SubmissionFiles.AddRangeAsync(uploadedFiles);
+        await _context.SaveChangesAsync();
+    }
+
+    return new ApiResponse<object>(0, "Nộp bài thành công!", null);
+}
+
+
+//     public async Task<ApiResponse<object>> SaveEssay(int UserId, SaveEssayRequest request)
+//     {
+//         var userClasses = await _context.ClassStudents
+//             .Where(cls => cls.UserId == UserId)
+//             .Select(cls => cls.ClassId)
+//             .ToListAsync();
+//
+//         var examClasses = await _context.ClassTestExams
+//             .Where(exam => exam.TestExamId == request.TestExamId)
+//             .Select(exam => exam.ClassId)
+//             .ToListAsync();
+//
+//         bool isInClassWithExam = userClasses.Intersect(examClasses).Any();
+//         if (!isInClassWithExam)
+//         {
+//             return new ApiResponse<object>(1,
+//                 $"User {UserId} không có bài kiểm tra {request.TestExamId} trong các lớp {string.Join(", ", userClasses)}",
+//                 null);
+//         }
+//
+//         var testExam = await _context.TestExams.FirstOrDefaultAsync(ts => ts.Id == request.TestExamId);
+//         if (testExam == null) return new ApiResponse<object>(1, "Bài kiểm tra không tồn tại", null);
+//         if (testExam.StartDate.HasValue && DateTime.Now < testExam.StartDate.Value)
+//             return new ApiResponse<object>(1, "Chưa đến thời gian làm bài", null);
+//         if (testExam.EndDate.HasValue && DateTime.Now > testExam.EndDate.Value)
+//             return new ApiResponse<object>(1, "Hết thời gian làm bài", null);
+//
+//         // Kiểm tra xem đã có bài nộp chưa
+//         var existingAssignment = await _context.Assignments
+//             .FirstOrDefaultAsync(a => a.UserId == UserId && a.TestExamId == request.TestExamId);
+//
+//         string fileUrl = await SaveEssayToFile(request.SubmissionFile);
+//
+//         if (existingAssignment != null)
+//         {
+//             existingAssignment.SubmissionFile = fileUrl;
+//             _context.Assignments.Update(existingAssignment);
+//             await _context.SaveChangesAsync();
+//         }
+//         else
+//         {
+//             var assignment = new Assignment
+//             {
+//                 UserId = UserId,
+//                 TestExamId = request.TestExamId,
+//                 SubmissionFile = fileUrl,
+//                 SubmissionDate = DateTime.Now,
+//                 IsSubmit = true
+//             };
+//             await _context.Assignments.AddAsync(assignment);
+//             await _context.SaveChangesAsync();
+//
+//             var fileFormats = await _context.FileFormats
+//                 .Where(ts => ts.TestExamId == request.TestExamId)
+//                 .ToListAsync();
+//
+//
+//             if (!fileFormats.Any())
+//             {
+//                 return new ApiResponse<object>(1, "Không có định dạng file nào được phép!", null);
+//             }
+//
+//
+//             bool isDocAllowed = fileFormats.Any(f => f.IsDoc == true);
+//             bool isPptAllowed = fileFormats.Any(f => f.IsPowerpoint == true);
+//             bool isXlsAllowed = fileFormats.Any(f => f.IsXxls == true);
+//             bool isJpegAllowed = fileFormats.Any(f => f.IsJpeg == true);
+//
+//
+//             long maxSize = fileFormats.Max(f =>
+//                 (f.Is10 == true ? 10 : 0) +
+//                 (f.Is20 == true ? 20 : 0) +
+//                 (f.Is30 == true ? 30 : 0) +
+//                 (f.Is40 == true ? 40 : 0)) * 1024 * 1024;
+//
+// // Kiểm tra file định dạng trước khi upload
+//             string uploadResult = null;
+//             long fileSize = 0;
+//
+// // Trích xuất dữ liệu từ base64
+//             string base64Data = Regex.Match(request.AttachedFile, @"base64,(?<data>.*)").Groups["data"].Value;
+//             if (!string.IsNullOrEmpty(base64Data))
+//             {
+//                 byte[] fileBytes = Convert.FromBase64String(base64Data);
+//                 fileSize = fileBytes.Length;
+//             }
+//
+// // Kiểm tra dung lượng file
+//             if (fileSize > maxSize)
+//             {
+//                 return new ApiResponse<object>(1,
+//                     $"File vượt quá dung lượng cho phép! Tối đa {maxSize / (1024 * 1024)}MB.", null);
+//             }
+//
+// // Xác định đúng loại file và upload
+//             var cloudinaryService = _serviceProvider.GetService<ICloudinaryService>();
+//
+//             if (request.AttachedFile.Contains("application/msword") && isDocAllowed)
+//             {
+//                 uploadResult = await cloudinaryService.UploadDocxAsync(request.AttachedFile);
+//             }
+//             else if (request.AttachedFile.Contains("application/vnd.ms-powerpoint") && isPptAllowed)
+//             {
+//                 uploadResult = await cloudinaryService.UploadPowerPointAsync(request.AttachedFile);
+//             }
+//             else if (request.AttachedFile.Contains("application/vnd.ms-excel") && isXlsAllowed)
+//             {
+//                 uploadResult = await cloudinaryService.UploadExcelAsync(request.AttachedFile);
+//             }
+//             else if (request.AttachedFile.Contains("image/jpeg") && isJpegAllowed)
+//             {
+//                 uploadResult = await cloudinaryService.UploadImageAsync(request.AttachedFile);
+//             }
+//             else
+//             {
+//                 return new ApiResponse<object>(1, "Loại file không hợp lệ!", null);
+//             }
+//
+// // Kiểm tra upload thành công chưa
+//             if (string.IsNullOrEmpty(uploadResult))
+//             {
+//                 return new ApiResponse<object>(1, "Lỗi khi tải file lên Cloudinary!", null);
+//             }
+//
+// // Thêm hoặc cập nhật SubmissionFile
+//             var assignmentId = existingAssignment?.Id ?? await _context.Assignments
+//                 .Where(a => a.UserId == UserId && a.TestExamId == request.TestExamId)
+//                 .Select(a => a.Id)
+//                 .FirstOrDefaultAsync();
+//
+//             var existingSubmissionFile = await _context.SubmissionFiles
+//                 .FirstOrDefaultAsync(sf => sf.AssignmentId == assignmentId);
+//
+//             if (existingSubmissionFile != null)
+//             {
+//                 Console.WriteLine("Debug: Đã tìm thấy SubmissionFile -> Tiến hành update");
+//                 existingSubmissionFile.FileName = uploadResult;
+//                 _context.SubmissionFiles.Update(existingSubmissionFile);
+//             }
+//             else
+//             {
+//                 Console.WriteLine("Debug: Không tìm thấy SubmissionFile -> Tạo mới");
+//                 var submissionFile = new SubmissionFile
+//                 {
+//                     AssignmentId = assignmentId,
+//                     FileName = uploadResult
+//                 };
+//                 await _context.SubmissionFiles.AddAsync(submissionFile);
+//             }
+//         }
+//
+//         await _context.SaveChangesAsync();
+//         return new ApiResponse<object>(0, "Nộp bài thành công!", null);
+//     }
 
 
     public async Task<string> SaveEssayToFile(string content)
     {
-        // Tạo đường dẫn file tạm thời trong thư mục hệ thống
         string filePath = Path.Combine(Path.GetTempPath(), "abc.docx");
 
-        // Tạo file DOCX
         using (WordprocessingDocument wordDocument =
                WordprocessingDocument.Create(filePath, WordprocessingDocumentType.Document))
         {
             MainDocumentPart mainPart = wordDocument.AddMainDocumentPart();
             mainPart.Document = new Document();
             Body body = new Body();
-            Paragraph paragraph = new Paragraph();
-            Run run = new Run();
-            Text textElement = new Text(content); // Ghi nội dung
 
-            run.Append(textElement);
-            paragraph.Append(run);
-            body.Append(paragraph);
+            // Phân tích HTML
+            HtmlDocument htmlDoc = new HtmlDocument();
+            htmlDoc.LoadHtml(content);
+
+            // Duyệt qua từng phần tử HTML
+            foreach (var node in htmlDoc.DocumentNode.ChildNodes)
+            {
+                if (node.Name == "p") // Chỉ xử lý đoạn văn bản <p>
+                {
+                    Paragraph paragraph = new Paragraph();
+                    ParagraphProperties paragraphProperties = new ParagraphProperties();
+
+                    // Kiểm tra căn lề trong style (text-align)
+                    string style = node.GetAttributeValue("style", "").ToLower();
+                    if (style.Contains("text-align: center"))
+                    {
+                        paragraphProperties.Justification = new Justification() { Val = JustificationValues.Center };
+                    }
+                    else if (style.Contains("text-align: right"))
+                    {
+                        paragraphProperties.Justification = new Justification() { Val = JustificationValues.Right };
+                    }
+                    else
+                    {
+                        paragraphProperties.Justification =
+                            new Justification() { Val = JustificationValues.Left }; // Mặc định là căn trái
+                    }
+
+                    paragraph.Append(paragraphProperties);
+
+                    // Xử lý các định dạng như in đậm, in nghiêng, gạch chân
+                    foreach (var childNode in node.ChildNodes)
+                    {
+                        Run run = new Run();
+                        RunProperties runProperties = new RunProperties();
+
+                        if (childNode.Name == "b" || childNode.Name == "strong")
+                        {
+                            runProperties.Append(new Bold());
+                        }
+
+                        if (childNode.Name == "i" || childNode.Name == "em")
+                        {
+                            runProperties.Append(new Italic());
+                        }
+
+                        if (childNode.Name == "u")
+                        {
+                            runProperties.Append(new Underline() { Val = UnderlineValues.Single });
+                        }
+
+                        run.Append(runProperties);
+                        run.Append(new Text(childNode.InnerText));
+                        paragraph.Append(run);
+                    }
+
+                    body.Append(paragraph);
+                }
+            }
+
             mainPart.Document.Append(body);
             mainPart.Document.Save();
         }
@@ -494,6 +753,7 @@ public class StudentTestExamService : IStudentTestExamService
         byte[] fileBytes = await File.ReadAllBytesAsync(filePath);
         string base64String = Convert.ToBase64String(fileBytes);
         var cloudinaryService = _serviceProvider.GetService<ICloudinaryService>();
+
         // Gửi file lên Cloudinary và nhận URL
         string fileUrl = await cloudinaryService.UploadDocxAsync(base64String);
 

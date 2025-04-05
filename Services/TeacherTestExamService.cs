@@ -31,9 +31,45 @@ public class TeacherTestExamService : ITeacherTestExamService
 
 
     public async Task<ApiResponse<PaginatedResponse<TeacherTestExamResponse>>> GetTeacherTestExamAsync(
-        int? pageNumber, int? pageSize, string? sortDirection, string? topicName,
-        string? subjectName, string? department, string? startDate)
+       int userId, int? pageNumber, int? pageSize, string? sortDirection, string? topicName,
+        int? subjectId, int? departmentId, string? startDate , string? tab)
     {
+        
+        var today = DateTime.Now.Date;
+
+        var testExams = await _context.TestExams
+            .Where(te => te.IsDelete  ==false
+                         && te.StartDate.HasValue 
+                         && te.EndDate.HasValue
+                         && te.UserId == userId
+            ).ToListAsync();
+        foreach (var testExam in testExams)
+        {
+            // Nếu StartDate là hôm nay, cập nhật trạng thái thành 6
+            if (testExam.EndDate.Value <= today)
+            {
+                testExam.ScheduleStatusId = 7; // Đã kết thúc
+            }
+            else if (testExam.StartDate.Value == today)
+            {
+                testExam.ScheduleStatusId = 6; // Đang diễn ra
+            }
+            else if (testExam.StartDate.Value < today && testExam.EndDate.Value >= today)
+            {
+                testExam.ScheduleStatusId = 3; // Đang diễn ra
+            }
+            else if (testExam.StartDate.Value == testExam.EndDate.Value)
+            {
+                if (testExam.StartDate.Value < today)
+                {
+                    testExam.ScheduleStatusId = 7; // Đã kết thúc
+                }
+            }
+            _context.TestExams.Update(testExam);
+        }
+
+        await _context.SaveChangesAsync();
+        
         if (pageNumber.HasValue && pageNumber <= 0)
         {
             return new ApiResponse<PaginatedResponse<TeacherTestExamResponse>>(
@@ -65,6 +101,7 @@ public class TeacherTestExamService : ITeacherTestExamService
                 .Include(te => te.ClassTestExams)
                 .ThenInclude(ct => ct.Class)
                 .Include(te => te.Subject)
+                .Include(te => te.ExamScheduleStatus)
                 .AsQueryable();
 
             // **Apply filtering**
@@ -74,15 +111,27 @@ public class TeacherTestExamService : ITeacherTestExamService
                 testExamQuery = testExamQuery.Where(te => EF.Functions.Like(te.Topic, $"%{decodedTopicName}%"));
             }
 
-            if (!string.IsNullOrEmpty(subjectName))
+            if (subjectId.HasValue)
             {
-                testExamQuery = testExamQuery.Where(te => te.Subject.SubjectName.Contains(subjectName));
+                testExamQuery = testExamQuery.Where(te => te.Subject.Id == subjectId.Value);
             }
 
-            if (!string.IsNullOrEmpty(department))
+            if (departmentId.HasValue)
             {
-                testExamQuery = testExamQuery.Where(te => te.Department.Name.Contains(department));
+                testExamQuery =  testExamQuery.Where(te => te.Department.Id == departmentId.Value);
             }
+
+          
+            
+            if (!string.IsNullOrEmpty(tab))
+            {
+                if (tab.Equals("upcoming", StringComparison.OrdinalIgnoreCase))
+                {
+                    testExamQuery = testExamQuery.Where(te => te.ScheduleStatusId == 3);
+                }
+            }
+            
+                
 
             if (!string.IsNullOrEmpty(startDate) && DateTime.TryParseExact(startDate, "dd-MM-yyyy",
                     new System.Globalization.CultureInfo("vi-VN"), System.Globalization.DateTimeStyles.None,
@@ -91,8 +140,7 @@ public class TeacherTestExamService : ITeacherTestExamService
                 testExamQuery = testExamQuery.Where(te =>
                     te.StartDate.HasValue && te.StartDate.Value.Date == parsedDate.Date);
             }
-
-
+            
             // **Apply sorting**
             sortDirection ??= "asc";
             testExamQuery = sortDirection.Equals("desc", StringComparison.OrdinalIgnoreCase)
@@ -107,10 +155,68 @@ public class TeacherTestExamService : ITeacherTestExamService
                 .Skip((currentPage - 1) * currentPageSize)
                 .Take(currentPageSize)
                 .ToListAsync();
+           
+            var mappedData = new List<TeacherTestExamResponse>();
 
-            // **Map data to DTO**
-            var mappedData = _mapper.Map<List<TeacherTestExamResponse>>(pagedTestExams);
+            foreach (var testExam in pagedTestExams)
+            {
+                foreach (var classTestExam in testExam.ClassTestExams)
+                {
+                    // Lấy tất cả học sinh trong lớp
+                    var classStudents = await _context.ClassStudents
+                        .Where(cs => cs.ClassId == classTestExam.ClassId)
+                        .ToListAsync();
 
+// Mặc định giả sử tất cả học sinh đã được chấm
+                    bool allGraded = true;
+
+                    foreach (var classStudent in classStudents)
+                    {
+                        var assignment = await _context.Assignments
+                            .Where(a => a.UserId == classStudent.Id && a.TestExamId == testExam.Id)
+                            .FirstOrDefaultAsync();
+
+                        // Nếu học sinh không có bài nộp (không có assignment), coi là đã chấm
+                        if (assignment == null || assignment.TotalScore == null)
+                        {
+                            allGraded = false;
+                            break; 
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(tab))
+                    {
+                        if (tab.Equals("no_graded", StringComparison.OrdinalIgnoreCase))
+                        {
+                            allGraded = false;  // Nếu tab là "no_graded", đánh dấu là chưa chấm
+                        }
+                        else if (tab.Equals("graded", StringComparison.OrdinalIgnoreCase))
+                        {
+                            // Nếu tab là "graded", đánh dấu là đã chấm
+                            allGraded = true;
+                        }
+                    }
+                    
+                    string status = allGraded ? "Đã chấm" : "Chưa chấm";
+
+
+
+                    // Cập nhật thông tin cho DTO
+                    mappedData.Add(new TeacherTestExamResponse
+                    {
+                        Id = testExam.Id,
+                        classId = classTestExam.ClassId,
+                        ClassName = classTestExam.Class.Name,
+                        ContentTest = testExam.Topic,
+                        SubjectName = testExam.Subject.SubjectName,
+                        DateOfExam = testExam.StartDate.HasValue ? testExam.StartDate.Value.ToString("dddd, dd-MM-yyyy, HH:mm") : string.Empty,
+                        Duration = testExam.Duration.HasValue ? testExam.Duration.Value.ToString(@"hh\:mm") : string.Empty,
+                        Status = testExam.ExamScheduleStatus.Names,
+                        Graded = status // Hiển thị trạng thái chấm điểm cho lớp này
+                    });
+                }
+            }
+            
             // **Create paginated response**
             var paginatedResponse = new PaginatedResponse<TeacherTestExamResponse>
             {
@@ -133,9 +239,21 @@ public class TeacherTestExamService : ITeacherTestExamService
         }
     }
 
+    
 
-    public async Task<ApiResponse<object?>> CreateTeacherTestExamAsync(int userId,TeacherTestExamRequest request)
+    public async Task<ApiResponse<object?>> CreateTeacherTestExamAsync(int userId, TeacherTestExamRequest request)
     {
+        // Kiểm tra xem giáo viên có được phân công dạy môn học này không
+        bool isAssigned = await _context.TeachingAssignments
+            .AnyAsync(ta => ta.UserId == userId && ta.SubjectId == request.SubjectId);
+
+        if (!isAssigned)
+        {
+            return new ApiResponse<object?>(1, "Giáo viên không được phân công dạy môn học này.", null);
+        }
+
+        
+        
         // Tìm danh sách lớp dựa vào DepartmentId hoặc classIds
         List<int> classIds = new List<int>();
 
@@ -152,26 +270,37 @@ public class TeacherTestExamService : ITeacherTestExamService
         }
 
 
-       
+        classIds = await _context.ClassSubjects
+            .Where(cs => cs.SubjectId == request.SubjectId && classIds.Contains(cs.ClassId.Value))
+            .Select(cs => cs.ClassId.Value)
+            .Distinct()
+            .ToListAsync();
+
+
+        if (!classIds.Any())
+        {
+            return new ApiResponse<object?>(1, "Không có lớp nào trong danh sách được dạy môn học này.", null);
+        }
+
+
         // Convert Duration string thành kiểu TimeOnly nếu có
         TimeOnly? duration = TimeOnly.TryParse(request.Duration, out var parsedDuration) ? parsedDuration : null;
 
         var existingTestExam = await _context.TestExams
             .FirstOrDefaultAsync(te => te.StartDate == request.StartDate);
-        
-        
+
+
         if (existingTestExam != null)
         {
-            return new ApiResponse<object?>(1, "Không được trùng lịch kiểm tra " , null);
+            return new ApiResponse<object?>(1, "Không được trùng lịch kiểm tra ", null);
         }
 
         if (request.EndDate <= request.StartDate)
         {
             return new ApiResponse<object?>(1, "Ngày kết thúc phải lớn hơn ngày bắt đầu.", null);
         }
-        
-        
-        
+
+
         // Tạo đối tượng TestExam
         var teacherTestExam = new TestExam
         {
@@ -188,9 +317,8 @@ public class TeacherTestExamService : ITeacherTestExamService
             ScheduleStatusId = 2,
             UserId = userId,
         };
-        
-    
-        
+
+
         // Xử lý file đính kèm nếu có
         if (!string.IsNullOrEmpty(request.Attachment))
         {
@@ -215,7 +343,6 @@ public class TeacherTestExamService : ITeacherTestExamService
         await _context.TestExams.AddAsync(teacherTestExam);
         await _context.SaveChangesAsync(); // Lưu dữ liệu TestExam
 
-        
 
         var afteraddtestExam = await _context.TestExams.FindAsync(teacherTestExam.Id);
         if (request.IsAttachmentRequired)
@@ -248,7 +375,6 @@ public class TeacherTestExamService : ITeacherTestExamService
 
         foreach (var question in questions)
         {
-    
             var newQuestion = new Question
             {
                 QuestionText = question.QuestionText,
@@ -259,7 +385,7 @@ public class TeacherTestExamService : ITeacherTestExamService
 
             await _context.Questions.AddAsync(newQuestion);
             await _context.SaveChangesAsync(); // Lưu câu hỏi
-            
+
             foreach (var answer in question.Answers)
             {
                 var newAnswer = new Answer
@@ -275,8 +401,6 @@ public class TeacherTestExamService : ITeacherTestExamService
             }
 
             await _context.SaveChangesAsync();
-            
-            
         }
 
         // Thêm quan hệ vào bảng trung gian ClassTestExam
@@ -313,7 +437,7 @@ public class TeacherTestExamService : ITeacherTestExamService
     }
 
 
-    public async Task<ApiResponse<object?>> UpdateTeacherTestExamAsync(int userId,TeacherTestExamRequest request)
+    public async Task<ApiResponse<object?>> UpdateTeacherTestExamAsync(int userId, TeacherTestExamRequest request)
     {
         var testExamId = request.Id;
         var teacherTestExam = await _context.TestExams.FindAsync(testExamId);
@@ -321,16 +445,17 @@ public class TeacherTestExamService : ITeacherTestExamService
         {
             return new ApiResponse<object?>(-1, "Không tìm thấy lịch thi", null);
         }
-        
+
         var question = await _context.Questions.Where(qs => qs.TestExamId == testExamId).ToListAsync();
         foreach (var anwer in question)
         {
             var answer = await _context.Answers.Where(a => a.QuestionId == anwer.Id).ToListAsync();
             _context.Answers.RemoveRange(answer);
         }
+
         _context.Questions.RemoveRange(question);
         await _context.SaveChangesAsync();
-        
+
         // Tìm danh sách lớp cần cập nhật
         List<int> classIds = new List<int>();
         if (request.SelectALL)
@@ -460,19 +585,20 @@ public class TeacherTestExamService : ITeacherTestExamService
         return new ApiResponse<object?>(0, "Cập nhật kiểm tra thành công", responseData);
     }
 
-    public async Task<ApiResponse<object?>> GetTeacherTestExamById(int id)
+    public async Task<ApiResponse<object?>> GetTeacherTestExamById(int id, int classId)
     {
-        // Tìm kiếm đối tượng TestExam theo ID
+        // Tìm kiếm TestExam theo ID và ClassId
         var testExam = await _context.TestExams
             .Where(ts => ts.IsExam == false && ts.IsDelete == false)
             .Include(te => te.Subject) // Lấy thông tin Subject
             .Include(te => te.ClassTestExams) // Lấy thông tin ClassTestExams (bảng trung gian)
             .ThenInclude(ct => ct.Class) // Lấy thông tin ClassName từ bảng trung gian
-            .FirstOrDefaultAsync(te => te.Id == id); // Tìm kiếm theo ID
+            .FirstOrDefaultAsync(te =>
+                te.Id == id && te.ClassTestExams.Any(ct => ct.ClassId == classId)); // Kiểm tra ClassId
 
         if (testExam == null)
         {
-            return new ApiResponse<object?>(1, "Không tìm thấy lịch kiểm tra", null);
+            return new ApiResponse<object?>(1, "Không tìm thấy lịch kiểm tra cho lớp học này", null);
         }
 
         var durationTimeSpan = testExam.Duration.Value.ToTimeSpan(); // Chuyển TimeOnly thành TimeSpan
@@ -496,31 +622,35 @@ public class TeacherTestExamService : ITeacherTestExamService
 
         int quantity = await _context.TestExams
             .Where(te => te.SubjectId == testExam.SubjectId && te.IsExam == false && te.IsDelete == false &&
-                         te.ClassTestExams.Any(
-                             ct => testExam.ClassTestExams.Select(c => c.ClassId).Contains(ct.ClassId)))
+                         te.ClassTestExams.Any(ct => ct.ClassId == classId)) // Filter by the classId
             .CountAsync();
 
-        var testExamClassIds = testExam.ClassTestExams.Select(c => c.ClassId).ToList();
 
-        var relatedTests = await _context.TestExams
+        // Lấy danh sách bài kiểm tra liên quan, không dùng list nữa
+        var relatedTestsRaw = await _context.TestExams
             .Where(te => te.SubjectId == testExam.SubjectId &&
                          te.IsExam == false &&
                          te.IsDelete == false &&
-                         te.ClassTestExams.Any(ct => testExamClassIds.Contains(ct.ClassId)))
+                         te.ClassTestExams.Any(ct => ct.ClassId == classId)) // Filter by classId directly
             .OrderBy(te => te.StartDate)
             .ThenBy(te => te.Id)
-            .Select(te => new RelatedTestDTO
+            .ToListAsync();
+
+        // Gán số thứ tự câu hỏi theo thứ tự xuất hiện
+        var relatedTests = relatedTestsRaw
+            .Select((te, index) => new RelatedTestDTO
             {
-                ExamNumber = te.Id,
+                ExamNumber = $"CÂU {index + 1}", // Đánh số từ 1
                 StartDate = te.StartDate.HasValue ? te.StartDate.Value.ToString("dd-MM-yyyy HH:mm") : "Chưa xác định"
             })
-            .ToListAsync();
+            .ToList();
 
         var responseData = new TeacherTestExamDetailResponse
         {
             StartDate = testExam.StartDate.HasValue ? testExam.StartDate.Value.ToString("dd-MM-yyyy") : "Chưa xác định",
             SubjectName = testExam.Subject.SubjectName,
-            ClassList = string.Join(", ", testExam.ClassTestExams.Select(e => e.Class.Name)),
+            ClassName = string.Join(", ",
+                testExam.ClassTestExams.Where(te => te.ClassId == classId).Select(e => e.Class.Name)),
             Duration = durationString,
             Description = testExam.Description,
             Attachment = testExam.Attachment,

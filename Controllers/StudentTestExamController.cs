@@ -26,10 +26,10 @@ public class StudentTestExamController : ControllerBase
         int? pageSize,
         string? sortDirection,
         string? topicName,
-        string? subjectName,
-        string? department,
+        int? subjectId,
+        int? departmentId,
         string? startDate,
-        string? option)
+        string? tab)
     {
         try
         {
@@ -37,7 +37,7 @@ public class StudentTestExamController : ControllerBase
             if (user == null)
                 return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
             
-            var result = await _studentTestExamService.GetStudentTestExamAsync(user.Id, pageNumber, pageSize, sortDirection, topicName, subjectName, department, startDate,option);
+            var result = await _studentTestExamService.GetStudentTestExamAsync(user.Id, pageNumber, pageSize, sortDirection, topicName, subjectId, departmentId, startDate,tab);
             if (result.Status == 1)
             {
                 return BadRequest(result);

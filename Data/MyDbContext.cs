@@ -237,7 +237,7 @@ namespace Project_LMS.Data
                     .HasConstraintName("fk_answers_question");
             });
 
-            modelBuilder.Entity<Assignment>(entity =>
+          modelBuilder.Entity<Assignment>(entity =>
             {
                 entity.ToTable("assignments");
 

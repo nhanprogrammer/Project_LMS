@@ -23,6 +23,7 @@
     <PackageReference Include="EPPlus" Version="7.6.1" />
     <PackageReference Include="Hangfire" Version="1.8.18" />
     <PackageReference Include="Hangfire.PostgreSql" Version="1.20.10" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.12.0" />
     <PackageReference Include="itext7" Version="9.1.0" />
     <PackageReference Include="itext7.bouncy-castle-fips-adapter" Version="9.1.0" />
     <PackageReference Include="itext7.pdfcalligraph" Version="5.0.1" />
