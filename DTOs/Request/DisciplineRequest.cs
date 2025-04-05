@@ -8,7 +8,7 @@ namespace Project_LMS.DTOs.Request
     {
         public string? UserCode { get; set; }
         public int? SemesterId { get; set; }
-        public string? Name { get; set; }
+        public string? FileName { get; set; }
         public string? DisciplineContent { get; set; }
         [JsonIgnore]
         public DateTime? CreateAt { get; set; }

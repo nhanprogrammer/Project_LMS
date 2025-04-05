@@ -6,8 +6,6 @@ using Project_LMS.Models;
 using FluentValidation;
 using AutoMapper;
 using Project_LMS.Interfaces.Responsitories;
-using Project_LMS.Repositories;
-
 namespace Project_LMS.Services
 {
     public class RewardService : IRewardService
@@ -44,10 +42,10 @@ namespace Project_LMS.Services
             var reward = _mapper.Map<Reward>(request);
             try
             {
-                if (request.RewardName != null)
+                if (request.FileName != null)
                 {
-                    reward.RewardName = await _cloudinaryService.UploadDocAsync(request.RewardName);
-                    Console.WriteLine("url : "+reward.RewardName);
+                    reward.FileName = await _cloudinaryService.UploadDocAsync(request.FileName);
+                    Console.WriteLine("url : "+reward.FileName);
                 }
 
               var student = await _studentRepository.FindStudentByUserCode(request.UserCode);
@@ -85,16 +83,16 @@ namespace Project_LMS.Services
                 };
             }
 
-            string rewardName = reward?.RewardName;
+            string rewardName = reward?.FileName;
             try
             {
                 reward = _mapper.Map(request, reward);
-                if (request.RewardName != null)
+                if (request.FileName != null)
                 {
-                    rewardName = await _cloudinaryService.UploadDocAsync(request.RewardName);
+                    rewardName = await _cloudinaryService.UploadDocAsync(request.FileName);
                 }
 
-                    reward.RewardName = rewardName;
+                    reward.FileName = rewardName;
                 
                 var student = await _studentRepository.FindStudentByUserCode(request.UserCode);
                 reward.UserId = student.Id;
@@ -134,7 +132,7 @@ namespace Project_LMS.Services
             {
                 reward.Id,
                 reward.RewardContent,
-                reward.RewardName,
+                reward.FileName,
                 reward.RewardDate,
                 reward?.User?.FullName,
                 //className,

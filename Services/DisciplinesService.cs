@@ -44,10 +44,10 @@ namespace Project_LMS.Services
             var discipline = _mapper.Map<Discipline>(request);
             try
             {
-                if (request.Name != null)
+                if (request.FileName != null)
                 {
-                    discipline.Name = await _cloudinaryService.UploadDocAsync(request.Name);
-                    Console.WriteLine("url : " + discipline.Name);
+                    discipline.FileName = await _cloudinaryService.UploadDocAsync(request.FileName);
+                    Console.WriteLine("url : " + discipline.FileName);
                 }
 
                 var student = await _studentRepository.FindStudentByUserCode(request.UserCode);
@@ -85,16 +85,16 @@ namespace Project_LMS.Services
                 };
             }
 
-            string Name = discipline.Name;
+            string Name = discipline.FileName;
             try
             {
                 discipline = _mapper.Map(request, discipline);
-                if (request.Name != null)
+                if (request.FileName != null)
                 {
-                    Name = await _cloudinaryService.UploadDocAsync(request.Name);
+                    Name = await _cloudinaryService.UploadDocAsync(request.FileName);
                 }
 
-                discipline.Name = Name;
+                discipline.FileName = Name;
 
                 var student = await _studentRepository.FindStudentByUserCode(request.UserCode);
                 discipline.UserId = student.Id;
@@ -134,7 +134,7 @@ namespace Project_LMS.Services
             {
                 discipline.Id,
                 discipline.DisciplineContent,
-                discipline.Name,
+                discipline.FileName,
                 discipline.DisciplineDate,
                 discipline?.User?.FullName,
                 //className,

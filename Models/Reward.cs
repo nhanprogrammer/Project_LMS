@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Project_LMS.Models
 {
@@ -9,7 +10,8 @@ namespace Project_LMS.Models
         public int? UserId { get; set; }
         public int? SemesterId { get; set; }
         //public int? RewardCode { get; set; }
-        public string? RewardName { get; set; }
+        [Column("file_name")]
+        public string? FileName { get; set; }
         public DateTime? RewardDate { get; set; }
         public string? RewardContent { get; set; }
         public DateTime? CreateAt { get; set; }

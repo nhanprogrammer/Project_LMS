@@ -889,7 +889,7 @@ namespace Project_LMS.Data
                     .HasColumnName("is_delete")
                     .HasDefaultValueSql("false");
 
-                entity.Property(e => e.Name)
+                entity.Property(e => e.FileName)
                     .HasMaxLength(255)
                     .HasColumnName("name");
 
@@ -1442,7 +1442,7 @@ namespace Project_LMS.Data
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("reward_date");
 
-                entity.Property(e => e.RewardName)
+                entity.Property(e => e.FileName)
                     .HasMaxLength(255)
                     .HasColumnName("reward_name");
 
