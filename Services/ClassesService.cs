@@ -90,6 +90,11 @@ namespace Project_LMS.Services
                 {
                     throw new NotFoundException("Niên khóa không tồn tại.");
                 }
+                var currentDate = DateTime.Now;
+                if (academicYear.EndDate.HasValue && academicYear.EndDate.Value < currentDate)
+                {
+                    throw new InvalidOperationException("Không thể thêm hoặc cập nhật lớp học cho niên khóa đã kết thúc.");
+                }
 
                 if (!await _context.Departments.AnyAsync(d => d.Id == classSaveRequest.DepartmentId))
                 {
@@ -115,9 +120,35 @@ namespace Project_LMS.Services
                 // Tạo ClassCode theo định dạng: ClassName-StartYear-EndYear
                 var classCode = $"{classSaveRequest.ClassName}-{academicYear.StartDate.Value.Year}-{academicYear.EndDate.Value.Year}";
 
-                // Kiểm tra ClassCode đã tồn tại chưa
+                // Kiểm tra nếu đã tồn tại giáo viên chủ nhiệm trong niên khóa này
+                var existingTeacherClass = await _context.Classes
+                    .Where(c => c.UserId == classSaveRequest.UserId
+                           && c.AcademicYearId == classSaveRequest.AcademicYearId
+                           && c.Id != classSaveRequest.Id  // Loại trừ lớp hiện tại nếu đang cập nhật
+                           && !(c.IsDelete ?? false))
+                    .FirstOrDefaultAsync();
+
+                if (existingTeacherClass != null)
+                {
+                    throw new InvalidOperationException($"Giáo viên này đã là chủ nhiệm lớp '{existingTeacherClass.Name}' trong niên khóa này.");
+                }
+
+                // Kiểm tra nếu tên lớp đã tồn tại trong niên khóa này
+                var existingClassWithSameName = await _context.Classes
+                    .Where(c => c.Name == classSaveRequest.ClassName
+                           && c.AcademicYearId == classSaveRequest.AcademicYearId
+                           && c.Id != classSaveRequest.Id  // Loại trừ lớp hiện tại nếu đang cập nhật
+                           && !(c.IsDelete ?? false))
+                    .FirstOrDefaultAsync();
+
+                if (existingClassWithSameName != null)
+                {
+                    throw new InvalidOperationException($"Lớp có tên '{classSaveRequest.ClassName}' đã tồn tại trong niên khóa này.");
+                }
+
+                // Kiểm tra ClassCode đã tồn tại chưa (ngoại trừ bản ghi hiện tại nếu đang cập nhật)
                 var isDuplicateClassCode = await _context.Classes
-                    .AnyAsync(c => c.ClassCode == classCode && !(c.IsDelete ?? false));
+                    .AnyAsync(c => c.ClassCode == classCode && c.Id != classSaveRequest.Id && !(c.IsDelete ?? false));
                 if (isDuplicateClassCode)
                 {
                     throw new InvalidOperationException($"Mã lớp '{classCode}' đã tồn tại. Vui lòng chọn tên lớp khác.");
@@ -178,6 +209,7 @@ namespace Project_LMS.Services
                 // Cập nhật môn học cho lớp
                 if (classSaveRequest.Ids != null && classSaveRequest.Ids.Count > 0)
                 {
+                    // Phần còn lại giữ nguyên...
                     // Lấy danh sách ID môn học hợp lệ
                     var validSubjectIds = await _context.Subjects
                         .Where(s => classSaveRequest.Ids.Contains(s.Id))
@@ -226,7 +258,6 @@ namespace Project_LMS.Services
                 throw new Exception("Đã xảy ra lỗi trong quá trình lưu lớp học. Vui lòng thử lại.");
             }
         }
-
         // Lấy danh sách môn học, nhưng loại trừ các môn có ID trong danh sách đã chọn
         public async Task<ApiResponse<List<SubjectListResponse>>> GetSubjectsExcluding(string excludedSubjectIds)
         {

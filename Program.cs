@@ -90,7 +90,6 @@ builder.Services.AddScoped<ISchoolTransferService, SchoolTransferService>();
 builder.Services.AddScoped<ISemesterService, SemesterService>();
 builder.Services.AddScoped<IDistrictsService, DistrictsService>();
 builder.Services.AddScoped<IProvincesService, ProvincesService>();
-builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddScoped<IClassService, ClassService>();
 builder.Services.AddScoped<ILessonService, LessonService>();
 builder.Services.AddScoped<IFavouritesService, FavouritesService>();

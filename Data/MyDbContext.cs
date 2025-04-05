@@ -237,7 +237,7 @@ namespace Project_LMS.Data
                     .HasConstraintName("fk_answers_question");
             });
 
-            modelBuilder.Entity<Assignment>(entity =>
+          modelBuilder.Entity<Assignment>(entity =>
             {
                 entity.ToTable("assignments");
 
@@ -557,7 +557,9 @@ namespace Project_LMS.Data
                  .HasForeignKey(d => d.UserId)
                  .HasConstraintName("fk_class_online_user");
 
+                entity.Property(e => e.LessonCode).HasColumnName("lesson_code");
                 entity.Property(e => e.LessonId).HasColumnName("lesson_id");
+
 
                 entity.HasOne(d => d.Lesson)
                 .WithMany(p => p.ClassOnlines)
@@ -887,9 +889,9 @@ namespace Project_LMS.Data
                     .HasColumnName("is_delete")
                     .HasDefaultValueSql("false");
 
-                entity.Property(e => e.Name)
+                entity.Property(e => e.FileName)
                     .HasMaxLength(255)
-                    .HasColumnName("name");
+                    .HasColumnName("file_name");
 
                 entity.Property(e => e.SemesterId).HasColumnName("semester_id");
 
@@ -1440,9 +1442,9 @@ namespace Project_LMS.Data
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("reward_date");
 
-                entity.Property(e => e.RewardName)
+                entity.Property(e => e.FileName)
                     .HasMaxLength(255)
-                    .HasColumnName("reward_name");
+                    .HasColumnName("file_name");
 
                 entity.Property(e => e.SemesterId).HasColumnName("semester_id");
 

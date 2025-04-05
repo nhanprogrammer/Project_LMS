@@ -10,39 +10,47 @@ using Project_LMS.Interfaces.Responsitories;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Project_LMS.Repositories;
 
 namespace Project_LMS.Services
 {
     public class SchoolTransferService : ISchoolTransferService
     {
         private readonly ISchoolTransferRepository _schoolTransferRepository;
-        private readonly ISchoolBranchRepository _schoolBranchRepository;
         private readonly IMapper _mapper;
         private readonly ICloudinaryService _cloudinaryService;
+        private readonly IStudentRepository _studentRepository;
+        private readonly IClassStudentRepository _classStudentRepository;
 
-        public SchoolTransferService(ISchoolTransferRepository schoolTransferRepository, ISchoolBranchRepository schoolBranchRepository, IMapper mapper, ICloudinaryService cloudinaryService)
+        public SchoolTransferService(
+            ISchoolTransferRepository schoolTransferRepository,
+            IMapper mapper,
+            ICloudinaryService cloudinaryService,
+            IStudentRepository studentRepository,
+            IClassStudentRepository classStudentRepository)
         {
             _schoolTransferRepository = schoolTransferRepository;
-            _schoolBranchRepository = schoolBranchRepository;
             _mapper = mapper;
             _cloudinaryService = cloudinaryService;
+            _studentRepository = studentRepository;
+            _classStudentRepository = classStudentRepository;
         }
 
         public async Task<ApiResponse<List<object>>> GetAllAsync(int academicId, PaginationRequest request, bool isOrder, string column, string? searchItem)
         {
-            var schoolTransfers = await _schoolTransferRepository.GetAllAsync(academicId, request,isOrder,column,searchItem);
+            var schoolTransfers = await _schoolTransferRepository.GetAllAsync(academicId, request, isOrder, column, searchItem);
             var schoolTransfersResponse = schoolTransfers.Select(s => (object)new
             {
                 s.User?.UserCode,
                 s.User?.FullName,
                 s.User?.BirthDate,
-                gender = s.User?.Gender?.Length>0 ? s.User.Gender[0]: false,
+                gender = s.User?.Gender?.Length > 0 ? s.User.Gender[0] : false,
                 s.TransferFrom,
                 s.Semester,
-                departmentName =s.User?.ClassStudents?.Where(cs=>cs.IsActive ==true &&s.IsDelete == false).FirstOrDefault()?.Class?.Department?.Name,
+                departmentName = s.User?.ClassStudents?.Where(cs => cs.IsActive == true && s.IsDelete == false).FirstOrDefault()?.Class?.Department?.Name,
                 s.TransferDate
             }).ToList();
-            return new ApiResponse<List<object>>(0,"Lấy danh sách chuyển trường thành công.")
+            return new ApiResponse<List<object>>(0, "Lấy danh sách chuyển trường thành công.")
             {
                 Data = schoolTransfersResponse
             };
@@ -59,7 +67,7 @@ namespace Project_LMS.Services
             return _mapper.Map<SchoolTransferResponse>(schoolTransfer);
         }
 
-        public async Task<SchoolTransferResponse> CreateAsync(SchoolTransferRequest transferRequest)
+        public async Task<SchoolTransferResponse> CreateAsync(SchoolTransferRequest transferRequest, int studentId)
         {
             var errors = new List<ValidationError>();
 
@@ -74,30 +82,26 @@ namespace Project_LMS.Services
                 throw new BadRequestException("Validation failed.", errors);
             }
 
-            // var student = await _studentRepository.GetByIdAsync(transferRequest.StudentId ?? 0);
-            // if (student == null)
-            // {
-            //     throw new NotFoundException("Không tìm thấy học sinh với ID đã cho");
-            // }
+            // Kiểm tra xem học sinh có tồn tại không
+            var student = await _studentRepository.FindStudentById(transferRequest.UserId ?? 0);
+            if (student == null)
+            {
+                throw new NotFoundException("Không tìm thấy học sinh với ID đã cho.");
+            }
 
+            // Kiểm tra trạng thái của học sinh
+            if (student.StudentStatusId != 1) // Chỉ cho phép nếu trạng thái là "Đang học"
+            {
+                throw new BadRequestException("Chỉ học sinh đang học mới có thể chuyển trường.");
+            }
 
-            // var province = await _provinceRepository.GetByIdAsync(transferRequest.ProvinceId ?? 0);
-            // if (province == null)
-            // {
-            //     throw new NotFoundException("Không tìm thấy tỉnh với ID đã cho");
-            // }
+            // Kiểm tra xem học sinh đã từng chuyển trường chưa
+            var existingTransfer = await _schoolTransferRepository.GetByStudentId(student.Id);
+            if (existingTransfer != null && existingTransfer.TransferTo != null)
+            {
+                throw new BadRequestException("Học sinh này đã chuyển trường trước đó, không thể chuyển tiếp.");
+            }
 
-            // var district = await _districtRepository.GetByIdAsync(transferRequest.DistrictId ?? 0);
-            // if (district == null)
-            // {
-            //     throw new NotFoundException("Không tìm thấy huyện với ID đã cho");
-            // }
-
-            // var ward = await _wardRepository.GetByIdAsync(transferRequest.WardId ?? 0);
-            // if (ward == null)
-            // {
-            //     throw new NotFoundException("Không tìm thấy xã với ID đã cho");
-            // }
             var transfer = _mapper.Map<SchoolTransfer>(transferRequest);
             try
             {
@@ -106,11 +110,37 @@ namespace Project_LMS.Services
                     transfer.FileName = await _cloudinaryService.UploadDocAsync(transferRequest.FileName);
                 }
             }
-            catch (Exception ex) {
-                     throw new NotFoundException("File name phải là base64");
+            catch (Exception ex)
+            {
+                throw new NotFoundException("File name phải là base64");
             }
 
-            transfer.UserCreate = 1;
+            if (transferRequest.TransferTo != null)
+            {
+                // Cập nhật trạng thái học sinh
+                student.StudentStatusId = 4; // Trạng thái chuyển trường
+                student.UserUpdate = studentId;
+                student.IsDelete = false;
+                await _studentRepository.UpdateAsync(student);
+
+                // Cập nhật trạng thái trong ClassStudent
+                var activeClassStudents = await _classStudentRepository.FindAllStudentByIdIsActive(student.Id);
+                if (activeClassStudents != null && activeClassStudents.Any())
+                {
+                    foreach (var classStudent in activeClassStudents)
+                    {
+                        classStudent.IsActive = false;
+                        classStudent.IsClassTransitionStatus = true;
+                        classStudent.IsDelete = false;
+                        classStudent.UserUpdate = studentId;
+                        classStudent.UpdateAt = DateTime.Now;
+                        classStudent.Reason = transferRequest.Reason;
+                        await _classStudentRepository.UpdateAsync(classStudent);
+                    }
+                }
+            }
+
+            transfer.UserCreate = studentId;
             transfer.IsDelete = false;
 
             await _schoolTransferRepository.AddAsync(transfer);

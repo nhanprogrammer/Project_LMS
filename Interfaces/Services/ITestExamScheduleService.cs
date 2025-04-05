@@ -4,7 +4,7 @@ namespace Project_LMS.Interfaces.Services
 {
     public interface ITestExamScheduleService
     {
-        Task<ApiResponse<List<TestExamScheduleResponse>>> GetExamScheduleAsync(DateTimeOffset? mount, bool week,int? departmentid);
+        Task<ApiResponse<List<TestExamScheduleResponse>>> GetExamScheduleAsync(int? month,int? year, bool week,int? departmentid, DateTimeOffset? startDateOffWeek);
 
         Task<ApiResponse<List<TestExamScheduleDetailResponse>>> GetExamScheduleDetailAsync(
             DateTimeOffset startdate);

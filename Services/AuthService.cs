@@ -291,7 +291,7 @@ namespace Project_LMS.Services
                     throw new UnauthorizedAccessException("Người dùng không tồn tại hoặc đã bị xóa.");
                 }
 
-                // 🔥 Tạo access token mới
+                // Tạo access token mới
                 return await GenerateAccessToken(user);
             }
             catch (Exception ex)
@@ -349,7 +349,10 @@ namespace Project_LMS.Services
                     throw new UnauthorizedAccessException("Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại!");
                 }
 
-                return await _context.Users.FirstOrDefaultAsync(u => u.Email == email && u.IsDelete == false);
+                return await _context.Users
+                        .Include(u => u.Role)
+                        .FirstOrDefaultAsync(u => u.Email == email && u.IsDelete == false);
+
             }
             catch (Exception ex)
             {
