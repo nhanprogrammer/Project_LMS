@@ -891,7 +891,7 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.FileName)
                     .HasMaxLength(255)
-                    .HasColumnName("name");
+                    .HasColumnName("file_name");
 
                 entity.Property(e => e.SemesterId).HasColumnName("semester_id");
 
@@ -1444,7 +1444,7 @@ namespace Project_LMS.Data
 
                 entity.Property(e => e.FileName)
                     .HasMaxLength(255)
-                    .HasColumnName("reward_name");
+                    .HasColumnName("file_name");
 
                 entity.Property(e => e.SemesterId).HasColumnName("semester_id");
 

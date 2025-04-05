@@ -206,7 +206,7 @@ namespace Project_LMS.Services
                     errors.Add(new ValidationError
                     {
                         Field = "User",
-                        Error = "Học viên không ở trạng thái active. Không thể tạo bảo lưu cho học viên này."
+                        Error = "Học viên không ở trạng thái đang hoạt động. Không thể tạo bảo lưu cho học viên này."
                     });
                 }
             }

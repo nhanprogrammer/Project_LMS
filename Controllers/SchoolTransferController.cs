@@ -20,15 +20,15 @@ namespace Project_LMS.Controllers
             _schoolTransferService = schoolTransferService;
             _authService = authService;
         }
-        
+
 
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<IEnumerable<SchoolTransferResponse>>>> GetAll(int academicId,[FromQuery] PaginationRequest request, bool isOrder, string column, string? searchItem)
+        public async Task<ActionResult<ApiResponse<IEnumerable<SchoolTransferResponse>>>> GetAll(int academicId, [FromQuery] PaginationRequest request, bool isOrder, string column, string? searchItem)
         {
             //try
             //{
-                var result = await _schoolTransferService.GetAllAsync(academicId,request,isOrder,column,searchItem);
-                return Ok(result);
+            var result = await _schoolTransferService.GetAllAsync(academicId, request, isOrder, column, searchItem);
+            return Ok(result);
             //}
             //catch (Exception ex)
             //{
@@ -66,7 +66,7 @@ namespace Project_LMS.Controllers
                 var user = await _authService.GetUserAsync();
                 if (user == null)
                     return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
-                var schoolTransfer = await _schoolTransferService.CreateAsync(schoolTransferRequest,user.Id);
+                var schoolTransfer = await _schoolTransferService.CreateAsync(schoolTransferRequest, user.Id);
                 return CreatedAtAction(nameof(GetById), new { id = schoolTransfer.Id }, new ApiResponse<SchoolTransferResponse>(1, "Tạo chuyển trường thành công", schoolTransfer));
             }
             catch (NotFoundException ex)
@@ -75,7 +75,16 @@ namespace Project_LMS.Controllers
             }
             catch (BadRequestException ex)
             {
-                return BadRequest(new ApiResponse<List<ValidationError>>(400, "Validation failed.", ex.Errors));
+                if (ex.Errors != null && ex.Errors.Any())
+                {
+                    // Trường hợp validation lỗi
+                    return BadRequest(new ApiResponse<List<ValidationError>>(400, "Validation failed.", ex.Errors));
+                }
+                else
+                {
+                    // Trường hợp logic nghiệp vụ
+                    return BadRequest(new ApiResponse<string>(400, ex.Message, null));
+                }
             }
             catch (Exception ex)
             {

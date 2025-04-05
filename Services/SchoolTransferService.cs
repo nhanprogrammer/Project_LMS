@@ -89,6 +89,12 @@ namespace Project_LMS.Services
                 throw new NotFoundException("Không tìm thấy học sinh với ID đã cho.");
             }
 
+            // Kiểm tra trạng thái của học sinh
+            if (student.StudentStatusId != 1) // Chỉ cho phép nếu trạng thái là "Đang học"
+            {
+                throw new BadRequestException("Chỉ học sinh đang học mới có thể chuyển trường.");
+            }
+
             // Kiểm tra xem học sinh đã từng chuyển trường chưa
             var existingTransfer = await _schoolTransferRepository.GetByStudentId(student.Id);
             if (existingTransfer != null && existingTransfer.TransferTo != null)
