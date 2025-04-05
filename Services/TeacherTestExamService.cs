@@ -369,7 +369,7 @@ public class TeacherTestExamService : ITeacherTestExamService
 
         // Đọc danh sách câu hỏi từ file
         List<Question> questions = await fileProcessor.ReadQuestionsFromFileAsync(fileUrl);
-        var newAnswers = new List<Answer>();
+      
 
         // Lưu câu hỏi và đáp án vào cơ sở dữ liệu
 
@@ -713,4 +713,29 @@ public class TeacherTestExamService : ITeacherTestExamService
                 $"Error deleting TestExam and related ClassTestExam records: {ex.Message}", false);
         }
     }
+
+    public async Task<ApiResponse<object?>> StarTeacherTestExamById(StartTestExamRequest request)
+    {
+        var testExam = await _context.TestExams.Where(ts => ts.IsExam == false && ts.Id == request.TestExamId)
+            .FirstOrDefaultAsync();
+
+        if (testExam == null)
+            return new ApiResponse<object>(1, "Bài kiểm tra không tồn tại", null);
+
+        // Kiểm tra đã kết thúc chưa
+        var now = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7));
+        if (testExam.EndDate.HasValue && now > testExam.EndDate.Value)
+        {
+            return new ApiResponse<object>(1, "Bài kiểm tra đã kết thúc, không thể bắt đầu lại.", null);
+        }
+
+        testExam.StartDate = now;
+        testExam.ScheduleStatusId = 3;
+
+        _context.TestExams.Update(testExam);
+        await _context.SaveChangesAsync();
+
+        return new ApiResponse<object>(0, "Bài kiểm tra đã bắt đầu làm", true);
+    }
+
 }

@@ -100,6 +100,21 @@ public class TeacherTestExamController : ControllerBase
         return Ok(new ApiResponse<Object>(response.Status, response.Message, response.Data));
     }
     
+    
+    [HttpPut("start-exam")]
+    public async Task<ActionResult<ApiResponse<Object>>> StartExam([FromBody] StartTestExamRequest request)
+    {
+        var response = await _teacherTestExamService.StarTeacherTestExamById(request);
+
+        if (response.Status == 1)
+        {
+            return BadRequest(
+                new ApiResponse<Object>(response.Status, response.Message, response.Data));
+        }
+
+        return Ok(new ApiResponse<Object>(response.Status, response.Message, response.Data));
+    }
+    
     [HttpGet("Filter")]
     public async Task<ActionResult<ApiResponse<Object>>> FilterClass([FromQuery] int departmentId )
     {

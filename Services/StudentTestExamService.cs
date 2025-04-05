@@ -412,27 +412,44 @@ public async Task<ApiResponse<object>> SaveEssay(int UserId, SaveEssayRequest re
     // ✅ Kiểm tra thời gian hợp lệ
     var testExam = await _context.TestExams.FirstOrDefaultAsync(ts => ts.Id == request.TestExamId);
     if (testExam == null) return new ApiResponse<object>(1, "Bài kiểm tra không tồn tại", null);
-    if (testExam.StartDate.HasValue && DateTime.Now < testExam.StartDate.Value)
+    
+    var nowUtc = DateTime.UtcNow;
+    if (testExam.StartDate.HasValue && nowUtc < testExam.StartDate.Value.ToUniversalTime())
         return new ApiResponse<object>(1, "Chưa đến thời gian làm bài", null);
-    if (testExam.EndDate.HasValue && DateTime.Now > testExam.EndDate.Value)
+
+    if (testExam.EndDate.HasValue && nowUtc > testExam.EndDate.Value.ToUniversalTime())
         return new ApiResponse<object>(1, "Hết thời gian làm bài", null);
 
     // ✅ Kiểm tra xem User đã có bài nộp chưa
     var existingAssignment = await _context.Assignments
         .FirstOrDefaultAsync(a => a.UserId == UserId && a.TestExamId == request.TestExamId);
 
+    string fileUrl = await SaveEssayToFile(request.SubmissionFile);
+
     if (existingAssignment == null)
     {
         existingAssignment = new Assignment
         {
             UserId = UserId,
+            SubmissionFile = fileUrl,
             TestExamId = request.TestExamId,
             SubmissionDate = DateTime.Now,
             IsSubmit = true
         };
         await _context.Assignments.AddAsync(existingAssignment);
-        await _context.SaveChangesAsync();
     }
+    else
+    {
+        // Cập nhật lại các thông tin cần thiết
+        existingAssignment.SubmissionFile = fileUrl;
+        existingAssignment.SubmissionDate = DateTime.Now;
+        existingAssignment.IsSubmit = true;
+
+        _context.Assignments.Update(existingAssignment);
+    }
+
+    await _context.SaveChangesAsync();
+
 
     // ✅ Lấy danh sách định dạng file được phép
     var fileFormats = await _context.FileFormats

@@ -16,4 +16,7 @@ public interface ITeacherTestExamService
     Task<ApiResponse<object?>> GetFilterClass(int departmentId);
     
     Task<ApiResponse<object?>> DeleteTeacherTestExamById(int id);
+    Task<ApiResponse<object?>> StarTeacherTestExamById(StartTestExamRequest request);
+    
+    
 }
