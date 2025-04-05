@@ -18,7 +18,8 @@ namespace Project_LMS.Interfaces.Responsitories
         Task<ClassStudent?> FindByUserId(int userId);
         public Task<List<ClassStudent>> FindAllClassStudentByUserId(int userId);
         Task<ClassStudent?> FindByUserIdAndSchoolYearAndClassId(int userId, int schoolYearId, int classId);
-         Task UpdateAsync(ClassStudent classStudent);
-         Task<ClassStudent> FindByUserIdAndSchoolYear(int userId, int schoolYear);
+        Task UpdateAsync(ClassStudent classStudent);
+        Task<ClassStudent> FindByUserIdAndSchoolYear(int userId, int schoolYear);
+        public Task AddChangeClassAsync(ClassStudentRequest request);
     }
 }
