@@ -45,6 +45,7 @@ namespace Project_LMS.Authorization
 
                     // Nhóm quyền mức độ vai trò
                     "SUPER-ADMIN",
+                    "ADMIN",
                     "TEACHER",
                     "STUDENT"
                 };

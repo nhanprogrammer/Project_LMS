@@ -20,6 +20,7 @@ namespace Project_LMS.Controllers
             _authService = authService;
         }
 
+        [Authorize(Policy = "ADMIN")]
         [HttpGet("academic-year")]
         public async Task<ActionResult<ApiResponse<AcademicYearReportResponse>>> GetAcademicYearOverviewAsync([FromQuery] int academicId)
         {
@@ -38,6 +39,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "ADMIN")]
         [HttpGet("class-performance")]
         public async Task<ActionResult<ApiResponse<List<ClassPerformanceReport>>>> GetClassPerformanceReport([FromQuery] int academicYearId, [FromQuery] int departmentId)
         {
@@ -52,6 +54,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "ADMIN")]
         [HttpGet("school-level-statistics")]
         public async Task<ActionResult<ApiResponse<SchoolLevelStatisticsResponse>>> GetSchoolLevelStatistics(
     [FromQuery] int academicYearId, [FromQuery] bool isJuniorHigh)
