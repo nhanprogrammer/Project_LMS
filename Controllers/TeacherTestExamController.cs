@@ -28,12 +28,18 @@ public class TeacherTestExamController : ControllerBase
         int? pageSize,
         string? sortDirection,
         string? topicName,
-        string? subjectName,
-        string? department,
-        string? startDate)
+        int? subjectId,
+        int? departmentId,
+        string? startDate,
+        string? tab
+        
+        )
     {
-        var response = await _teacherTestExamService.GetTeacherTestExamAsync(
-            pageNumber, pageSize, sortDirection, topicName, subjectName, department, startDate);
+        var user = await _authService.GetUserAsync();
+        if (user == null)
+            return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+        var response = await _teacherTestExamService.GetTeacherTestExamAsync(user.Id,
+            pageNumber, pageSize, sortDirection, topicName, subjectId, departmentId, startDate , tab);
 
         if (response.Status == 1)
         {
@@ -44,17 +50,17 @@ public class TeacherTestExamController : ControllerBase
         return Ok(new ApiResponse<PaginatedResponse<TeacherTestExamResponse>>(response.Status, response.Message, response.Data));
     }
 
-    [HttpGet("{id?}")]
-    public async Task<IActionResult> UpdateDiscipline(int id)
+    [HttpGet("detail")]
+    public async Task<IActionResult> UpdateDiscipline(int id, int classId)
     {
-        var response = await _teacherTestExamService.GetTeacherTestExamById(id);
+        var response = await _teacherTestExamService.GetTeacherTestExamById(id, classId);
 
         if (response.Status == 1)
         {
-            return BadRequest(new ApiResponse<Object>(response.Status, response.Message, response.Data));
+            return BadRequest(new ApiResponse<object>(response.Status, response.Message, response.Data));
         }
 
-        return Ok(new ApiResponse<Object>(response.Status, response.Message, response.Data));
+        return Ok(new ApiResponse<object>(response.Status, response.Message, response.Data));
     }
 
     [HttpPost]
@@ -84,6 +90,21 @@ public class TeacherTestExamController : ControllerBase
 
         
         var response = await _teacherTestExamService.UpdateTeacherTestExamAsync(user.Id,request);
+
+        if (response.Status == 1)
+        {
+            return BadRequest(
+                new ApiResponse<Object>(response.Status, response.Message, response.Data));
+        }
+
+        return Ok(new ApiResponse<Object>(response.Status, response.Message, response.Data));
+    }
+    
+    
+    [HttpPut("start-exam")]
+    public async Task<ActionResult<ApiResponse<Object>>> StartExam([FromBody] StartTestExamRequest request)
+    {
+        var response = await _teacherTestExamService.StarTeacherTestExamById(request);
 
         if (response.Status == 1)
         {

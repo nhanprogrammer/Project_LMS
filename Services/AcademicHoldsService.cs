@@ -206,7 +206,7 @@ namespace Project_LMS.Services
                     errors.Add(new ValidationError
                     {
                         Field = "User",
-                        Error = "Học viên không ở trạng thái active. Không thể tạo bảo lưu cho học viên này."
+                        Error = "Học viên không ở trạng thái đang hoạt động. Không thể tạo bảo lưu cho học viên này."
                     });
                 }
             }
@@ -269,12 +269,19 @@ namespace Project_LMS.Services
                 fileName = await _cloudinaryService.UploadDocxAsync(request.FileName);
             }
 
+            string holdDuration = string.Empty;
+            if(request.HoldDuration == null)
+            {
+                holdDuration = semester?.Name ?? string.Empty;
+            }else {
+                holdDuration = request.HoldDuration;
+            }
             // Tạo mới AcademicHold
             var newHold = new AcademicHold
             {
                 UserId = request.UserId,
                 HoldDate = request.HoldDate.DateTime,
-                HoldDuration = semester?.Name ?? string.Empty,
+                HoldDuration = holdDuration,
                 FileName = fileName,
                 Reason = request.Reason,
                 UserCreate = userId,
@@ -304,24 +311,8 @@ namespace Project_LMS.Services
         {
             var errors = new List<ValidationError>();
 
-            // Kiểm tra dữ liệu đầu vào
-            if (academicHold.UserId <= 0)
-                errors.Add(new ValidationError { Field = "User", Error = "Mã người dùng không hợp lệ. Vui lòng cung cấp một mã người dùng lớn hơn 0." });
-
-            if (academicHold.ClassId <= 0)
-                errors.Add(new ValidationError { Field = "Class", Error = "Mã lớp học không hợp lệ. Vui lòng cung cấp một mã lớp học lớn hơn 0." });
-
             if (string.IsNullOrWhiteSpace(academicHold.Reason))
                 errors.Add(new ValidationError { Field = "Reason", Error = "Lý do bảo lưu không được để trống. Vui lòng nhập lý do." });
-
-            // Kiểm tra UserId và ClassId tồn tại
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == academicHold.UserId && !(u.IsDelete ?? false));
-            if (user == null)
-                errors.Add(new ValidationError { Field = "User", Error = "Người dùng không tồn tại trong hệ thống. Vui lòng kiểm tra lại mã người dùng." });
-
-            var classInfo = await _context.Classes.FirstOrDefaultAsync(c => c.Id == academicHold.ClassId && !(c.IsDelete ?? false));
-            if (classInfo == null)
-                errors.Add(new ValidationError { Field = "Class", Error = "Lớp học không tồn tại hoặc đã bị xóa. Vui lòng kiểm tra lại mã lớp học." });
 
             SemesterResponse? semester = null;
             try
@@ -368,18 +359,20 @@ namespace Project_LMS.Services
             }
 
             // Cập nhật AcademicHold
-            existingHold.UserId = academicHold.UserId;
+            string holdDuration = string.Empty;
+            if(academicHold.HoldDuration == null)
+            {
+                holdDuration = semester?.Name ?? string.Empty;
+            }else {
+                holdDuration = academicHold.HoldDuration;
+            }
             existingHold.HoldDate = academicHold.HoldDate;
-            existingHold.HoldDuration = academicHold.HoldDuration;
+            existingHold.HoldDuration = holdDuration;
             existingHold.Reason = academicHold.Reason;
             existingHold.UserUpdate = userId;
 
             _context.AcademicHolds.Update(existingHold);
-            if (user != null)
-            {
-                user.StudentStatusId = 2;
-                _context.Users.Update(user);
-            }
+
             await _context.SaveChangesAsync();
 
             return new AcademicHoldResponse
@@ -436,7 +429,7 @@ namespace Project_LMS.Services
             }
 
             DateTime normalizedDate = new DateTime(parsedDate.Year, parsedDate.Month, parsedDate.Day, 0, 0, 0);
-
+            Console.WriteLine($"Normalized Date: {normalizedDate}");
             var now = DateTime.Now;
             var currentAcademicYear = await _context.AcademicYears
                 .Where(ay => ay.StartDate <= now && ay.EndDate >= now && ay.IsDelete == false)

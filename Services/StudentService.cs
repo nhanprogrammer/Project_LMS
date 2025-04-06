@@ -552,7 +552,7 @@ public class StudentService : IStudentService
             {
                 sheet5.Cells[row + 2, 0].PutValue(row + 1);
                 sheet5.Cells[row + 2, 1].PutValue(rewards[row].RewardContent);
-                sheet5.Cells[row + 2, 2].PutValue(rewards[row].RewardName);
+                sheet5.Cells[row + 2, 2].PutValue(rewards[row].FileName);
                 sheet5.Cells[row + 2, 3].PutValue(rewards[row].RewardDate?.ToString("dd/MM/yyyy") ?? "N/A");
             }
             sheet5.AutoFitColumns();
@@ -586,7 +586,7 @@ public class StudentService : IStudentService
             {
                 sheet6.Cells[row + 2, 0].PutValue(row + 1);
                 sheet6.Cells[row + 2, 1].PutValue(disciplines[row].DisciplineContent);
-                sheet6.Cells[row + 2, 2].PutValue(disciplines[row].Name);
+                sheet6.Cells[row + 2, 2].PutValue(disciplines[row].FileName);
                 sheet6.Cells[row + 2, 3].PutValue(disciplines[row].DisciplineDate?.ToString("dd/MM/yyyy") ?? "N/A");
             }
             sheet6.AutoFitColumns();
@@ -923,13 +923,13 @@ public class StudentService : IStudentService
         var disciplines = student.Disciplines.Select(dcl => (object)new
         {
             dcl.DisciplineContent,
-            dcl.Name,
+            dcl.FileName,
             dcl.DisciplineDate
         }).ToList();
         var rewards = student.Rewards.Select(r => new
         {
             r.RewardContent,
-            r.RewardName,
+            r.FileName,
             r.RewardDate
         }).ToList();
 
@@ -1210,9 +1210,7 @@ public class StudentService : IStudentService
                 await _classStudentRepository.AddAsync(new ClassStudentRequest
                 {
                     UserId = studentFind.Id,
-                    ClassId = request.ClassId,
-                    IsActive = true,
-                    IsDelete = false
+                    ClassId = request.ClassId
                 });
                 Console.WriteLine("Runhere");
                 _logger.LogInformation("Thêm học viên vào lớp mới cho niên khóa {SchoolYear}: UserId={UserId}, ClassId={ClassId}",
@@ -1239,9 +1237,7 @@ public class StudentService : IStudentService
                     await _classStudentRepository.AddAsync(new ClassStudentRequest
                     {
                         UserId = studentFind.Id,
-                        ClassId = request.ClassId,
-                        IsActive = true,
-                        IsDelete = false
+                        ClassId = request.ClassId
                     });
                     _logger.LogInformation("Thêm học viên vào lớp mới cho niên khóa {SchoolYear}: UserId={UserId}, ClassId={ClassId}",
                         request.SchoolYear, studentFind.Id, request.ClassId);

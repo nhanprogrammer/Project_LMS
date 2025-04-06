@@ -3,6 +3,7 @@
     public class SaveGradesRequest
     {
         public int TestId { get; set; }
+        public int? ClassId { get; set; }
         public List<StudentGradeRequestDto> Grades { get; set; }
     }
 

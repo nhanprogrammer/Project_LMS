@@ -2,11 +2,10 @@
 
 public class TeacherTestExamDetailResponse
 {
-    public int ExamNumber { get; set; }
     public string StartDate { get; set; }
 
     public string SubjectName { get; set; }
-    public string ClassList { get; set; }
+    public string ClassName { get; set; }
     public string Duration { get; set; }
     public string Description { get; set; }
     public string Attachment { get; set; }
@@ -17,6 +16,6 @@ public class TeacherTestExamDetailResponse
 
 public class RelatedTestDTO
 {
-    public int ExamNumber { get; set; }
+    public string ExamNumber { get; set; }
     public string StartDate { get; set; }
 }

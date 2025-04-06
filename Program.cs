@@ -90,7 +90,6 @@ builder.Services.AddScoped<ISchoolTransferService, SchoolTransferService>();
 builder.Services.AddScoped<ISemesterService, SemesterService>();
 builder.Services.AddScoped<IDistrictsService, DistrictsService>();
 builder.Services.AddScoped<IProvincesService, ProvincesService>();
-builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddScoped<IClassService, ClassService>();
 builder.Services.AddScoped<ILessonService, LessonService>();
 builder.Services.AddScoped<IFavouritesService, FavouritesService>();
@@ -361,6 +360,10 @@ builder.Services.AddLogging(logging =>
     logging.AddDebug(); // Ghi log ra debug window
     logging.SetMinimumLevel(LogLevel.Information); // Cấu hình mức log tối thiểu
 });
+
+// Đăng ký NotificationQueueService
+builder.Services.AddSingleton<NotificationQueueService>();
+builder.Services.AddHostedService(provider => provider.GetRequiredService<NotificationQueueService>());
 
 var app = builder.Build();
 app.MapHub<MeetHubService>("/meetHub");

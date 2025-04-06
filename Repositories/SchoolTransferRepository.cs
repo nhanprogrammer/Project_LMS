@@ -17,9 +17,9 @@ namespace Project_LMS.Repositories
 
         public async Task<IEnumerable<SchoolTransfer>> GetAllAsync(int id, PaginationRequest request, bool isOrder, string column, string searchItem)
         {
-            var query =   _context.SchoolTransfers
-                .Include(s=>s.User).ThenInclude(u=>u.ClassStudents).ThenInclude(cs=>cs.Class).ThenInclude(c=>c.Department)
-                .Where(s=>s.User.ClassStudents.Where(cs=>cs.IsActive== true && cs.IsDelete == false).FirstOrDefault().Class.AcademicYearId == id);
+            var query = _context.SchoolTransfers
+                .Include(s => s.User).ThenInclude(u => u.ClassStudents).ThenInclude(cs => cs.Class).ThenInclude(c => c.Department)
+                .Where(s => s.User.ClassStudents.Where(cs => cs.IsActive == true && cs.IsDelete == false).FirstOrDefault().Class.AcademicYearId == id);
             if (!string.IsNullOrWhiteSpace(searchItem))
             {
                 searchItem = searchItem.Trim().ToLower();
@@ -70,7 +70,7 @@ namespace Project_LMS.Repositories
 
             }
             return await query
-                .Skip((request.PageNumber -1)*request.PageSize)
+                .Skip((request.PageNumber - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .ToListAsync();
         }
@@ -100,6 +100,13 @@ namespace Project_LMS.Repositories
                 _context.SchoolTransfers.Remove(schoolTransfer);
                 await _context.SaveChangesAsync();
             }
+        }
+        public async Task<SchoolTransfer> GetByStudentId(int studentId)
+        {
+            return await _context.SchoolTransfers
+                .Where(st => st.UserId == studentId && (st.IsDelete.HasValue && !st.IsDelete.Value))
+                .OrderByDescending(st => st.CreateAt)
+                .FirstOrDefaultAsync();
         }
     }
 }

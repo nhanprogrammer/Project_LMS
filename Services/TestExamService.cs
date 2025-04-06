@@ -533,6 +533,37 @@ public class TestExamService : ITestExamService
     public async Task<ApiResponse<PaginatedResponse<TestExamResponse>>> GetAllTestExamsAsync(string? keyword,
         int? pageNumber, int? pageSize, string? sortDirection)
     {
+        
+        var today = DateTime.Now.Date;
+
+        var testExamUpdate = await _context.TestExams
+            .Where(te => te.IsDelete  ==false
+                         && te.IsExam ==true  
+                         && te.StartDate.HasValue 
+                         && te.EndDate.HasValue)
+            .ToListAsync();
+
+        foreach (var testExam in testExamUpdate)
+        {
+            // Nếu StartDate là hôm nay, cập nhật trạng thái thành 6
+            if (testExam.EndDate.Value <= today)
+            {
+                testExam.ScheduleStatusId = 7;
+            }
+            // Nếu StartDate là hôm nay, trạng thái = 6 (Bắt đầu)
+            else if (testExam.StartDate.Value == today)
+            {
+                testExam.ScheduleStatusId = 6;
+            }
+            // Nếu hôm nay nằm trong khoảng giữa StartDate và EndDate, trạng thái = 3 (Đang diễn ra)
+            else if (testExam.StartDate.Value < today && testExam.EndDate.Value >= today)
+            {
+                testExam.ScheduleStatusId = 3;
+            }
+        }
+
+        await _context.SaveChangesAsync();
+        
         if (pageNumber.HasValue && pageNumber <= 0)
         {
             return new ApiResponse<PaginatedResponse<TestExamResponse>>(

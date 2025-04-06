@@ -9,10 +9,12 @@ public interface IStudentTestExamService
         int? pageNumber,
         int? pageSize,
         string? sortDirection
-        , string? topicName, string? subjectName, string? department, string? startDate , string? option);
+        , string? topicName, int? subjectId, int? departmentId, string? startDate , string? option);
 
     Task<ApiResponse<List<QuestionResponse>>> GetStudentTestExamByIdAsync(int id , int userId);
 
     Task<ApiResponse<Object>> SubmitYourAssignment(int userID,SubmitMultipleChoiceQuestionRequest submitMultipleChoiceQuestion);
     Task<ApiResponse<object>> SaveEssay(int UserId, SaveEssayRequest request);
+    
+    
 }

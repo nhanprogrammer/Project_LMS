@@ -19,12 +19,12 @@ public class TestExamScheduleController : ControllerBase
     
     [HttpGet]
     public async Task<IActionResult> GetAllDisciplinesAsync(
-        DateTimeOffset? mount, bool week, int? departmentId
+        int? month,int? year, bool week, int? departmentId , DateTimeOffset? startDateOffWeek
       )
     {
         try
         {
-            var result = await _testExamScheduleService.GetExamScheduleAsync(mount, week ,departmentId);
+            var result = await _testExamScheduleService.GetExamScheduleAsync(month,year, week ,departmentId ,startDateOffWeek);
             if (result.Status == 1)
             {
                 return BadRequest(result);
