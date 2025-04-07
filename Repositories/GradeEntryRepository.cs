@@ -27,6 +27,9 @@ public class GradeEntryRepository : IGradeEntryRepository
         TestExam test = null;
         try
         {
+            _logger.LogInformation(
+                $"Getting grading data for TestId={testId}, TeacherId={teacherId}, ClassId={classId}");
+
             // Lấy thông tin giáo viên
             var teacher = await _context.Users.FindAsync(teacherId);
             if (teacher == null)
@@ -47,10 +50,15 @@ public class GradeEntryRepository : IGradeEntryRepository
             var classTestExam = await _context.ClassTestExams
                 .Where(cte => cte.TestExamId == testId && cte.IsDelete == false)
                 .ToListAsync();
+
+            _logger.LogInformation($"Số lượng lớp trong ClassTestExams cho TestId {testId}: {classTestExam.Count}");
+
             if (!classTestExam.Any())
             {
-                throw new Exception("Bài kiểm tra/lịch thi chưa gán cho lớp học nào!");
+                _logger.LogWarning($"Không tìm thấy bản ghi nào trong ClassTestExams cho TestId {testId}");
+                throw new Exception("Bài kiểm tra/lịch thi này chưa được gán cho lớp học nào trong ClassTestExams!");
             }
+
 
             // Xử lý classId: Chỉ sử dụng ClassTestExams
             int selectedClassId;
@@ -58,15 +66,20 @@ public class GradeEntryRepository : IGradeEntryRepository
             {
                 if (!classTestExam.Any(cte => cte.ClassId == classId.Value))
                 {
-                    throw new Exception("Lớp được chỉ định không liên kết với bài kiểm tra này!");
+                    _logger.LogWarning(
+                        $"ClassId {classId.Value} không tồn tại trong ClassTestExams của TestId {testId}");
+                    throw new Exception(
+                        $"Lớp được chỉ định (ID: {classId.Value}) không liên kết với bài kiểm tra này!");
                 }
+
                 selectedClassId = classId.Value;
                 _logger.LogInformation($"ClassId được chỉ định cho TestId {testId}: {selectedClassId}");
             }
             else
             {
                 selectedClassId = classTestExam.First().ClassId.Value;
-                _logger.LogInformation($"Không truyền ClassId, sử dụng ClassId đầu tiên từ ClassTestExams cho TestId {testId}: {selectedClassId}");
+                _logger.LogInformation(
+                    $"Không truyền ClassId, sử dụng ClassId đầu tiên từ ClassTestExams cho TestId {testId}: {selectedClassId}");
             }
 
             // Lấy thông tin lớp học
@@ -82,13 +95,15 @@ public class GradeEntryRepository : IGradeEntryRepository
                 .FirstOrDefaultAsync(cs =>
                     cs.ClassId == selectedClassId && cs.SubjectId == test.SubjectId && cs.IsDelete == false);
 
-            _logger.LogInformation($"Kiểm tra ClassSubject: ClassId={selectedClassId}, SubjectId={test.SubjectId}, Found={classSubject != null}");
+            _logger.LogInformation(
+                $"Kiểm tra ClassSubject: ClassId={selectedClassId}, SubjectId={test.SubjectId}, Found={classSubject != null}");
 
             if (classSubject == null)
             {
                 _logger.LogError("Lớp {ClassId} không được gán môn học {SubjectId} của bài kiểm tra/lịch thi {TestId}!",
                     selectedClassId, test.SubjectId, test.Id);
-                throw new Exception($"Lớp {selectedClassId} không được gán môn học (ID: {test.SubjectId}) của bài kiểm tra/lịch thi! Vui lòng thêm môn học này cho lớp hoặc chọn lớp khác.");
+                throw new Exception(
+                    $"Lớp {selectedClassId} không được gán môn học (ID: {test.SubjectId}) của bài kiểm tra/lịch thi! Vui lòng thêm môn học này cho lớp hoặc chọn lớp khác.");
             }
 
             // Kiểm tra quyền truy cập
@@ -104,7 +119,8 @@ public class GradeEntryRepository : IGradeEntryRepository
 
             if (endDateUtc > DateTimeOffset.UtcNow)
             {
-                _logger.LogWarning($"Bài kiểm tra TestId: {testId} chưa kết thúc (EndDate: {endDateUtc}, Now: {DateTimeOffset.UtcNow})");
+                _logger.LogWarning(
+                    $"Bài kiểm tra TestId: {testId} chưa kết thúc (EndDate: {endDateUtc}, Now: {DateTimeOffset.UtcNow})");
                 throw new Exception("Bài kiểm tra hoặc kỳ thi này chưa kết thúc, không thể chấm điểm");
             }
 
@@ -234,12 +250,14 @@ public class GradeEntryRepository : IGradeEntryRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Lỗi khi lấy dữ liệu chấm điểm: {Message}. Stack trace: {StackTrace}", ex.Message, ex.StackTrace);
+            _logger.LogError(ex, "Lỗi khi lấy dữ liệu chấm điểm: {Message}. Stack trace: {StackTrace}", ex.Message,
+                ex.StackTrace);
 
             // Log thêm thông tin về test đang xử lý
             if (test != null)
             {
-                _logger.LogInformation("Thông tin test đang xử lý: ID={TestId}, SubjectId={SubjectId}, UserId={UserId}, ClassId={ClassId}",
+                _logger.LogInformation(
+                    "Thông tin test đang xử lý: ID={TestId}, SubjectId={SubjectId}, UserId={UserId}, ClassId={ClassId}",
                     test.Id, test.SubjectId, test.UserId, test.ClassId);
             }
 
@@ -270,17 +288,20 @@ public class GradeEntryRepository : IGradeEntryRepository
             // Kiểm tra nếu UserId của bài thi là null
             if (test.UserId == null)
             {
-                _logger.LogWarning("Bài thi ID: {TestId} không có thông tin người tạo (UserId là null)", request.TestId);
+                _logger.LogWarning("Bài thi ID: {TestId} không có thông tin người tạo (UserId là null)",
+                    request.TestId);
                 // Vẫn tiếp tục xử lý
             }
             else if (test.UserId == teacherId)
             {
-                _logger.LogInformation("Giáo viên ID: {TeacherId} là người tạo bài thi ID: {TestId}", teacherId, request.TestId);
+                _logger.LogInformation("Giáo viên ID: {TeacherId} là người tạo bài thi ID: {TestId}", teacherId,
+                    request.TestId);
                 // Người tạo bài thi có quyền chấm điểm, tiếp tục xử lý
             }
             else
             {
-                _logger.LogInformation("Kiểm tra bài thi ID: {TestId}, người tạo: {UserId}, giáo viên hiện tại: {TeacherId}",
+                _logger.LogInformation(
+                    "Kiểm tra bài thi ID: {TestId}, người tạo: {UserId}, giáo viên hiện tại: {TeacherId}",
                     request.TestId, test.UserId, teacherId);
             }
 
@@ -299,17 +320,22 @@ public class GradeEntryRepository : IGradeEntryRepository
             {
                 if (!classTestExam.Any(cte => cte.ClassId == request.ClassId.Value))
                 {
-                    _logger.LogWarning($"ClassId={request.ClassId.Value} không tồn tại trong ClassTestExams của TestId={request.TestId}");
-                    throw new Exception($"Lớp được chỉ định (ID: {request.ClassId.Value}) không liên kết với bài kiểm tra này!");
+                    _logger.LogWarning(
+                        $"ClassId={request.ClassId.Value} không tồn tại trong ClassTestExams của TestId={request.TestId}");
+                    throw new Exception(
+                        $"Lớp được chỉ định (ID: {request.ClassId.Value}) không liên kết với bài kiểm tra này!");
                 }
+
                 selectedClassId = request.ClassId.Value;
                 _logger.LogInformation($"Sử dụng ClassId từ request: {selectedClassId}");
             }
             else
             {
                 selectedClassId = classTestExam.First().ClassId.Value;
-                _logger.LogInformation($"Không có ClassId trong request, sử dụng ClassId đầu tiên từ ClassTestExams: {selectedClassId}");
+                _logger.LogInformation(
+                    $"Không có ClassId trong request, sử dụng ClassId đầu tiên từ ClassTestExams: {selectedClassId}");
             }
+
             _logger.LogInformation($"Selected ClassId for TestId {request.TestId}: {selectedClassId}");
 
             // Kiểm tra thông tin lớp học
@@ -335,7 +361,8 @@ public class GradeEntryRepository : IGradeEntryRepository
             {
                 if (test.UserId != null && test.UserId != teacherId)
                 {
-                    throw new Exception("Giáo viên không có quyền chấm điểm bài thi này vì không phải người tạo bài thi!");
+                    throw new Exception(
+                        "Giáo viên không có quyền chấm điểm bài thi này vì không phải người tạo bài thi!");
                 }
                 else
                 {
@@ -345,11 +372,13 @@ public class GradeEntryRepository : IGradeEntryRepository
 
             // Kiểm tra thời gian kết thúc bài kiểm tra
             var endDateUtc = test.EndDate.HasValue ? test.EndDate.Value.ToUniversalTime() : DateTimeOffset.MaxValue;
-            _logger.LogInformation($"TestId: {request.TestId}, EndDate (UTC): {endDateUtc}, UtcNow: {DateTimeOffset.UtcNow}");
+            _logger.LogInformation(
+                $"TestId: {request.TestId}, EndDate (UTC): {endDateUtc}, UtcNow: {DateTimeOffset.UtcNow}");
 
             if (endDateUtc > DateTimeOffset.UtcNow)
             {
-                _logger.LogWarning($"Bài kiểm tra TestId: {request.TestId} chưa kết thúc (EndDate: {endDateUtc}, Now: {DateTimeOffset.UtcNow})");
+                _logger.LogWarning(
+                    $"Bài kiểm tra TestId: {request.TestId} chưa kết thúc (EndDate: {endDateUtc}, Now: {DateTimeOffset.UtcNow})");
                 throw new Exception("Bài kiểm tra hoặc kỳ thi này chưa kết thúc, không thể chấm điểm");
             }
 
@@ -507,13 +536,15 @@ public class GradeEntryRepository : IGradeEntryRepository
             }
             else
             {
-                _logger.LogInformation("Kiểm tra bài thi ID: {TestId}, người tạo: {UserId}, giáo viên hiện tại: {TeacherId}",
+                _logger.LogInformation(
+                    "Kiểm tra bài thi ID: {TestId}, người tạo: {UserId}, giáo viên hiện tại: {TeacherId}",
                     testId, test.UserId, teacherId);
 
                 // Nếu giáo viên là người tạo bài thi
                 if (test.UserId == teacherId)
                 {
-                    _logger.LogInformation("Giáo viên ID: {TeacherId} là người tạo bài thi ID: {TestId}", teacherId, testId);
+                    _logger.LogInformation("Giáo viên ID: {TeacherId} là người tạo bài thi ID: {TestId}", teacherId,
+                        testId);
                     return true;
                 }
             }
@@ -543,7 +574,8 @@ public class GradeEntryRepository : IGradeEntryRepository
 
                 if (classInfo.UserId == teacherId)
                 {
-                    _logger.LogInformation("Giáo viên ID: {TeacherId} là chủ nhiệm lớp ID: {ClassId}", teacherId, cte.ClassId);
+                    _logger.LogInformation("Giáo viên ID: {TeacherId} là chủ nhiệm lớp ID: {ClassId}", teacherId,
+                        cte.ClassId);
                     return true; // Giáo viên chủ nhiệm
                 }
 
@@ -559,14 +591,16 @@ public class GradeEntryRepository : IGradeEntryRepository
 
                     if (teacherAssignment != null)
                     {
-                        _logger.LogInformation("Giáo viên ID: {TeacherId} được phân công dạy môn ID: {SubjectId} cho lớp ID: {ClassId}",
+                        _logger.LogInformation(
+                            "Giáo viên ID: {TeacherId} được phân công dạy môn ID: {SubjectId} cho lớp ID: {ClassId}",
                             teacherId, test.SubjectId, cte.ClassId);
                         return true; // Giáo viên được phân công giảng dạy
                     }
                 }
             }
 
-            _logger.LogWarning("Giáo viên ID: {TeacherId} không có quyền chấm điểm cho bài thi ID: {TestId}", teacherId, testId);
+            _logger.LogWarning("Giáo viên ID: {TeacherId} không có quyền chấm điểm cho bài thi ID: {TestId}", teacherId,
+                testId);
             return false; // Nếu không thuộc các trường hợp trên thì không có quyền
         }
         catch (Exception ex)

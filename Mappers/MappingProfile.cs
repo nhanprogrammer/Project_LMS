@@ -45,7 +45,8 @@ public class MappingProfile : Profile
         CreateMap<CreateAcademicYearRequest, AcademicYear>()
             .ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => TimeHelper.Now))
             .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate.ToDateTime(TimeOnly.MinValue)))
-            .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate.ToDateTime(TimeOnly.MinValue)));
+            .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate.ToDateTime(TimeOnly.MinValue)))
+            .ForMember(dest => dest.IsDelete, opt => opt.MapFrom(src => false));
 
         CreateMap<UpdateAcademicYearRequest, AcademicYear>()
             .ForMember(dest => dest.StartDate, opt => opt.MapFrom(src => src.StartDate.ToDateTime(TimeOnly.MinValue)))
@@ -143,7 +144,7 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.name))
             .ForMember(dest => dest.IsDelete, opt => opt.MapFrom(src => src.isDelete))
             .ForMember(dest => dest.UpdateAt, opt => opt.MapFrom(src => src.updateAt ?? DateTime.Now))
-            .ForMember(dest => dest.UserUpdate, opt => opt.MapFrom(src => src.userUpdate));
+            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.userId));
 
         CreateMap<Department, DepartmentResponse>()
             .ForMember(dest => dest.DepartmentID, opt => opt.MapFrom(src => src.Id))

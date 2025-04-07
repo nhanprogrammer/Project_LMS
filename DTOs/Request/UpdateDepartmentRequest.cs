@@ -14,5 +14,5 @@ public class UpdateDepartmentRequest
     public DateTime? updateAt { get; set; }
 
     // Người cập nhật: có thể là thông tin lấy từ context của hệ thống (nếu cần)
-    public int? userUpdate { get; set; }
+    public int? userId { get; set; }
 }

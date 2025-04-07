@@ -31,6 +31,7 @@ public class GradeEntryController : ControllerBase
     {
         var user = await _authService.GetUserAsync();
         int teacherId = user.Id;
+        _logger.LogInformation($"GetGradingData - TestId: {testId}, ClassId: {classId}, TeacherId: {teacherId}");
         var response = await _gradeEntryService.GetGradingData(testId, teacherId, classId);
 
         if (response.Status == 0)

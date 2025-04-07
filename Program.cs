@@ -364,7 +364,7 @@ builder.Services.AddLogging(logging =>
 // Đăng ký NotificationQueueService
 builder.Services.AddSingleton<NotificationQueueService>();
 builder.Services.AddHostedService(provider => provider.GetRequiredService<NotificationQueueService>());
-
+builder.Services.AddHostedService<TestExamNotificationService>();
 var app = builder.Build();
 app.MapHub<MeetHubService>("/meetHub");
 app.Use(async (context, next) =>
@@ -412,4 +412,5 @@ RecurringJob.AddOrUpdate<AcademicHoldStatusCheckerJob>(
     {
         TimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")
     });
+
 app.Run();
