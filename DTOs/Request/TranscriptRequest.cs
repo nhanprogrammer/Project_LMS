@@ -22,10 +22,6 @@ namespace Project_LMS.DTOs.Request
                 .GreaterThan(0).WithMessage("DepartmentId phải là số nguyên.")
                 .Must(DepartmentExists).WithName("DepartmentId không tồn tại.");
 
-            RuleFor(t => t.StudentId).NotNull().WithMessage("StudentId không được để trống.")
-                .GreaterThan(0).WithMessage("StudentId phải là số nguyên.")
-                .Must(StudentExists).WithName("StudentId không tồn tại.");
-
             RuleFor(t => t.SemesterId).NotNull().WithMessage("SemesterId không được để trống.")
                 .GreaterThan(0).WithMessage("SemesterId phải là số nguyên.")
                 .Must(SemesterExists).WithName("SemesterId không tồn tại.");
@@ -33,10 +29,6 @@ namespace Project_LMS.DTOs.Request
         private bool DepartmentExists(int departmentId)
         {
             return _context.Departments.Any(d => d.Id == departmentId && d.IsDelete == false);
-        }
-        private bool StudentExists(int studentId)
-        {
-            return _context.Users.Any(st => st.Id == studentId && st.IsDelete == false);
         }
         private bool SemesterExists(int semesterId)
         {
