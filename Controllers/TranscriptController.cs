@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Project_LMS.DTOs.Request;
@@ -11,6 +12,7 @@ namespace Project_LMS.Controllers
 
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class TranscriptController : ControllerBase
     {
         private readonly ITranscriptService _transcriptService;
@@ -72,7 +74,12 @@ namespace Project_LMS.Controllers
             var result = await _transcriptService.ExportPdfTranscriptByTeacherAsync(request);
             return Ok(result);
         }
-
+        [HttpGet("dropdownofstudent")]
+        public async Task<IActionResult> GetAllDropdownOfStudent()
+        {
+            var result = await _transcriptService.DropdownTranscriptStudent();
+            return Ok(result);
+        }
 
     }
 }

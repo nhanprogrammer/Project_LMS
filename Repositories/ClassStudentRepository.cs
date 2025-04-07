@@ -372,6 +372,7 @@ namespace Project_LMS.Repositories
             return await _context.ClassStudents
             .Include(cs => cs.Class)
             .Include(cs => cs.Class != null ? cs.Class.AcademicYear : null)
+            .Include(cs => cs.Class != null ? cs.Class.Department : null)
             .Where(cs => cs.UserId == userId && cs.IsDelete == false)
             .ToListAsync(); ;
         }

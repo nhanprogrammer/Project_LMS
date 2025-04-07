@@ -600,6 +600,58 @@ namespace Project_LMS.Services
             };
 
         }
+        public async Task<ApiResponse<object>> DropdownTranscriptStudent()
+
+        {
+            int id = 0;
+                // Lấy thông tin người dùng từ AuthService
+                var user = await _authService.GetUserAsync();
+                if (user != null)
+                {
+                    var studentAuth = await _studentRepository.FindStudentById(user.Id);
+                    if (studentAuth != null && studentAuth.Role.Name == "Student")
+                    {
+                    id = studentAuth.Id;
+                    }
+                }
+            
+            var classStudents = await _classStudentRepository.FindAllClassStudentByUserId(id);
+            var academicResponse = new List<Dictionary<string, object>>();
+
+            foreach (ClassStudent cs in classStudents)
+            {
+                var semesters = await _assignmentRepository.GetAllByStudentIdAndAcademicId(id, cs.Class.AcademicYearId ?? 0);
+
+                var orderedSemesters = semesters
+                .Where(asm => asm.TestExam != null && asm.TestExam.Semesters != null)
+                .GroupBy(asm => asm.TestExam.Semesters.Id)
+                .Select(group => new
+                {
+                    Id = group.Key,
+                    Name = group.First().TestExam.Semesters.Name
+                })
+                .OrderBy(asm => asm.Name)
+                .ToList();
+
+                bool active = cs.IsActive ?? false;
+
+                academicResponse.Add(new Dictionary<string, object>
+        {
+            { "academicId", cs.Class.AcademicYearId },
+            { "departmentId", cs.Class.DepartmentId },
+            { "departmentName", cs.Class?.Department?.Name ?? "N/A"},
+            { "academicDate", cs.Class.AcademicYear?.StartDate?.ToString("yyyy") + " - " + cs.Class.AcademicYear?.EndDate?.ToString("yyyy") },
+            { "semesters", orderedSemesters },
+            { "active", active }
+        });
+            }
+
+            return new ApiResponse<object>(0, "Lấy danh sách dropdown thành công.")
+            {
+                Data = academicResponse
+            };
+        }
+
     }
 }
 
