@@ -25,6 +25,4 @@ public interface IStudentService
 
     public Task<ApiResponse<object>> ExportSampleData();
 
-
-
 }
