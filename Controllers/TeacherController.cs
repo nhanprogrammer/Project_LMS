@@ -9,7 +9,7 @@ using Project_LMS.DTOs.Response;
 
 namespace Project_LMS.Controllers
 {
-    [Authorize(Policy = "TEACHER-REC-VIEW")]
+    //[Authorize(Policy = "TEACHER-REC-VIEW")]
     [Route("api/[controller]")]
     [ApiController]
     public class TeacherController : ControllerBase
@@ -37,7 +37,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "TEACHER-REC-INSERT")]
+        //[Authorize(Policy = "TEACHER-REC-INSERT")]
         [HttpPost]
         public async Task<IActionResult> AddAsync(TeacherRequest request)
         {
@@ -52,7 +52,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "TEACHER-REC-UPDATE")]
+        //[Authorize(Policy = "TEACHER-REC-UPDATE")]
         [HttpPut]
         public async Task<IActionResult> UpdateAsync(TeacherRequest request)
         {
