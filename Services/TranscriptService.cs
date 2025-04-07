@@ -41,8 +41,11 @@ namespace Project_LMS.Services
 
         public async Task<ApiResponse<object>> ExportExcelTranscriptAsync(TranscriptRequest request)
         {
+            if (request.StudentId == null){
+                return new ApiResponse<object>(1, "StudentId không được để trống.");
+            }
 
-            var student = await _studentRepository.FindStudentById(request.StudentId);
+            var student = await _studentRepository.FindStudentById(request.StudentId ?? 0);
             if (student == null)
                 return new ApiResponse<object>(1, "Học viên không tồn tại.");
 
@@ -241,17 +244,17 @@ namespace Project_LMS.Services
                 foreach (var user in users)
                 {
                     row++;
-                    worksheet1.Cells[row, 1].Value = row-3;
-                    worksheet1.Cells[row,  1].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
-                    worksheet1.Cells[row,  1].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
-                    
+                    worksheet1.Cells[row, 1].Value = row - 3;
+                    worksheet1.Cells[row, 1].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                    worksheet1.Cells[row, 1].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+
                     worksheet1.Cells[row, 2].Value = user.Key.FullName;
-                    worksheet1.Cells[row,  2].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
-                    worksheet1.Cells[row,  2].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
-                    
+                    worksheet1.Cells[row, 2].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                    worksheet1.Cells[row, 2].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+
                     worksheet1.Cells[row, 3].Value = user.Key.BirthDate;
-                    worksheet1.Cells[row,  3].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
-                    worksheet1.Cells[row,  3].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+                    worksheet1.Cells[row, 3].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                    worksheet1.Cells[row, 3].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
 
                     double totalScore = 0;
                     int totalCoefficient = 0;
@@ -434,91 +437,100 @@ namespace Project_LMS.Services
 
         public async Task<ApiResponse<object>> GetTranscriptAsync(TranscriptRequest request)
         {
-            //if (string.IsNullOrWhiteSpace(request.UserCode))
-            //    return new ApiResponse<object>(1, "UserCode không được bỏ trống.");
-            var user = await _authService.GetUserAsync();
-            if (user != null)
+            try
             {
-                var studentAuth = await _studentRepository.FindStudentById(user.Id);
-                if (studentAuth != null && studentAuth.Role.Name == "Student")
+                if (request.StudentId == null)
                 {
-                    request.StudentId = studentAuth.Id;
-                }
-            }
-            Console.WriteLine("RoleNameeeee " + user.Role?.Name);
-            var student = await _studentRepository.FindStudentById(request.StudentId);
-            if (student == null)
-                return new ApiResponse<object>(1, "Học viên không tồn tại.");
-            
-            var classStudents = await _classStudentRepository.FindStudentByStudentAcademic(student.Id, (int)request.DepartmentId);
-            var classStudent = classStudents.FirstOrDefault(cs => cs.IsClassTransitionStatus == false);
-
-
-            var subjects = classStudent?.Class?.ClassSubjects?.Select(cs => cs.Subject).ToList() ?? new List<Subject?>();
-
-            var testExamTypes = await _testExamTypeRepository.GetAllAsync();
-            var transcript = new List<object>();
-
-
-            //Console.WriteLine("subjects out " + subjects.Count);
-            foreach (var subject in subjects)
-            {
-                //Console.WriteLine("subjects in " + subjects.Count);
-                double totalScore = 0;
-                int totalCoefficient = 0;
-                var testExamTypeItems = new List<Dictionary<string, object>>();
-
-                foreach (var testExamType in testExamTypes)
-                {
-                    var testExamTypeItem = new Dictionary<string, object>();
-                    var assignment = classStudent?.User?.Assignments.FirstOrDefault(a => a.TestExam?.TestExamTypeId == testExamType.Id && a.TestExam.SubjectId == subject?.Id && a.TestExam.SemestersId == request.SemesterId && a.TestExam?.DepartmentId == request.DepartmentId);
-
-                    if (assignment != null)
+                    // Lấy thông tin người dùng từ AuthService
+                    var user = await _authService.GetUserAsync();
+                    if (user != null)
                     {
-                        testExamTypeItem[testExamType.PointTypeName ?? "N/A"] = assignment.TotalScore ?? 0;
-                        totalScore += assignment.TotalScore * testExamType.Coefficient ?? 0;
-                        totalCoefficient += testExamType.Coefficient ?? 1;
+                        var studentAuth = await _studentRepository.FindStudentById(user.Id);
+                        if (studentAuth != null && studentAuth.Role.Name == "Student")
+                        {
+                            request.StudentId = studentAuth.Id;
+                        }
                     }
-                    else
-                    {
-                        testExamTypeItem[testExamType.PointTypeName ?? "N/A"] = "Chưa có dữ liệu";
-                    }
-
-                    testExamTypeItems.Add(testExamTypeItem);
                 }
 
-                // Tính điểm trung bình
-                double averageScore = totalCoefficient > 0 ? (double)totalScore / totalCoefficient : 0;
-                testExamTypeItems.Add(new Dictionary<string, object> { { "averageScore", averageScore } });
 
-                // Lấy giáo viên dạy môn học này
-                var teachingAssignment = classStudent?.Class?.TeachingAssignments?
-                    .FirstOrDefault(ta => ta?.Subject?.Id == subject?.Id && ta?.IsDelete == false);
+                var student = await _studentRepository.FindStudentById(request.StudentId ?? 0);
+                if (student == null)
+                    return new ApiResponse<object>(1, "Học viên không tồn tại.");
 
-                transcript.Add(new
+                var classStudents = await _classStudentRepository.FindStudentByStudentAcademic(student.Id, (int)request.DepartmentId);
+                var classStudent = classStudents.FirstOrDefault(cs => cs.IsClassTransitionStatus == false);
+
+                var subjects = classStudent?.Class?.ClassSubjects?.Select(cs => cs.Subject).ToList() ?? new List<Subject?>();
+
+                var testExamTypes = await _testExamTypeRepository.GetAllAsync();
+                var transcript = new List<object>();
+
+                foreach (var subject in subjects)
                 {
-                    subjectName = subject?.SubjectName,
-                    teacherName = teachingAssignment?.User?.FullName ?? "Chưa có giáo viên",
-                    transcripts = testExamTypeItems,
-                    updateAt = teachingAssignment?.UpdateAt ?? teachingAssignment?.CreateAt,
-                });
-            }
-            var info = new
-            {
-                classStudent?.User?.Image,
-                studentName = classStudent?.User?.FullName ?? "N/A",
-                gender = (classStudent?.User?.Gender != null && classStudent.User?.Gender.Length > 0) ? classStudent.User?.Gender[0] : false,
-                classStudent?.User?.BirthDate,
-                classStudent?.User?.Email,
-                className = classStudent?.Class?.Name ?? "N/A",
-                teacherName = classStudent?.Class?.User?.FullName ?? "N/A",
-                academic = $"{classStudent?.Class?.AcademicYear?.StartDate?.ToString("yyyy")} - {classStudent?.Class?.AcademicYear?.EndDate?.ToString("yyyy")}"
-            };
+                    double totalScore = 0;
+                    int totalCoefficient = 0;
+                    var testExamTypeItems = new List<Dictionary<string, object>>();
 
-            return new ApiResponse<object>(0, "Lấy bảng điểm học viên thành công.")
+                    foreach (var testExamType in testExamTypes)
+                    {
+                        var testExamTypeItem = new Dictionary<string, object>();
+                        var assignment = classStudent?.User?.Assignments.FirstOrDefault(a => a.TestExam?.TestExamTypeId == testExamType.Id && a.TestExam.SubjectId == subject?.Id && a.TestExam.SemestersId == request.SemesterId && a.TestExam?.DepartmentId == request.DepartmentId);
+
+                        if (assignment != null)
+                        {
+                            testExamTypeItem[testExamType.PointTypeName ?? "N/A"] = assignment.TotalScore ?? 0;
+                            totalScore += assignment.TotalScore * testExamType.Coefficient ?? 0;
+                            totalCoefficient += testExamType.Coefficient ?? 1;
+                        }
+                        else
+                        {
+                            testExamTypeItem[testExamType.PointTypeName ?? "N/A"] = "Chưa có dữ liệu";
+                        }
+
+                        testExamTypeItems.Add(testExamTypeItem);
+                    }
+
+                    double averageScore = totalCoefficient > 0 ? (double)totalScore / totalCoefficient : 0;
+                    testExamTypeItems.Add(new Dictionary<string, object> { { "averageScore", averageScore } });
+
+                    var teachingAssignment = classStudent?.Class?.TeachingAssignments?
+                        .FirstOrDefault(ta => ta?.Subject?.Id == subject?.Id && ta?.IsDelete == false);
+
+                    transcript.Add(new
+                    {
+                        subjectName = subject?.SubjectName,
+                        teacherName = teachingAssignment?.User?.FullName ?? "Chưa có giáo viên",
+                        transcripts = testExamTypeItems,
+                        updateAt = teachingAssignment?.UpdateAt ?? teachingAssignment?.CreateAt,
+                    });
+                }
+
+                var info = new
+                {
+                    classStudent?.User?.Image,
+                    studentName = classStudent?.User?.FullName ?? "N/A",
+                    gender = (classStudent?.User?.Gender != null && classStudent.User?.Gender.Length > 0) ? classStudent.User?.Gender[0] : false,
+                    classStudent?.User?.BirthDate,
+                    classStudent?.User?.Email,
+                    className = classStudent?.Class?.Name ?? "N/A",
+                    teacherName = classStudent?.Class?.User?.FullName ?? "N/A",
+                    academic = $"{classStudent?.Class?.AcademicYear?.StartDate?.ToString("yyyy")} - {classStudent?.Class?.AcademicYear?.EndDate?.ToString("yyyy")}"
+                };
+
+                return new ApiResponse<object>(0, "Lấy bảng điểm học viên thành công.")
+                {
+                    Data = new { info, transcript }
+                };
+            }
+            catch (UnauthorizedAccessException ex)
             {
-                Data = new { info, transcript }
-            };
+                return new ApiResponse<object>(1, "Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại!");
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<object>(1, $"Đã xảy ra lỗi khi lấy bảng điểm: {ex.Message}");
+            }
         }
 
         public async Task<ApiResponse<object>> GetTranscriptByTeacherAsync(TranscriptTeacherRequest request)
@@ -588,6 +600,58 @@ namespace Project_LMS.Services
             };
 
         }
+        public async Task<ApiResponse<object>> DropdownTranscriptStudent()
+
+        {
+            int id = 0;
+                // Lấy thông tin người dùng từ AuthService
+                var user = await _authService.GetUserAsync();
+                if (user != null)
+                {
+                    var studentAuth = await _studentRepository.FindStudentById(user.Id);
+                    if (studentAuth != null && studentAuth.Role.Name == "Student")
+                    {
+                    id = studentAuth.Id;
+                    }
+                }
+            
+            var classStudents = await _classStudentRepository.FindAllClassStudentByUserId(id);
+            var academicResponse = new List<Dictionary<string, object>>();
+
+            foreach (ClassStudent cs in classStudents)
+            {
+                var semesters = await _assignmentRepository.GetAllByStudentIdAndAcademicId(id, cs.Class.AcademicYearId ?? 0);
+
+                var orderedSemesters = semesters
+                .Where(asm => asm.TestExam != null && asm.TestExam.Semesters != null)
+                .GroupBy(asm => asm.TestExam.Semesters.Id)
+                .Select(group => new
+                {
+                    Id = group.Key,
+                    Name = group.First().TestExam.Semesters.Name
+                })
+                .OrderBy(asm => asm.Name)
+                .ToList();
+
+                bool active = cs.IsActive ?? false;
+
+                academicResponse.Add(new Dictionary<string, object>
+        {
+            { "academicId", cs.Class.AcademicYearId },
+            { "departmentId", cs.Class.DepartmentId },
+            { "departmentName", cs.Class?.Department?.Name ?? "N/A"},
+            { "academicDate", cs.Class.AcademicYear?.StartDate?.ToString("yyyy") + " - " + cs.Class.AcademicYear?.EndDate?.ToString("yyyy") },
+            { "semesters", orderedSemesters },
+            { "active", active }
+        });
+            }
+
+            return new ApiResponse<object>(0, "Lấy danh sách dropdown thành công.")
+            {
+                Data = academicResponse
+            };
+        }
+
     }
 }
 

@@ -10,7 +10,7 @@ using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers
 {
-    [Authorize(Policy = "DATA-MNG-VIEW")]
+
     [Route("api/[controller]")]
     [ApiController]
     public class TestExamTypeController : ControllerBase
@@ -33,6 +33,7 @@ namespace Project_LMS.Controllers
             return _service.GetAll(pageNumber, pageSize, keyword);
         }
 
+            [Authorize(Policy = "DATA-MNG-VIEW")]
         [HttpGet("coefficients")]
         public async Task<ActionResult<ApiResponse<List<int>>>> GetCoefficients()
         {

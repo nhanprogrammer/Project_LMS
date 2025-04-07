@@ -1243,7 +1243,7 @@ public class StudentService : IStudentService
                         request.SchoolYear, studentFind.Id, request.ClassId);
                 }
             }
-
+            var emailOld = studentFind.Email;
             // Tiếp tục xử lý
             var student = _mapper.Map(request, studentFind);
 
@@ -1254,20 +1254,22 @@ public class StudentService : IStudentService
             student.Image = url;
 
             student.UpdateAt = DateTime.Now;
-            var user = await _studentRepository.UpdateAsync(student);
-            _logger.LogInformation("Cập nhật học viên thành công.");
 
-            if (request.Email != studentFind.Email)
+
+            if (!request.Email.Equals(emailOld))
             {
                 student.Username = await GeneratedUsername(request.Email);
                 string password = await GenerateSecurePassword(10);
+
                 student.Password = BCrypt.Net.BCrypt.HashPassword(password);
                 Task.Run(async () =>
                 {
-                    await ExecuteEmail(user.Email, user.FullName, user.Username, password);
+                    await ExecuteEmail(request.Email, request.FullName, student.Username, password);
                 });
             }
-
+            Console.WriteLine("Email ================================="+studentFind.Email+" - "+request.Email);
+            var user = await _studentRepository.UpdateAsync(student);
+            _logger.LogInformation("Cập nhật học viên thành công.");
             return new ApiResponse<object>(0, "Cập nhật học viên thành công.");
         }
         catch (DbUpdateException ex)
@@ -1446,5 +1448,6 @@ public class StudentService : IStudentService
             };
         }
     }
+
 
 }
