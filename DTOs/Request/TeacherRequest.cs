@@ -157,8 +157,5 @@ namespace Project_LMS.DTOs.Request
         {
             return _context.Subjects.Any(s => s.Id == subjectId && s.IsDelete == false);
         }
-
-
-
     }
 }
