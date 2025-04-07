@@ -397,4 +397,5 @@ RecurringJob.AddOrUpdate<AcademicHoldStatusCheckerJob>(
     {
         TimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")
     });
+builder.Services.AddHostedService<TestExamNotificationService>();
 app.Run();

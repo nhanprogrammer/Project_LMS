@@ -17,21 +17,25 @@ public class AcademicYearRepository : IAcademicYearRepository
 
     public async Task<AcademicYear> GetByIdAsync(int id)
     {
-        return await _context.AcademicYears.FindAsync(id);
+        return await _context.AcademicYears
+            .Include(a => a.Semesters)
+            .FirstOrDefaultAsync(a => a.Id == id && a.IsDelete == false);
     }
 
     public async Task<IEnumerable<AcademicYear>> GetAllAsync()
     {
         return await _context.AcademicYears
-            .Include(a => a.Semesters)
-            .Where(ah => (bool)!ah.IsDelete)
+            .AsNoTracking()
+            .Where(a => a.IsDelete == false)
             .ToListAsync();
     }
 
     public async Task<AcademicYearWithSemestersDto> GetByIdAcademicYearAsync(int id)
     {
-        var academicYear = _context.AcademicYears
-            .Where(s => s.Id == id && s.IsDelete == false).FirstOrDefault();
+        var academicYear = await _context.AcademicYears
+            .AsNoTracking()
+            .Where(s => s.Id == id && s.IsDelete == false)
+            .FirstOrDefaultAsync();
         if (academicYear == null)
         {
             throw new Exception($"Academic Year with ID: {id} not found");
@@ -82,17 +86,21 @@ public class AcademicYearRepository : IAcademicYearRepository
 
     public async Task DeleteAsync(int id)
     {
-        var academicYear = await _context.AcademicYears.FindAsync(id);
+        var academicYear = await _context.AcademicYears
+            .FirstOrDefaultAsync(a => a.Id == id && a.IsDelete == false);
         if (academicYear != null)
         {
-            _context.AcademicYears.Remove(academicYear);
+            academicYear.IsDelete = true;
             await _context.SaveChangesAsync();
         }
     }
 
     public async Task<List<AcademicYear>> GetByIdsAsync(List<int> ids)
     {
-        return await _context.AcademicYears.Where(l => ids.Contains(l.Id)).ToListAsync();
+        return await _context.AcademicYears
+            .AsNoTracking()
+            .Where(l => ids.Contains(l.Id) && l.IsDelete == false)
+            .ToListAsync();
     }
 
     public async Task UpdateRangeAsync(List<AcademicYear> academicYears)
@@ -104,6 +112,7 @@ public class AcademicYearRepository : IAcademicYearRepository
     public IQueryable<AcademicYear> GetQueryable()
     {
         return _context.AcademicYears
+            .AsNoTracking()
             .Include(a => a.Semesters)
             .Where(ah => (bool)!ah.IsDelete)
             .AsQueryable();
@@ -112,20 +121,25 @@ public class AcademicYearRepository : IAcademicYearRepository
     public async Task<List<AcademicYear>> SearchAcademicYear(int year)
     {
         return await _context.AcademicYears
+            .AsNoTracking()
             .Include(a => a.Semesters)
-            .Where(a => (a.StartDate.HasValue && a.StartDate.Value.Year == year) ||
-                        (a.EndDate.HasValue && a.EndDate.Value.Year == year))
-            .AsQueryable()
+            .Where(a => a.IsDelete == false &&
+                        ((a.StartDate.HasValue && a.StartDate.Value.Year == year) ||
+                         (a.EndDate.HasValue && a.EndDate.Value.Year == year)))
             .ToListAsync();
     }
 
     public async Task<bool> IsAcademicYearExist(int academicYearId)
     {
-        return await _context.AcademicYears.AnyAsync(a => a.Id == academicYearId);
+        return await _context.AcademicYears
+            .AsNoTracking()
+            .AnyAsync(a => a.Id == academicYearId);
     }
+
     public async Task<AcademicYear> FindById(int id)
     {
         return await _context.AcademicYears
+            .AsNoTracking()
             .FirstOrDefaultAsync(ay => ay.Id == id && !(ay.IsDelete ?? false))
             ?? throw new InvalidOperationException($"AcademicYear with ID {id} not found.");
     }
