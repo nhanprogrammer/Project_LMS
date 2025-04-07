@@ -41,8 +41,11 @@ namespace Project_LMS.Services
 
         public async Task<ApiResponse<object>> ExportExcelTranscriptAsync(TranscriptRequest request)
         {
+            if (request.StudentId == null){
+                return new ApiResponse<object>(1, "StudentId không được để trống.");
+            }
 
-            var student = await _studentRepository.FindStudentById(request.StudentId);
+            var student = await _studentRepository.FindStudentById(request.StudentId ?? 0);
             if (student == null)
                 return new ApiResponse<object>(1, "Học viên không tồn tại.");
 
@@ -436,18 +439,22 @@ namespace Project_LMS.Services
         {
             try
             {
-                // Lấy thông tin người dùng từ AuthService
-                var user = await _authService.GetUserAsync();
-                if (user != null)
+                if (request.StudentId == null)
                 {
-                    var studentAuth = await _studentRepository.FindStudentById(user.Id);
-                    if (studentAuth != null && studentAuth.Role.Name == "Student")
+                    // Lấy thông tin người dùng từ AuthService
+                    var user = await _authService.GetUserAsync();
+                    if (user != null)
                     {
-                        request.StudentId = studentAuth.Id;
+                        var studentAuth = await _studentRepository.FindStudentById(user.Id);
+                        if (studentAuth != null && studentAuth.Role.Name == "Student")
+                        {
+                            request.StudentId = studentAuth.Id;
+                        }
                     }
                 }
 
-                var student = await _studentRepository.FindStudentById(request.StudentId);
+
+                var student = await _studentRepository.FindStudentById(request.StudentId ?? 0);
                 if (student == null)
                     return new ApiResponse<object>(1, "Học viên không tồn tại.");
 

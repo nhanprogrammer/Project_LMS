@@ -7,7 +7,7 @@ namespace Project_LMS.DTOs.Request
     public class TranscriptRequest
     {
         public int DepartmentId { get; set; } //Khối
-        public int StudentId { get; set; }
+        public int? StudentId { get; set; }
         public int SemesterId { get; set; }
     }
     public class TranscriptRequestValidator : AbstractValidator<TranscriptRequest>
