@@ -77,8 +77,7 @@ namespace Project_LMS.Controllers
         [HttpGet("dropdownofstudent")]
         public async Task<IActionResult> GetAllDropdownOfStudent()
         {
-            int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
-            var result = await _transcriptService.DropdownTranscriptStudent(userId);
+            var result = await _transcriptService.DropdownTranscriptStudent();
             return Ok(result);
         }
 

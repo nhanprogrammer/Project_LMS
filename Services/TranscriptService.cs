@@ -600,8 +600,21 @@ namespace Project_LMS.Services
             };
 
         }
-        public async Task<ApiResponse<object>> DropdownTranscriptStudent(int id)
+        public async Task<ApiResponse<object>> DropdownTranscriptStudent()
+
         {
+            int id = 0;
+                // Lấy thông tin người dùng từ AuthService
+                var user = await _authService.GetUserAsync();
+                if (user != null)
+                {
+                    var studentAuth = await _studentRepository.FindStudentById(user.Id);
+                    if (studentAuth != null && studentAuth.Role.Name == "Student")
+                    {
+                    id = studentAuth.Id;
+                    }
+                }
+            
             var classStudents = await _classStudentRepository.FindAllClassStudentByUserId(id);
             var academicResponse = new List<Dictionary<string, object>>();
 
