@@ -13,4 +13,5 @@ public interface ITestExamTypeService
     Task<ApiResponse<TestExamTypeResponse>> Search(int id);
     Task<ApiResponse<List<int>>> GetCoefficients();
     Task<ApiResponse<TestExamTypeResponse>> GetById(int id);
+    Task<List<DropdownTestExamTypeResponse>> GetDropdown();
 }
