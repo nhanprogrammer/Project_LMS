@@ -7,7 +7,7 @@ using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers
 {
-    //[Authorize(Policy = "STUDENT-REC-VIEW")]
+    [Authorize(Policy = "STUDENT-REC-VIEW")]
     [Route("api/[controller]")]
     [ApiController]
     public class StudentController : ControllerBase
@@ -73,7 +73,7 @@ namespace Project_LMS.Controllers
             return Ok(result);
         }
         //Create Student
-        //[Authorize(Policy = "STUDENT-REC-INSERT")]
+        [Authorize(Policy = "STUDENT-REC-INSERT")]
         [HttpPost("add")]
         public async Task<IActionResult> AddAsync([FromBody] StudentRequest request)
         {
@@ -81,7 +81,7 @@ namespace Project_LMS.Controllers
             return Ok(result);
         }
 
-        //[Authorize(Policy = "STUDENT-REC-UPDATE")]
+        [Authorize(Policy = "STUDENT-REC-UPDATE")]
         [HttpPut("update")]
         public async Task<IActionResult> UpdateAsync([FromBody] StudentRequest request)
         {
