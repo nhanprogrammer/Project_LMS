@@ -12,7 +12,7 @@ namespace Project_LMS.Controllers
 
     [ApiController]
     [Route("api/[controller]")]
-    [Au]
+    [Authorize]
     public class TranscriptController : ControllerBase
     {
         private readonly ITranscriptService _transcriptService;
