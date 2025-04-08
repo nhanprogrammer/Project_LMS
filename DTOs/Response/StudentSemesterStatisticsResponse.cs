@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Project_LMS.DTOs.Response
 {
     public class StudentSemesterStatisticsResponse
@@ -12,7 +14,10 @@ namespace Project_LMS.DTOs.Response
         public int ClassId { get; set; }
         public string ClassName { get; set; } = string.Empty;
         public string SubjectName { get; set; } = string.Empty;
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public DateTime? StartDate { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public DateTime? EndDate { get; set; }
         public string Status { get; set; } = string.Empty; // Chu học/Đã học/Đã hoãn thành
         public ClassScheduleDetail? FirstSchedule { get; set; } // Buổi học đầu tiên

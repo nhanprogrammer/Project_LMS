@@ -295,19 +295,12 @@ namespace Project_LMS.Services
             .Select(g =>
             {
                 var classDetails = classSubjectDetails
-                    .Where(cs => cs.Cs.Class?.AcademicYearId == g.Key.AcademicYear?.Id &&
-                                cs.Cs.Class?.StartDate.HasValue == true &&
-                                g.Key.StartDate.HasValue &&
-                                g.Key.EndDate.HasValue &&
-                                cs.Cs.Class.StartDate.Value >= g.Key.StartDate.Value &&
-                                cs.Cs.Class.StartDate.Value <= g.Key.EndDate.Value)
+                    .Where(cs => cs.Cs.Class?.AcademicYearId == g.Key.AcademicYear?.Id)
                     .Select(cs => new StudentClassDetail
                     {
                         ClassId = cs.Cs.ClassId ?? 0,
                         ClassName = cs.Cs.Class?.Name ?? "Unknown Class",
                         SubjectName = cs.Subject.Subject?.SubjectName ?? "Unknown Subject",
-                        StartDate = cs.Cs.Class?.StartDate,
-                        EndDate = cs.Cs.Class?.EndDate,
                         Status = cs.Cs.Class != null && cs.Cs.Class.EndDate.HasValue && DateTime.Now > cs.Cs.Class.EndDate.Value
                             ? "Đã hoàn thành"
                             : (cs.Cs.Class?.StartDate.HasValue == true && DateTime.Now < cs.Cs.Class.StartDate.GetValueOrDefault()

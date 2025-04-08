@@ -420,5 +420,13 @@ namespace Project_LMS.Repositories
                     && cs.ClassId == classId
                     && cs.IsDelete == false && cs.IsActive == true);
         }
+        public async Task<IEnumerable<ClassStudent>> FindStudentByStudentDepartment(int studentId, int departmentId)
+        {
+            return await _context.ClassStudents
+                .Include(cs => cs.Class)
+                .Where(cs => cs.UserId == studentId && cs.Class.DepartmentId == departmentId && cs.IsActive == true
+                 && cs.IsDelete == false && cs.Class.IsDelete == false && cs.User.IsDelete == false && cs.Class.Department.IsDelete == false)
+                .ToListAsync();
+        }
     }
 }
