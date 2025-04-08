@@ -364,7 +364,7 @@ namespace Project_LMS.Repositories
             return await _context.ClassStudents
                 .Include(cs => cs.Class)
                     .ThenInclude(c => c.AcademicYear)
-                .Where(cs => cs.UserId == studentId && cs.IsDelete == false)
+                .Where(cs => cs.UserId == studentId && cs.IsDelete == false && cs.IsActive == true)
                 .Distinct()
                 .ToListAsync();
         }
@@ -402,7 +402,6 @@ namespace Project_LMS.Repositories
         public async Task<Lesson?> GetFirstLessonByClassAndSubjectAsync(int classId, int subjectId)
         {
             Console.WriteLine($"Class ID: {classId}, Subject ID: {subjectId}");
-            System.Console.WriteLine("GetFirstLessonByClassAndSubjectAsync");
 
             var query = _context.Lessons
                 .Include(l => l.TeachingAssignment)
