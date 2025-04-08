@@ -3,14 +3,15 @@ using System.Text.Json.Serialization;
 using FluentValidation;
 using Org.BouncyCastle.Asn1.Ocsp;
 using Project_LMS.Data;
+using Project_LMS.Models;
 
 namespace Project_LMS.DTOs.Request
 {
     public class TeacherRequest
     {
-        public int? TeacherStatusId { get; set; }
-        public int? SubjectGroupId { get; set; }
-        public int? SubjectId { get; set; }
+        public int TeacherStatusId { get; set; }
+        public int SubjectGroupId { get; set; }
+        public int SubjectId { get; set; }
         public List<int?> TeacherSubjectIds { get; set; }
         public string? UserCode { get; set; }
         public string? FullName { get; set; }
@@ -55,22 +56,47 @@ namespace Project_LMS.DTOs.Request
                 .GreaterThan(0).WithMessage(x => $"TeacherStatusId[{x.TeacherStatusId}] phải là số nguyên lớn hơn 0.")
                 .Must(TeacherStatusExists).WithName(x => $"[{x.TeacherStatusId}] không tồn tại trong hệ thống.");
 
-            RuleFor(tc => tc.SubjectGroupId).NotNull().WithMessage("SubjectGroupId không được để trống.")
-                .GreaterThan(0).WithMessage(x => $"SubjectGroupId[{x.SubjectGroupId}] phải là số nguyên lớn hơn 0.")
-                .Must(SubjectGroupExits).WithName(x => $"[{x.SubjectGroupId}] không tồn tại trong hệ thống.");
-
-            RuleFor(tc => tc.SubjectId).NotNull().WithMessage("SubjectId không được để trống.")
-                .GreaterThan(0).WithMessage(x => $"SubjectId[{x.SubjectId}] phải là số nguyên lớn hơn 0.")
-                .Must(x => SubjectExits(x)).WithName(x => $"[{x.SubjectId}] không tồn tại trong hệ thống.");
-
-            RuleFor(tc => tc.TeacherSubjectIds)
-                .NotNull().WithMessage("TeacherSubjectIds không được để trống.")
-                .NotEmpty().WithMessage("TeacherSubjectIds phải chứa ít nhất một phần tử.")
-                .ForEach(idRule =>
-                {
-                    idRule.GreaterThan(0).WithMessage(id => $"TeacherSubjectId [{id}] phải là số nguyên lớn hơn 0.");
-                    idRule.Must(SubjectExits).WithMessage(id => $"[{id}] không tồn tại trong hệ thống");
+            RuleFor(tc => tc).NotNull().WithMessage("SubjectGroupId không được để trống.")
+                .Custom((tc, context) => {
+                    if (!SubjectGroupExits(tc.SubjectGroupId))
+                    {
+                        context.AddFailure("SubjectGroupId", "SubjectGroupId không tồn tại trong hệ thống.");
+                    }
+                    if (!SubjectExits(tc.SubjectId))
+                    {
+                        context.AddFailure("SubjectId", "SubjectId không tồn tại trong hệ thống.");
+                    }
+                    else
+                    {
+                        if (!SubjectOfSubjectGroupExist(tc.SubjectGroupId, tc.SubjectId)) {
+                            context.AddFailure("SubjectId", $"SubjectId không thuộc SubjectGroup.");
+                        }
+                    }
+                    if (SubjectGroupExits(tc.SubjectGroupId) && SubjectExits(tc.SubjectId))
+                    {
+                        foreach (int subjectId in tc.TeacherSubjectIds)
+                        {
+                            if (!SubjectOfSubjectGroupExist(tc.SubjectGroupId, subjectId))
+                            {
+                                context.AddFailure("TeacherSubjectIds", $"TeacherSubjectIds có Id ={subjectId}  không thuộc SubjectGroup.");
+                            }
+                        }
+                    }
+                
                 });
+
+            //RuleFor(tc => tc.SubjectId).NotNull().WithMessage("SubjectId không được để trống.")
+            //    .GreaterThan(0).WithMessage(x => $"SubjectId[{x.SubjectId}] phải là số nguyên lớn hơn 0.")
+            //    .Must(x => SubjectExits(x)).WithName(x => $"[{x.SubjectId}] không tồn tại trong hệ thống.");
+
+            //RuleFor(tc => tc.TeacherSubjectIds)
+            //    .NotNull().WithMessage("TeacherSubjectIds không được để trống.")
+            //    .NotEmpty().WithMessage("TeacherSubjectIds phải chứa ít nhất một phần tử.")
+            //    .ForEach(idRule =>
+            //    {
+            //        idRule.GreaterThan(0).WithMessage(id => $"TeacherSubjectId [{id}] phải là số nguyên lớn hơn 0.");
+            //        idRule.Must(SubjectExits).WithMessage(id => $"[{id}] không tồn tại trong hệ thống");
+            //    });
 
 
             RuleFor(tc => tc.FullName)
@@ -143,17 +169,30 @@ namespace Project_LMS.DTOs.Request
                 .NotNull().WithMessage("National không được để trống.");
 
         }
-        private bool TeacherStatusExists(int? teacherStatusId)
+        private bool TeacherStatusExists(int teacherStatusId)
         {
 
             return _context.TeacherStatuses.Any(ts => ts.Id == teacherStatusId && ts.IsDelete ==false);
         }
-        private bool SubjectGroupExits(int? subjectGroupId)
+        private bool SubjectGroupExits(int subjectGroupId)
         {
 
             return _context.SubjectGroups.Any(sg => sg.Id == subjectGroupId && sg.IsDelete == false);
         }
-        private bool SubjectExits(int? subjectId)
+        private bool SubjectOfSubjectGroupExist(int subjectGroupId, int subjectId)
+        {
+            var subjectGrouptSubject = _context.SubjectGroupSubjects.Where(s => s.SubjectGroupId == subjectGroupId && s.IsDelete == false).Select(s=>s.SubjectId).ToList();
+            if (subjectGrouptSubject.Any())
+            {
+                if (subjectGrouptSubject.Contains(subjectId))
+                {
+                    return true;
+                }
+                    return false;
+            }
+                return false;
+        }
+        private bool SubjectExits(int subjectId)
         {
             return _context.Subjects.Any(s => s.Id == subjectId && s.IsDelete == false);
         }
