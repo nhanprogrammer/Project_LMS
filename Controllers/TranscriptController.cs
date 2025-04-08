@@ -26,7 +26,7 @@ namespace Project_LMS.Controllers
 
 
         [HttpGet]
-        public async Task<IActionResult> GetTranscriptAsync([FromQuery] TranscriptRequest transcriptRequest)
+        public async Task<IActionResult> GetTranscriptAsync(TranscriptRequest transcriptRequest)
         {
             try
             {
@@ -47,28 +47,28 @@ namespace Project_LMS.Controllers
             }
         }
         [HttpGet("exportexcel")]
-        public async Task<IActionResult> ExportExcelTranscriptAsync([FromQuery] TranscriptRequest transcriptRequest)
+        public async Task<IActionResult> ExportExcelTranscriptAsync(TranscriptRequest transcriptRequest)
         {
             var result = await _transcriptService.ExportExcelTranscriptAsync(transcriptRequest);
             return Ok(result);
         }
 
         [HttpGet("transcriptbyteacher")]
-        public async Task<IActionResult> GetTranscriptByTeacherAsync([FromQuery] TranscriptTeacherRequest request)
+        public async Task<IActionResult> GetTranscriptByTeacherAsync(TranscriptTeacherRequest request)
         {
 
             var result = await _transcriptService.GetTranscriptByTeacherAsync(request);
             return Ok(result);
         }
         [HttpGet("exportexceltranscriptbyteacher")]
-        public async Task<IActionResult> ExportExcelTranscriptByTeacherAsync([FromQuery] TranscriptTeacherRequest request)
+        public async Task<IActionResult> ExportExcelTranscriptByTeacherAsync(TranscriptTeacherRequest request)
         {
 
             var result = await _transcriptService.ExportExcelTranscriptByTeacherAsync(request);
             return Ok(result);
         }
         [HttpGet("exportpdftranscriptbyteacher")]
-        public async Task<IActionResult> ExportPDFTranscriptByTeacherAsync([FromQuery] TranscriptTeacherRequest request)
+        public async Task<IActionResult> ExportPDFTranscriptByTeacherAsync(TranscriptTeacherRequest request)
         {
 
             var result = await _transcriptService.ExportPdfTranscriptByTeacherAsync(request);
