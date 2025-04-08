@@ -26,7 +26,7 @@ namespace Project_LMS.Controllers
 
 
         [HttpGet]
-        public async Task<IActionResult> GetTranscriptAsync(TranscriptRequest transcriptRequest)
+        public async Task<IActionResult> GetTranscriptAsync([FromQuery]TranscriptRequest transcriptRequest)
         {
             try
             {
@@ -47,7 +47,7 @@ namespace Project_LMS.Controllers
             }
         }
         [HttpGet("exportexcel")]
-        public async Task<IActionResult> ExportExcelTranscriptAsync(TranscriptRequest transcriptRequest)
+        public async Task<IActionResult> ExportExcelTranscriptAsync([FromQuery]TranscriptRequest transcriptRequest)
         {
             var result = await _transcriptService.ExportExcelTranscriptAsync(transcriptRequest);
             return Ok(result);
