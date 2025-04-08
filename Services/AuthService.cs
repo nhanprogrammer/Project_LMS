@@ -1,4 +1,3 @@
-
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -14,7 +13,6 @@ using Project_LMS.Models;
 
 namespace Project_LMS.Services
 {
-
     public class AuthService : IAuthService
     {
         private readonly ApplicationDbContext _context;
@@ -24,7 +22,9 @@ namespace Project_LMS.Services
         private readonly IMemoryCache _cache;
         private readonly TimeSpan _tokenExpiry = TimeSpan.FromHours(24); // Token hết hạn sau 24 giờ
         private static Random random = new Random();
-        public AuthService(ApplicationDbContext context, IConfiguration config, IPermissionService permissionService, IHttpContextAccessor httpContextAccessor, IMemoryCache cache)
+
+        public AuthService(ApplicationDbContext context, IConfiguration config, IPermissionService permissionService,
+            IHttpContextAccessor httpContextAccessor, IMemoryCache cache)
         {
             _context = context;
             _config = config;
@@ -36,17 +36,17 @@ namespace Project_LMS.Services
         public async Task<AuthUserLoginResponse> LoginAsync(string userName, string password)
         {
             var user = await _context.Users
-                      .Include(u => u.Role)
-                      .FirstOrDefaultAsync(u =>
-                          u.Username == userName &&
-                          u.IsDelete == false &&
-                          (
-                              (u.StudentStatusId == 1 && u.TeacherStatusId == null) ||
-                              (u.StudentStatusId == null && u.TeacherStatusId == 1) ||
-                              u.RoleId == 1 ||
-                              u.RoleId == 5
-                          )
-                      );
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u =>
+                    u.Username == userName &&
+                    u.IsDelete == false &&
+                    (
+                        (u.StudentStatusId == 1 && u.TeacherStatusId == null) ||
+                        (u.StudentStatusId == null && u.TeacherStatusId == 1) ||
+                        u.RoleId == 1 ||
+                        u.RoleId == 5
+                    )
+                );
 
             if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.Password))
                 throw new Exception("Username hoặc mật khẩu không đúng!");
@@ -58,7 +58,8 @@ namespace Project_LMS.Services
             // Lấy role từ DB
             string role = user.Role.Name.ToUpper();
 
-            return new AuthUserLoginResponse(user.Username, user.FullName, accessToken, refreshToken, role, permissions);
+            return new AuthUserLoginResponse(user.Username, user.FullName, accessToken, refreshToken, role,
+                permissions);
         }
 
 
@@ -68,8 +69,8 @@ namespace Project_LMS.Services
             if (user == null)
             {
                 throw new UnauthorizedAccessException("Bạn chưa đăng nhập.");
-
             }
+
             var token = context.Items["Token"] as string;
             if (!string.IsNullOrEmpty(token))
             {
@@ -297,7 +298,8 @@ namespace Project_LMS.Services
             catch (Exception ex)
             {
                 Console.WriteLine("Lỗi khi xử lý refresh token: " + ex.Message);
-                throw new UnauthorizedAccessException("Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại!");
+                throw new UnauthorizedAccessException(
+                    "Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại!");
             }
         }
 
@@ -307,24 +309,28 @@ namespace Project_LMS.Services
             //string password = "123456";
             return await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(password));
         }
+
         public static string GeneratePassword(int length = 8)
         {
             const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
             return new string(Enumerable.Repeat(chars, length)
                 .Select(s => s[random.Next(s.Length)]).ToArray());
         }
+
         public async Task<User?> GetUserAsync()
         {
             var context = _httpContextAccessor.HttpContext;
             if (context == null)
             {
-                throw new UnauthorizedAccessException("Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại!");
+                throw new UnauthorizedAccessException(
+                    "Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại!");
             }
 
             var token = context.Items["Token"] as string;
             if (string.IsNullOrEmpty(token))
             {
-                throw new UnauthorizedAccessException("Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại!");
+                throw new UnauthorizedAccessException(
+                    "Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại!");
             }
 
             try
@@ -346,18 +352,19 @@ namespace Project_LMS.Services
                 var email = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
                 if (email == null)
                 {
-                    throw new UnauthorizedAccessException("Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại!");
+                    throw new UnauthorizedAccessException(
+                        "Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại!");
                 }
 
                 return await _context.Users
-                        .Include(u => u.Role)
-                        .FirstOrDefaultAsync(u => u.Email == email && u.IsDelete == false);
-
+                    .Include(u => u.Role)
+                    .FirstOrDefaultAsync(u => u.Email == email && u.IsDelete == false);
             }
             catch (Exception ex)
             {
                 Console.WriteLine("Lỗi khi đọc token: " + ex.Message);
-                throw new UnauthorizedAccessException("Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại!");
+                throw new UnauthorizedAccessException(
+                    "Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại!");
             }
         }
     }
