@@ -614,15 +614,15 @@ namespace Project_LMS.Services
             int id = 0;
             // Lấy thông tin người dùng từ AuthService
             var user = await _authService.GetUserAsync();
-                if (user != null)
+            if (user != null)
+            {
+                var studentAuth = await _studentRepository.FindStudentById(user.Id);
+                if (studentAuth != null && studentAuth.Role.Name == "Student")
                 {
-                    var studentAuth = await _studentRepository.FindStudentById(user.Id);
-                    if (studentAuth != null && studentAuth.Role.Name == "Student")
-                    {
                     id = studentAuth.Id;
-                    }
                 }
-            
+            }
+
             var classStudents = await _classStudentRepository.FindAllClassStudentByUserId(id);
             var academicResponse = new List<Dictionary<string, object>>();
 

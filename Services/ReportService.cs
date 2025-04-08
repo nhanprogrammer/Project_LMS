@@ -261,7 +261,7 @@ namespace Project_LMS.Services
             var classStudents = await _reportRepository.GetClassStudentsByStudentIdAsync(studentId);
 
             var academicYearIds = classStudents
-                .Where(cs => cs.Class?.AcademicYearId.HasValue == true)
+                .Where(cs => cs.Class?.AcademicYearId.HasValue == true && cs.IsActive == true && cs.IsDelete == false)
                 .Select(cs => cs.Class.AcademicYearId.Value)
                 .Distinct()
                 .ToList();
