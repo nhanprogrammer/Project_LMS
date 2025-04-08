@@ -463,6 +463,23 @@ namespace Project_LMS.Services
                 throw new NotFoundException("Người dùng không tồn tại.");
             }
 
+            if (user.Role.Name.ToUpper() == "TEACHER")
+            {
+                // Nếu là giáo viên kiểm tra có phân công giảng dạy không
+                var teachingAssignments = await _context.TeachingAssignments
+                    .Where(a => a.UserId == userId && a.IsDelete == false).ToListAsync();
+                // Kiểm tra có phân công giảng dạy nào chưa kết thúc (ngày hiện tại lớn hơn ngày bắt đầu và nhỏ hơn ngày kết thúc)
+               foreach (var assignment in teachingAssignments)
+                {
+                    if (assignment.StartDate <= DateTime.Now && assignment.EndDate >= DateTime.Now)
+                    {
+                        throw new BadHttpRequestException("Người dùng đang có phân công giảng dạy, không thể thay đổi quyền.");
+                    }
+                }
+               
+            }
+           
+
             if (disable)
             {
                 // Nếu chưa có quyền (GroupModulePermissonId == null) thì không cần thay đổi
