@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Org.BouncyCastle.Asn1.Ocsp;
+using Project_LMS.Data;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Helpers;
@@ -18,14 +19,16 @@ namespace Project_LMS.Services
         private readonly IAcademicYearRepository _academicYearRepository;
         private readonly IUserRepository _userRepository;
         private readonly IMapper _mapper;
+        private readonly ApplicationDbContext _context;
 
         public AcademicYearsService(IAcademicYearRepository academicYearRepository,
-            ISemesterRepository semesterRepository, IUserRepository userRepository, IMapper mapper)
+            ISemesterRepository semesterRepository, IUserRepository userRepository, IMapper mapper, ApplicationDbContext context)
         {
             _semesterRepository = semesterRepository;
             _academicYearRepository = academicYearRepository;
             _userRepository = userRepository;
             _mapper = mapper;
+            _context = context;
         }
 
         public async Task<PaginatedResponse<AcademicYearResponse>> GetPagedAcademicYears(PaginationRequest request, string? keyword)
@@ -51,7 +54,7 @@ namespace Project_LMS.Services
             {
                 if (int.TryParse(keyword, out int year))
                 {
-                    query = query.Where(a => (a.StartDate.HasValue && a.StartDate.Value.Year == year) || 
+                    query = query.Where(a => (a.StartDate.HasValue && a.StartDate.Value.Year == year) ||
                                                (a.EndDate.HasValue && a.EndDate.Value.Year == year));
                 }
             }
@@ -246,159 +249,179 @@ namespace Project_LMS.Services
             return new ApiResponse<AcademicYearResponse>(0, "Niên khóa đã được thêm thành công", response);
         }
 
-        public async Task<ApiResponse<AcademicYearResponse>> UpdateAcademicYear(UpdateAcademicYearRequest request,
-            int userId)
+        public async Task<ApiResponse<AcademicYearResponse>> UpdateAcademicYear(UpdateAcademicYearRequest request, int userId)
         {
-            var user = await _userRepository.FindAsync(userId);
-            if (user == null)
-            {
-                return new ApiResponse<AcademicYearResponse>(1, "User không tồn tại.");
-            }
-
             var academicYear = await _academicYearRepository.GetByIdAsync(request.Id);
             if (academicYear == null)
             {
-                return new ApiResponse<AcademicYearResponse>(1, "Niên Khóa không tồn tại.");
+                return new ApiResponse<AcademicYearResponse>(1, "Niên khóa không tồn tại.");
             }
 
-            if (academicYear.EndDate.HasValue && academicYear.EndDate.Value < TimeHelper.Now)
-            {
-                return new ApiResponse<AcademicYearResponse>(1, "Niên Khóa đã kết thúc, không thể chỉnh sửa.");
-            }
-
-            var existingAcademicYears = await _academicYearRepository.GetAllAsync();
-            if (existingAcademicYears.Any(x =>
-                    x.Id != request.Id && // bỏ qua chính nó
-                    x.StartDate.HasValue && x.EndDate.HasValue &&
-                    x.StartDate.Value.Year == request.StartDate.Year &&
-                    x.EndDate.Value.Year == request.EndDate.Year))
-            {
-                return new ApiResponse<AcademicYearResponse>(1, "Niên khóa đã tồn tại.");
-            }
-
-            if (existingAcademicYears.Any(x =>
-                    x.Id != request.Id &&
-                    x.StartDate.HasValue && x.EndDate.HasValue &&
-                    !(x.EndDate.Value < request.StartDate.ToDateTime(TimeOnly.MinValue) ||
-                      x.StartDate.Value > request.EndDate.ToDateTime(TimeOnly.MinValue))))
-            {
-                return new ApiResponse<AcademicYearResponse>(1,
-                    $"Niên khóa có năm `{request.StartDate.Year}` bị chồng lấn với Niên khóa cũ.");
-            }
-
-            if (request.StartDate > request.EndDate)
-            {
-                return new ApiResponse<AcademicYearResponse>(1,
-                    "Ngày kết thúc của Niên Khóa không thể thấp hơn ngày bắt đầu.");
-            }
-
-            // Kế thừa Niên Khóa
+            // Kiểm tra niên khóa cha nếu có
             if (request.IsInherit.HasValue && request.IsInherit.Value && request.AcademicParent.HasValue)
             {
+                if (request.AcademicParent.Value == request.Id)
+                {
+                    return new ApiResponse<AcademicYearResponse>(1, "Niên khóa không thể kế thừa chính nó.");
+                }
+
                 bool isExist = await _academicYearRepository.IsAcademicYearExist(request.AcademicParent.Value);
                 if (!isExist)
                 {
                     return new ApiResponse<AcademicYearResponse>(1, "Niên khóa kế thừa không tồn tại.");
                 }
-
                 academicYear.AcademicParent = request.AcademicParent.Value;
             }
+            else
+            {
+                academicYear.AcademicParent = null;
+            }
 
-            _mapper.Map(request, academicYear);
+            // Cập nhật thông tin niên khóa
+            academicYear.StartDate = request.StartDate.ToDateTime(TimeOnly.MinValue);
+            academicYear.EndDate = request.EndDate.ToDateTime(TimeOnly.MinValue);
+            academicYear.IsInherit = request.IsInherit;
             academicYear.UserUpdate = userId;
             academicYear.UpdateAt = TimeHelper.Now;
-            await _academicYearRepository.UpdateAsync(academicYear);
+            academicYear.IsDelete = false;
 
-            var existingSemesters = (await _semesterRepository.GetByAcademicYearIdAsync(request.Id)).ToList();
+            // Kiểm tra chồng lấn thời gian với các niên khóa khác
+            var existingAcademicYears = await _academicYearRepository.GetAllAsync();
+            var conflictingAcademicYear = existingAcademicYears.FirstOrDefault(x =>
+                x.Id != request.Id &&
+                x.StartDate.HasValue && x.EndDate.HasValue &&
+                !(x.EndDate.Value < request.StartDate.ToDateTime(TimeOnly.MinValue) ||
+                  x.StartDate.Value > request.EndDate.ToDateTime(TimeOnly.MinValue)));
+
+            if (conflictingAcademicYear != null)
+            {
+                return new ApiResponse<AcademicYearResponse>(1,
+                    $"Niên khóa có thời gian từ {request.StartDate:yyyy-MM-dd} đến {request.EndDate:yyyy-MM-dd} " +
+                    $"bị chồng lấn với niên khóa ID {conflictingAcademicYear.Id} " +
+                    $"(từ {conflictingAcademicYear.StartDate:yyyy-MM-dd} đến {conflictingAcademicYear.EndDate:yyyy-MM-dd}).");
+            }
+
+            // Kiểm tra thời gian tối thiểu của niên khóa
+            if ((request.EndDate.ToDateTime(TimeOnly.MinValue) - request.StartDate.ToDateTime(TimeOnly.MinValue)).TotalDays < 270) // 9 tháng
+            {
+                return new ApiResponse<AcademicYearResponse>(1, "Thời gian của niên khóa phải kéo dài ít nhất 9 tháng.");
+            }
+
+            // Lấy danh sách học kỳ hiện có và ngắt theo dõi
+            var existingSemesters = await _semesterRepository.GetByAcademicYearIdAsync(request.Id);
+            foreach (var semester in existingSemesters)
+            {
+                _context.Entry(semester).State = EntityState.Detached;
+            }
+
+            // Đếm số học kỳ hiện có (IsDelete == false)
+            var currentSemesterCount = existingSemesters.Count(s => !s.IsDelete.Value);
+
             var updatedSemesters = new List<Semester>();
             var newSemesters = new List<Semester>();
 
-            var sortedSemesters = request.Semesters.OrderBy(s => s.DateStart).ToList();
-            for (int i = 0; i < sortedSemesters.Count - 1; i++)
+            // Xử lý các học kỳ
+            foreach (var semesterRequest in request.Semesters)
             {
-                var currentSemester = sortedSemesters[i];
-                var nextSemester = sortedSemesters[i + 1];
-
-                if (currentSemester.Name == nextSemester.Name)
+                if (semesterRequest.Id > 0)
                 {
-                    return new ApiResponse<AcademicYearResponse>(1, "Tên học kỳ không thể trùng nhau.");
+                    var existingSemester = existingSemesters.FirstOrDefault(s => s.Id == semesterRequest.Id);
+                    if (existingSemester != null)
+                    {
+                        _mapper.Map(semesterRequest, existingSemester);
+                        existingSemester.UserUpdate = userId;
+                        existingSemester.UpdateAt = TimeHelper.Now;
+                        updatedSemesters.Add(existingSemester);
+                    }
+                    else
+                    {
+                        return new ApiResponse<AcademicYearResponse>(1,
+                            $"Học kỳ với ID {semesterRequest.Id} không tồn tại.");
+                    }
                 }
+                else if (semesterRequest.Id == 0)
+                {
+                    // Kiểm tra giới hạn 2 học kỳ
+                    if (currentSemesterCount + newSemesters.Count >= 2)
+                    {
+                        return new ApiResponse<AcademicYearResponse>(1, "Niên khóa đã đạt giới hạn 2 học kỳ, không thể thêm mới.");
+                    }
 
-                if (currentSemester.DateEnd > nextSemester.DateStart)
-                {
-                    return new ApiResponse<AcademicYearResponse>(1,
-                        $"Thời gian của {currentSemester.Name} không hợp lệ. " +
-                        $"Ngày kết thúc ({currentSemester.DateEnd:yyyy-MM-dd}) " +
-                        $"không thể lớn hơn ngày bắt đầu của {nextSemester.Name} ({nextSemester.DateStart:yyyy-MM-dd}).");
-                }
-            }
+                    // Tạo học kỳ mới
+                    var newSemester = new Semester
+                    {
+                        AcademicYearId = request.Id,
+                        Name = semesterRequest.Name,
+                        StartDate = semesterRequest.DateStart.ToDateTime(TimeOnly.MinValue),
+                        EndDate = semesterRequest.DateEnd.ToDateTime(TimeOnly.MinValue),
+                        CreateAt = TimeHelper.Now,
+                        UserCreate = userId,
+                        UpdateAt = TimeHelper.Now,
+                        UserUpdate = userId,
+                        IsDelete = false
+                    };
 
-            foreach (var semester in request.Semesters)
-            {
-                var existingSemester = existingSemesters.FirstOrDefault(s => s.Id == semester.Id);
-                if (existingSemester != null && existingSemester.EndDate < TimeHelper.Now)
-                {
-                    return new ApiResponse<AcademicYearResponse>(1,
-                        $"Học kỳ '{existingSemester.Name}' đã kết thúc, không thể chỉnh sửa.");
-                }
+                    // Kiểm tra thời gian học kỳ mới có nằm trong niên khóa không
+                    if (newSemester.StartDate < academicYear.StartDate || newSemester.EndDate > academicYear.EndDate)
+                    {
+                        return new ApiResponse<AcademicYearResponse>(1,
+                            $"Thời gian của {newSemester.Name} không hợp lệ với Niên Khóa.");
+                    }
 
-                if (semester.DateStart > semester.DateEnd)
-                {
-                    return new ApiResponse<AcademicYearResponse>(1,
-                        $"Ngày kết thúc của {semester.Name} không thể thấp hơn ngày bắt đầu.");
-                }
+                    // Kiểm tra chồng lấn với các học kỳ hiện có
+                    var overlappingSemester = existingSemesters.Any(s =>
+                        !s.IsDelete.Value &&
+                        s.StartDate.HasValue && s.EndDate.HasValue &&
+                        !(s.EndDate.Value < newSemester.StartDate || s.StartDate.Value > newSemester.EndDate));
 
-                if (semester.DateStart < request.StartDate || semester.DateEnd > request.EndDate)
-                {
-                    return new ApiResponse<AcademicYearResponse>(1,
-                        $"Thời gian của {semester.Name} không hợp lệ với Niên Khóa.");
-                }
+                    if (overlappingSemester)
+                    {
+                        return new ApiResponse<AcademicYearResponse>(1,
+                            $"Thời gian của {newSemester.Name} trùng lấn với học kỳ hiện có.");
+                    }
 
-                if (existingSemester != null)
-                {
-                    _mapper.Map(semester, existingSemester);
-                    existingSemester.AcademicYearId = request.Id;
-                    existingSemester.UserUpdate = userId;
-                    existingSemester.UpdateAt = TimeHelper.Now;
-                    updatedSemesters.Add(existingSemester);
-                }
-                else
-                {
-                    var newSemester = _mapper.Map<Semester>(semester);
-                    newSemester.Id = 0;
-                    newSemester.AcademicYearId = request.Id;
-                    newSemester.UserCreate = userId;
-                    newSemester.CreateAt = TimeHelper.Now;
                     newSemesters.Add(newSemester);
                 }
             }
 
-            var semesterIdsFromRequest = request.Semesters.Where(s => s.Id > 0).Select(s => s.Id).ToList();
-            var semestersToDelete = existingSemesters.Where(s => !semesterIdsFromRequest.Contains(s.Id)).ToList();
-            if (semestersToDelete.Any())
+            // Kiểm tra chồng lấn giữa tất cả các học kỳ (hiện có và mới)
+            var allSemesters = existingSemesters.Where(s => !s.IsDelete.Value).Concat(newSemesters).ToList();
+            var sortedSemesters = allSemesters.OrderBy(s => s.StartDate).ToList();
+            for (int i = 0; i < sortedSemesters.Count - 1; i++)
             {
-                if (semestersToDelete.Any(s => s.EndDate < TimeHelper.Now))
+                var currentSemester = sortedSemesters[i];
+                var nextSemester = sortedSemesters[i + 1];
+                if (currentSemester.EndDate > nextSemester.StartDate)
                 {
-                    return new ApiResponse<AcademicYearResponse>(1, "Không thể xóa học kỳ đã kết thúc.");
+                    return new ApiResponse<AcademicYearResponse>(1,
+                        $"Thời gian của {currentSemester.Name} không hợp lệ. " +
+                        $"Ngày kết thúc ({currentSemester.EndDate:yyyy-MM-dd}) " +
+                        $"không thể lớn hơn ngày bắt đầu của {nextSemester.Name} ({nextSemester.StartDate:yyyy-MM-dd}).");
+                }
+            }
+
+            // Cập nhật niên khóa và học kỳ
+            try
+            {
+                await _academicYearRepository.UpdateAsync(academicYear);
+                if (updatedSemesters.Any())
+                {
+                    await _semesterRepository.UpdateRangeAsync(updatedSemesters);
+                }
+                if (newSemesters.Any())
+                {
+                    await _semesterRepository.AddRangeAsync(newSemesters);
                 }
 
-                await _semesterRepository.DeleteRangeAsync(semestersToDelete);
+                var response = _mapper.Map<AcademicYearResponse>(academicYear);
+                response.Semesters = _mapper.Map<List<SemesterResponse>>(allSemesters);
+                return new ApiResponse<AcademicYearResponse>(0, "Niên khóa đã được cập nhật thành công", response);
             }
-
-            if (updatedSemesters.Any())
+            catch (Exception ex)
             {
-                await _semesterRepository.UpdateRangeAsync(updatedSemesters);
+                return new ApiResponse<AcademicYearResponse>(1, $"Lỗi khi cập nhật niên khóa: {ex.Message}");
             }
-
-            if (newSemesters.Any())
-            {
-                await _semesterRepository.AddRangeAsync(newSemesters);
-            }
-
-            var response = _mapper.Map<AcademicYearResponse>(academicYear);
-            return new ApiResponse<AcademicYearResponse>(0, "Niên khóa đã cập nhật thành công", response);
         }
-
         public async Task<ApiResponse<AcademicYearResponse>> DeleteLessonAsync(DeleteRequest deleteRequest)
         {
             if (deleteRequest == null || deleteRequest.ids == null || deleteRequest.ids.Count == 0)

@@ -570,7 +570,7 @@ public class TeachingAssignmentService : ITeachingAssignmentService
     /// <param name="userId">ID của giáo viên (tùy chọn). Nếu không truyền, trả về danh sách giáo viên và toàn bộ phân công giảng dạy.</param>
     /// <returns>Trả về danh sách giáo viên và phân công giảng dạy.</returns>
     /// <exception cref="NotFoundException">Ném ra khi userId hoặc academicYearId không hợp lệ.</exception>
-    public async Task<TeachingAssignmentWrapperResponse> GetTeachingAssignments(
+    public async Task<PaginatedResponse<TeachingAssignmentResponseCreateUpdate>> GetTeachingAssignments(
         int? academicYearId, int? subjectGroupId, int? userId, int pageNumber = 1, int pageSize = 10)
     {
         // Bước 1: Kiểm tra userId (nếu có)
@@ -641,18 +641,6 @@ public class TeachingAssignmentService : ITeachingAssignmentService
                 .Select(x => x.t);
         }
 
-        // Lọc giáo viên: chỉ lấy những giáo viên có ít nhất một TeachingAssignment thỏa mãn điều kiện
-        teachersQuery = teachersQuery
-            .Where(u => assignmentsSubQuery.Any(t => t.UserId == u.Id));
-
-        var teachers = await teachersQuery
-            .Select(u => new UserResponseTeachingAssignment
-            {
-                Id = u.Id,
-                FullName = u.FullName
-            })
-            .ToListAsync();
-
         // Bước 4: Lấy danh sách phân công giảng dạy
         IQueryable<TeachingAssignment> assignmentsQuery = _context.TeachingAssignments
             .Where(t => (t.IsDelete == false || t.IsDelete == null)
@@ -710,11 +698,7 @@ public class TeachingAssignmentService : ITeachingAssignmentService
             HasNextPage = pageNumber < totalPages
         };
 
-        return new TeachingAssignmentWrapperResponse
-        {
-            Teachers = teachers,
-            TeachingAssignments = assignments
-        };
+        return assignments;
     }
 
     public async Task<List<TopicResponseByAssignmentId>> GetTopicsByAssignmentIdAsync(int assignmentId)

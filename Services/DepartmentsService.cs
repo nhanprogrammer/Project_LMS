@@ -196,7 +196,7 @@ namespace Project_LMS.Services
                 }
 
                 // 2. Kiểm tra giá trị userUpdate (nếu cần)
-                if (updateDepartmentRequest.userUpdate.HasValue && updateDepartmentRequest.userUpdate < 0)
+                if (updateDepartmentRequest.userId.HasValue && updateDepartmentRequest.userId < 0)
                 {
                     // Trả về lỗi do giá trị âm
                     return new ApiResponse<DepartmentResponse>(1, "UserUpdate không hợp lệ (phải >= 0)", null);
@@ -219,9 +219,9 @@ namespace Project_LMS.Services
 
                 // 7. Lấy thông tin của User (người cập nhật) từ bảng Users dựa trên updateDepartmentRequest.UserUpdate
                 //    và gán tên của User vào thuộc tính UserName trong response
-                if (updateDepartmentRequest.userUpdate.HasValue && updateDepartmentRequest.userUpdate > 0)
+                if (updateDepartmentRequest.userId.HasValue && updateDepartmentRequest.userId > 0)
                 {
-                    var updatingUser = _context.Users.FirstOrDefault(x => x.Id == updateDepartmentRequest.userUpdate);
+                    var updatingUser = _context.Users.FirstOrDefault(x => x.Id == updateDepartmentRequest.userId);
                     response.FullName = updatingUser?.FullName;
                 }
                 else

@@ -54,9 +54,10 @@ namespace Project_LMS.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<PaginatedResponse<AcademicYearResponse>>>> GetAll(
-     [FromQuery] PaginationRequest request,
-     [FromQuery] string? keyword)
+        public async Task<ActionResult<ApiResponse<PaginatedResponse<AcademicYearResponse>>>> GetAll
+        (
+            [FromQuery] PaginationRequest request,
+            [FromQuery] string? keyword)
         {
             var result = await _academicYearsService.GetPagedAcademicYears(request, keyword);
             return Ok(new ApiResponse<PaginatedResponse<AcademicYearResponse>>(
@@ -64,19 +65,37 @@ namespace Project_LMS.Controllers
                 "Lấy danh sách Niên Khóa thành công",
                 result));
         }
+
         [Authorize(Policy = "DATA-MNG-INSERT")]
         [HttpPost]
-        public async Task<ActionResult<ApiResponse<CreateAcademicYearRequest>>> Add(
+        public async Task<ActionResult<ApiResponse<CreateAcademicYearRequest>>> Add
+        (
             [FromBody] CreateAcademicYearRequest request)
         {
-            var user = await _authService.GetUserAsync();
-            if (user == null)
-                return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!"));
+            try
+            {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!"));
 
-            var userId = user.Id;
+                var userId = user.Id;
 
-            var result = await _academicYearsService.AddAcademicYear(request, userId);
-            return Ok(result);
+                var result = await _academicYearsService.AddAcademicYear(request, userId);
+                if (result.Status == 1)
+                {
+                    return BadRequest(new ApiResponse<CreateAcademicYearRequest>(result.Status, result.Message, null));
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                // Log error here if you have logging configured
+                return StatusCode(500, new ApiResponse<CreateAcademicYearRequest>(
+                    1,
+                    $"Đã xảy ra lỗi khi thêm niên khóa: {ex.Message}",
+                    null
+                ));
+            }
         }
 
         [Authorize(Policy = "DATA-MNG-UPDATE")]
@@ -90,6 +109,10 @@ namespace Project_LMS.Controllers
 
             var userId = user.Id;
             var result = await _academicYearsService.UpdateAcademicYear(request, userId);
+            if (result.Status == 1)
+            {
+                return BadRequest(new ApiResponse<UpdateAcademicYearRequest>(result.Status, result.Message, null));
+            }
             return Ok(result);
         }
 
