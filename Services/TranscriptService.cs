@@ -53,11 +53,11 @@ namespace Project_LMS.Services
                 }
             }
 
-            var student = await _studentRepository.FindStudentById(request.StudentId ?? 0);
+            var student = await _studentRepository.FindStudentById(request.StudentId );
             if (student == null)
                 return new ApiResponse<object>(1, "Học viên không tồn tại.");
 
-            var classStudents = await _classStudentRepository.FindStudentByStudentAcademic(student.Id, (int)request.DepartmentId);
+            var classStudents = await _classStudentRepository.FindStudentByStudentDepartment(student.Id, (int)request.DepartmentId);
             var classStudent = classStudents.FirstOrDefault(cs => cs.IsClassTransitionStatus == false);
             //if (classStudent == null)
             //    return new ApiResponse<object>(1, "Không tìm thấy lớp học của học viên.");
@@ -462,11 +462,11 @@ namespace Project_LMS.Services
                 }
 
 
-                var student = await _studentRepository.FindStudentById(request.StudentId ?? 0);
+                var student = await _studentRepository.FindStudentById(request.StudentId);
                 if (student == null)
                     return new ApiResponse<object>(1, "Học viên không tồn tại.");
 
-                var classStudents = await _classStudentRepository.FindStudentByStudentAcademic(student.Id, (int)request.DepartmentId);
+                var classStudents = await _classStudentRepository.FindStudentByStudentDepartment(student.Id, request.DepartmentId);
                 var classStudent = classStudents.FirstOrDefault(cs => cs.IsClassTransitionStatus == false);
 
                 var subjects = classStudent?.Class?.ClassSubjects?.Select(cs => cs.Subject).ToList() ?? new List<Subject?>();

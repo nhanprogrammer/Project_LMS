@@ -69,7 +69,7 @@ namespace Project_LMS.DTOs.Request
                     else
                     {
                         if (!SubjectOfSubjectGroupExist(tc.SubjectGroupId, tc.SubjectId)) {
-                            context.AddFailure("SubjectId", $"SubjectId không thuộc SubjectGroup.");
+                            context.AddFailure("SubjectId", "SubjectId không thuộc SubjectGroup.");
                         }
                     }
                     if (SubjectGroupExits(tc.SubjectGroupId) && SubjectExits(tc.SubjectId))
