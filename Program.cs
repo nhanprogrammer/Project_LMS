@@ -81,7 +81,6 @@ builder.Services.AddHangfireServer(options =>
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<ValidationFilter>();
-builder.Services.AddScoped<AcademicHoldStatusCheckerJob>();
 // Services
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<ISchoolService, SchoolService>();
@@ -365,6 +364,7 @@ builder.Services.AddLogging(logging =>
 builder.Services.AddSingleton<NotificationQueueService>();
 builder.Services.AddHostedService(provider => provider.GetRequiredService<NotificationQueueService>());
 builder.Services.AddHostedService<TestExamNotificationService>();
+builder.Services.AddHostedService<AcademicHoldStatusCheckerService>();
 var app = builder.Build();
 app.MapHub<MeetHubService>("/meetHub");
 app.Use(async (context, next) =>
@@ -402,15 +402,5 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.UseHangfireDashboard();
-
-// Đăng ký job chạy vào 12 giờ đêm mỗi ngày
-RecurringJob.AddOrUpdate<AcademicHoldStatusCheckerJob>(
-    "check-academic-hold-status",
-    job => job.ExecuteAsync(CancellationToken.None),
-    "0 0 * * *",
-    new RecurringJobOptions
-    {
-        TimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")
-    });
 
 app.Run();

@@ -55,12 +55,7 @@ namespace Project_LMS.Authorization
                     options.AddPolicy(permission, policy =>
                         policy.Requirements.Add(new PermissionRequirement(permission)));
                 }
-                                
-                options.AddPolicy("TEACHER_OR_STUDENT", policy =>
-                {
-                    policy.Requirements.Add(new PermissionRequirement("TEACHER"));
-                    policy.Requirements.Add(new PermissionRequirement("STUDENT"));
-                });
+
             });
 
             return services;
