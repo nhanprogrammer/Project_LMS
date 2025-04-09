@@ -8,7 +8,7 @@ using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers
 {
-
+    [Authorize(Policy = "STUDENT,TEACHER")]
     [ApiController]
     [Route("api/[controller]")]
     public class QuestionsAnswersController : ControllerBase
