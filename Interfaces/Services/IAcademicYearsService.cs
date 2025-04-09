@@ -14,6 +14,7 @@ namespace Project_LMS.Interfaces
 
         Task<PaginatedResponse<AcademicYearResponse>> GetPagedAcademicYears(PaginationRequest request, string? keyword);
         Task<List<AcademicYearNameResponse>> GetAcademicYearNamesAsync();
+        public Task<ApiResponse<List<AcademicYearNameResponse>>> DropdownAcademicYearsForStudent();
         
     }
 }

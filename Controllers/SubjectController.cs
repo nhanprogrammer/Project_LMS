@@ -246,5 +246,27 @@ namespace Project_LMS.Controllers
                 return StatusCode(500, new ApiResponse<string>(1, $"Lỗi hệ thống: {ex.Message}", null));
             }
         }
+        [HttpGet("get-all-subjects-by-student")]
+        public async Task<IActionResult> GetSubjectDropdownByStudent()
+        {
+            try
+            {
+                var user = await _authService.GetUserAsync();
+                if (user == null)
+                    return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+                var subjects = await _subjectService.GetSubjectDropdownByStudentAsync();
+
+                if (subjects == null || !subjects.Any())
+                {
+                    return Ok(new ApiResponse<List<SubjectDropdownResponse>>(1, "Học sinh chưa có môn học nào!", null));
+                }
+
+                return Ok(new ApiResponse<List<SubjectDropdownResponse>>(0, "Lấy danh sách môn học thành công!", subjects));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, $"Lỗi hệ thống: {ex.Message}", null));
+            }
+        }
     }
 }

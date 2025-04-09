@@ -141,5 +141,20 @@ namespace Project_LMS.Controllers
 
             return Ok(new ApiResponse<List<AcademicYearNameResponse>>(0, "Lấy danh sách niên khóa thành công", result));
         }
+
+        [HttpGet("get-all-academic-years-by-student")]
+        public async Task<IActionResult> GetDropdownAcademicYearsForStudent()
+        {
+            var user = await _authService.GetUserAsync();
+            if (user == null)
+                return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+            var result = await _academicYearsService.DropdownAcademicYearsForStudent();
+            if (result.Status == 1)
+            {
+                return BadRequest(result);
+            }
+
+            return Ok(result);
+        }
     }
 }
