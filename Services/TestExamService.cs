@@ -531,7 +531,8 @@ public class TestExamService : ITestExamService
     }
 
     public async Task<ApiResponse<PaginatedResponse<TestExamResponse>>> GetAllTestExamsAsync(string? keyword,
-        int? pageNumber, int? pageSize, string? sortDirection)
+        int? pageNumber, int? pageSize, string? sortDirection,  int? departmentId,
+        int? classId ,int? academicYearId)
     {
         
         var today = DateTime.Now.Date;
@@ -560,6 +561,8 @@ public class TestExamService : ITestExamService
             {
                 testExam.ScheduleStatusId = 3;
             }
+
+            _context.TestExams.Update(testExam);
         }
 
         await _context.SaveChangesAsync();
@@ -610,6 +613,34 @@ public class TestExamService : ITestExamService
                 ? testExamQuery.OrderByDescending(te => te.Id).ThenByDescending(te => te.Id)
                 : testExamQuery.OrderBy(te => te.Id).ThenByDescending(te => te.Id);
 
+            
+            if (!string.IsNullOrEmpty(keyword))
+            {
+                testExamQuery = testExamQuery
+                    .Where(te => te.TestExamType.PointTypeName.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+            }
+
+            // 2. Lọc theo departmentId (nếu có)
+            if (departmentId.HasValue)
+            {
+                testExamQuery = testExamQuery
+                    .Where(te => te.DepartmentId == departmentId.Value);
+            }
+
+            // 3. Lọc theo classId (nếu có)
+            if (classId.HasValue)
+            {
+                testExamQuery = testExamQuery
+                    .Where(te => te.ClassId == classId.Value);
+            }
+
+            // if (academicYearId.HasValue)
+            // {
+            //     testExamQuery = testExamQuery
+            //         .Where(te => te. == classId.Value);
+            // }
+
+            
             // 5. Tính toán tổng số dòng, số trang
             var totalItems = testExamQuery.Count();
             var totalPages = (int)Math.Ceiling((double)totalItems / currentPageSize);

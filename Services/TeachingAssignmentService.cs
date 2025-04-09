@@ -270,7 +270,10 @@ public class TeachingAssignmentService : ITeachingAssignmentService
 
             if (assignment == null)
                 throw new NotFoundException("Không tìm thấy phân công giảng dạy này.");
-
+            if (assignment.EndDate < DateTime.UtcNow)
+            {
+                throw new BadRequestException("Phân công giảng dạy đã kết thúc, không thể cập nhật.");
+            }
             // Lấy UserId và SubjectId từ TeachingAssignment hiện tại
             var userId = assignment.UserId;
             var subjectId = assignment.SubjectId;

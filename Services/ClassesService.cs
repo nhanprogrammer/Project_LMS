@@ -916,7 +916,7 @@ namespace Project_LMS.Services
 
 
         public async Task<ApiResponse<PaginatedResponse<ClassFutureStudentResponse>>> GetClassLessonStudent(
-    int? userId, string? keyword, int? subjectId, int status, int pageNumber = 1, int pageSize = 10)
+     int? userId, string? keyword, int? subjectId, int status, DateTime? date, int pageNumber = 1, int pageSize = 10)
         {
             try
             {
@@ -963,6 +963,14 @@ namespace Project_LMS.Services
                     );
                 }
 
+                // Filter by date
+                if (date.HasValue)
+                {
+                    var startOfDay = date.Value.Date; // 00:00 của ngày được chọn
+                    var endOfDay = startOfDay.AddDays(1).AddTicks(-1); // 23:59:59.999 của ngày được chọn
+                    query = query.Where(l => l.StartDate >= startOfDay && l.StartDate <= endOfDay);
+                }
+
                 // Get all lessons first
                 var allLessons = await query
                     .Select(l => new
@@ -971,62 +979,25 @@ namespace Project_LMS.Services
                         ClassCode = l.TeachingAssignment.Class.ClassCode,
                         SubjectName = l.TeachingAssignment.Subject.SubjectName,
                         StartDate = l.StartDate,
+                        EndDate = l.EndDate,
                         TeacherName = l.TeachingAssignment.User.FullName,
-                        StatusClass = l.TeachingAssignment.Class.StatusClass,
-                        IsCompleted = l.StartDate < currentDate
+                        StatusClass = l.StartDate > currentDate
+                            ? 1 // Chưa diễn ra
+                            : (l.EndDate < currentDate ? 3 : 2) // Đã kết thúc hoặc Đang diễn ra
                     })
                     .ToListAsync();
-
-                // Group by TeachingAssignment to get totals
-                var teachingAssignmentTotals = allLessons
-                    .GroupBy(l => l.TeachingAssignmentId)
-                    .ToDictionary(
-                        g => g.Key,
-                        g => new
-                        {
-                            TotalLessons = g.Count(),
-                            CompletedLessons = g.Count(l => l.IsCompleted)
-                        });
 
                 // Filter based on status
                 var filteredLessons = status switch
                 {
-                    0 => allLessons, // All lessons
-                    1 => allLessons.Where(l => l.StartDate >= currentDate), // Upcoming lessons
-                    2 => allLessons.Where(l => l.StartDate < currentDate), // Completed
-                    3 => allLessons
-        .GroupBy(l => l.TeachingAssignmentId)
-        .Where(g =>
-            // Điều kiện 1: Có ít nhất 1 buổi đã qua và có buổi sắp tới
-            (g.Any(l => l.StartDate < currentDate) && g.Any(l => l.StartDate >= currentDate)) ||
-            // Điều kiện 2: Chỉ có 1 buổi và buổi đó chưa diễn ra
-            (g.Count() == 1 && g.First().StartDate >= currentDate)
-        )
-        .Select(g => new
-        {
-            TeachingAssignmentId = g.Key,
-            ClassCode = g.First().ClassCode,
-            SubjectName = g.First().SubjectName,
-            StartDate = g.Where(l => l.StartDate >= currentDate)
-                        .OrderBy(l => l.StartDate)
-                        .First().StartDate,
-            TeacherName = g.First().TeacherName,
-            StatusClass = g.First().StatusClass,
-            IsCompleted = g.First().IsCompleted
-        })
-        .ToList(),
-                    _ => allLessons
+                    1 => allLessons.Where(l => l.StatusClass == 1).ToList(), // Chưa diễn ra
+                    2 => allLessons.Where(l => l.StatusClass == 2).ToList(), // Đang diễn ra
+                    3 => allLessons.Where(l => l.StatusClass == 3).ToList(), // Đã kết thúc
+                    _ => allLessons // Tất cả trạng thái
                 };
 
                 // Sort based on status
-                var sortedLessons = status switch
-                {
-                    0 => filteredLessons.OrderBy(l => l.StartDate),
-                    1 => filteredLessons.OrderBy(l => l.StartDate),
-                    2 => filteredLessons.OrderByDescending(l => l.StartDate),
-                    3 => filteredLessons.OrderBy(l => l.StartDate),
-                    _ => filteredLessons.OrderBy(l => l.StartDate)
-                };
+                var sortedLessons = filteredLessons.OrderBy(l => l.StartDate).ToList();
 
                 // Convert to response type
                 var items = sortedLessons.Select(l => new ClassFutureStudentResponse
@@ -1036,13 +1007,9 @@ namespace Project_LMS.Services
                     SubjectName = l.SubjectName,
                     StartDate = l.StartDate,
                     TeacherName = l.TeacherName,
-                    StatusClass = l.StatusClass,
-                    TotalLessons = teachingAssignmentTotals[l.TeachingAssignmentId].TotalLessons,
-                    CompletedLessons = teachingAssignmentTotals[l.TeachingAssignmentId].CompletedLessons,
-                    CompletionPercentage = teachingAssignmentTotals[l.TeachingAssignmentId].TotalLessons > 0
-                        ? Math.Round((double)teachingAssignmentTotals[l.TeachingAssignmentId].CompletedLessons /
-                                   teachingAssignmentTotals[l.TeachingAssignmentId].TotalLessons * 100, 2)
-                        : 0
+                    StatusClass = l.StatusClass == 1
+                        ? "Chưa diễn ra"
+                        : (l.StatusClass == 2 ? "Đang diễn ra" : "Đã kết thúc")
                 }).ToList();
 
                 // Apply pagination
@@ -1066,10 +1033,9 @@ namespace Project_LMS.Services
 
                 var message = status switch
                 {
-                    0 => paginatedItems.Any() ? "Lấy danh sách tất cả buổi học thành công" : "Không có buổi học nào",
-                    1 => paginatedItems.Any() ? "Lấy danh sách buổi học sắp tới thành công" : "Không có buổi học sắp tới",
-                    2 => paginatedItems.Any() ? "Lấy danh sách lớp học đã hoàn thành thành công" : "Không có lớp học đã hoàn thành",
-                    3 => paginatedItems.Any() ? "Lấy danh sách lớp học chưa hoàn thành thành công" : "Không có lớp học chưa hoàn thành",
+                    1 => paginatedItems.Any() ? "Lấy danh sách buổi học chưa diễn ra thành công" : "Không có buổi học chưa diễn ra",
+                    2 => paginatedItems.Any() ? "Lấy danh sách buổi học đang diễn ra thành công" : "Không có buổi học đang diễn ra",
+                    3 => paginatedItems.Any() ? "Lấy danh sách buổi học đã kết thúc thành công" : "Không có buổi học đã kết thúc",
                     _ => "Lấy danh sách buổi học thành công"
                 };
 
@@ -1081,7 +1047,6 @@ namespace Project_LMS.Services
                     $"Lỗi khi lấy danh sách buổi học: {ex.Message}", null);
             }
         }
-
         public async Task<ApiResponse<TeachingAssignmentDetailResponse>> GetClassLessonStudentDetail(int teachingAssignmentId)
         {
             try

@@ -8,7 +8,7 @@ using Project_LMS.Services;
 
 namespace Project_LMS.Controllers
 {
-    [Authorize(Policy = "DATA-MNG-VIEW")]
+
     [ApiController]
     [Route("api/[controller]")]
     public class AcademicYearController : ControllerBase
@@ -22,9 +22,10 @@ namespace Project_LMS.Controllers
             _authService = authService ?? throw new ArgumentNullException(nameof(authService));
         }
 
+        [Authorize(Policy = "DATA-MNG-VIEW")]
         [HttpGet("search")]
         public async Task<ActionResult<ApiResponse<PaginatedResponse<AcademicYearResponse>>>> SearchAcademicYear(
-            [FromQuery] int year)
+        [FromQuery] int year)
         {
             var result = await _academicYearsService.SearchAcademicYear(year);
 
@@ -38,7 +39,7 @@ namespace Project_LMS.Controllers
                 result));
         }
 
-
+        [Authorize(Policy = "DATA-MNG-VIEW")]
         [HttpGet("{id}")]
         public async Task<ActionResult<ApiResponse<AcademicYearResponse>>> GetById(int id)
         {
@@ -52,12 +53,12 @@ namespace Project_LMS.Controllers
 
             return Ok(result);
         }
-
+        [Authorize(Policy = "DATA-MNG-VIEW")]
         [HttpGet]
         public async Task<ActionResult<ApiResponse<PaginatedResponse<AcademicYearResponse>>>> GetAll
-        (
-            [FromQuery] PaginationRequest request,
-            [FromQuery] string? keyword)
+            (
+                [FromQuery] PaginationRequest request,
+                [FromQuery] string? keyword)
         {
             var result = await _academicYearsService.GetPagedAcademicYears(request, keyword);
             return Ok(new ApiResponse<PaginatedResponse<AcademicYearResponse>>(
@@ -139,6 +140,21 @@ namespace Project_LMS.Controllers
             }
 
             return Ok(new ApiResponse<List<AcademicYearNameResponse>>(0, "Lấy danh sách niên khóa thành công", result));
+        }
+
+        [HttpGet("get-all-academic-years-by-student")]
+        public async Task<IActionResult> GetDropdownAcademicYearsForStudent()
+        {
+            var user = await _authService.GetUserAsync();
+            if (user == null)
+                return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
+            var result = await _academicYearsService.DropdownAcademicYearsForStudent();
+            if (result.Status == 1)
+            {
+                return BadRequest(result);
+            }
+
+            return Ok(result);
         }
     }
 }

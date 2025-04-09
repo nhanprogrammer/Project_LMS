@@ -20,15 +20,21 @@ namespace Project_LMS.Services
         private readonly IUserRepository _userRepository;
         private readonly IMapper _mapper;
         private readonly ApplicationDbContext _context;
+        private readonly IAuthService _authService;
+        private readonly IClassStudentRepository _classStudentRepository;
+        private readonly IStudentRepository _studentRepository;
 
         public AcademicYearsService(IAcademicYearRepository academicYearRepository,
-            ISemesterRepository semesterRepository, IUserRepository userRepository, IMapper mapper, ApplicationDbContext context)
+            ISemesterRepository semesterRepository, IUserRepository userRepository, IMapper mapper, ApplicationDbContext context, IAuthService authService, IClassStudentRepository classStudentRepository, IStudentRepository studentRepository)
         {
             _semesterRepository = semesterRepository;
             _academicYearRepository = academicYearRepository;
             _userRepository = userRepository;
             _mapper = mapper;
             _context = context;
+            _authService = authService;
+            _classStudentRepository = classStudentRepository;
+            _studentRepository = studentRepository;
         }
 
         public async Task<PaginatedResponse<AcademicYearResponse>> GetPagedAcademicYears(PaginationRequest request, string? keyword)
@@ -483,6 +489,56 @@ namespace Project_LMS.Services
             }).ToList();
 
             return result;
+        }
+        public async Task<ApiResponse<List<AcademicYearNameResponse>>> DropdownAcademicYearsForStudent()
+        {
+            try
+            {
+                int studentId = 0;
+
+                // Lấy thông tin người dùng từ AuthService
+                var user = await _authService.GetUserAsync();
+                if (user != null)
+                {
+                    var studentAuth = await _studentRepository.FindStudentById(user.Id);
+                    if (studentAuth != null && studentAuth.Role.Name == "Student")
+                    {
+                        studentId = studentAuth.Id;
+                    }
+                }
+
+                if (studentId == 0)
+                {
+                    return new ApiResponse<List<AcademicYearNameResponse>>(1, "Không tìm thấy học sinh hoặc học sinh chưa đăng nhập.", null);
+                }
+
+                // Lấy tất cả ClassStudent của học sinh
+                var classStudents = await _classStudentRepository.FindAllClassStudentByUserId(studentId);
+
+                // Lọc và sắp xếp ClassStudent: chỉ lấy IsActive == true, IsDelete == false, và sắp xếp theo năm học mới nhất
+                var filteredClassStudents = classStudents
+                    .Where(cs => cs.IsActive == true && (cs.IsDelete == null || cs.IsDelete == false))
+                    .OrderByDescending(cs => cs.Class?.AcademicYear?.EndDate)
+                    .ToList();
+
+                // Lấy danh sách niên khóa (id và name)
+                var academicYears = filteredClassStudents
+                    .Select(cs => cs.Class?.AcademicYear)
+                    .Where(ay => ay != null)
+                    .Distinct()
+                    .Select(ay => new AcademicYearNameResponse
+                    {
+                        Id = ay.Id,
+                        Name = $"{ay.StartDate?.ToString("yyyy")} - {ay.EndDate?.ToString("yyyy")}"
+                    })
+                    .ToList();
+
+                return new ApiResponse<List<AcademicYearNameResponse>>(0, "Lấy danh sách niên khóa thành công.", academicYears);
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<List<AcademicYearNameResponse>>(1, $"Đã xảy ra lỗi: {ex.Message}", null);
+            }
         }
     }
 }

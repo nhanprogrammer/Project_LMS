@@ -16,5 +16,7 @@ namespace Project_LMS.Interfaces.Services
         Task<List<SubjectResponseSearch>> getSubjectByUserId(int userId);
         Task<List<SubjectDropdownResponse>> GetSubjectsBySubjectGroupIdAsync(int subjectGroupId);
         Task<List<SubjectDropdownResponse>> GetSubjectDropdownAsync();
+        Task<List<SubjectDropdownResponse>> GetSubjectDropdownBySubjectGroupIdAsync(int subjectGroupId);
+        Task<List<SubjectDropdownResponse>> GetSubjectDropdownByStudentAsync();
     }
 }

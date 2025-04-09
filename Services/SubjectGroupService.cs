@@ -139,7 +139,7 @@ public class SubjectGroupService : ISubjectGroupService
     public async Task<ApiResponse<SubjectGroupResponse>> CreateSubjectGroupAsync(
         CreateSubjectGroupRequest createSubjectGroupRequest)
     {
-        var exitingSubjectGroup = await _context.SubjectGroups.FirstOrDefaultAsync(c=>c.Name==createSubjectGroupRequest.Name);
+        var exitingSubjectGroup = await _context.SubjectGroups.FirstOrDefaultAsync(c => c.Name == createSubjectGroupRequest.Name);
         if (exitingSubjectGroup != null)
         {
             return new ApiResponse<SubjectGroupResponse>
@@ -149,8 +149,23 @@ public class SubjectGroupService : ISubjectGroupService
         }
         var subjectGroup = _mapper.Map<SubjectGroup>(createSubjectGroupRequest);
 
+        var existingSubjectIds = await _context.SubjectGroupSubjects
+            .Where(sgs => createSubjectGroupRequest.SubjectIds.Contains(sgs.SubjectId))
+            .Select(sgs => sgs.SubjectId)
+            .ToListAsync();
+
+        if (existingSubjectIds.Any())
+        {
+            return new ApiResponse<SubjectGroupResponse>(
+                1,
+                $"Các môn học đã thuộc tổ bộ môn khác: {string.Join(", ", existingSubjectIds)}",
+                null
+            );
+        }
+
         
-        
+
+
         await _subjectGroupRepository.AddAsync(subjectGroup);
 
         var createdSubjectGroup = await _subjectGroupRepository

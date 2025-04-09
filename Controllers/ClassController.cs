@@ -257,6 +257,7 @@ namespace Project_LMS.Controllers
       [FromQuery] string? keyword,
       [FromQuery] int? subjectId,
       [FromQuery] int status = 0,
+        [FromQuery] DateTime? date = null,
       [FromQuery] int pageNumber = 1,
       [FromQuery] int pageSize = 10)
         {
@@ -266,7 +267,7 @@ namespace Project_LMS.Controllers
                 if (user == null)
                     return Unauthorized(new ApiResponse<string>(1, "Token không hợp lệ hoặc đã hết hạn!", null));
 
-                var result = await _classService.GetClassLessonStudent(user.Id, keyword, subjectId, status, pageNumber, pageSize);
+                var result = await _classService.GetClassLessonStudent(user.Id, keyword, subjectId, status,date, pageNumber, pageSize);
                 if (result.Status != 0)
                 {
                     return BadRequest(result);

@@ -58,7 +58,6 @@ namespace Project_LMS.Authorization
                     options.AddPolicy(permission, policy =>
                         policy.Requirements.Add(new PermissionRequirement(permission)));
                 }
-                                
             });
 
             return services;
