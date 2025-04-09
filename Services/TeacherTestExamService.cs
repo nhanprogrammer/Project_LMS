@@ -241,9 +241,444 @@ public class TeacherTestExamService : ITeacherTestExamService
 
     
 
+    // public async Task<ApiResponse<object?>> CreateTeacherTestExamAsync(int userId, TeacherTestExamRequest request)
+    // {
+    //     
+    //     
+    //     
+    //     // Kiểm tra xem giáo viên có được phân công dạy môn học này không
+    //     bool isAssigned = await _context.TeachingAssignments
+    //         .AnyAsync(ta => ta.UserId == userId && ta.SubjectId == request.SubjectId);
+    //
+    //     if (!isAssigned)
+    //     {
+    //         return new ApiResponse<object?>(1, "Giáo viên không được phân công dạy môn học này.", null);
+    //     }
+    //
+    //     
+    //     
+    //     // Tìm danh sách lớp dựa vào DepartmentId hoặc classIds
+    //     List<int> classIds = new List<int>();
+    //
+    //     if (request.SelectALL)
+    //     {
+    //         classIds = await _context.Classes
+    //             .Where(c => c.DepartmentId == request.DepartmentId)
+    //             .Select(c => c.Id)
+    //             .ToListAsync();
+    //     }
+    //     else if (request.classIds != null && request.classIds.Any())
+    //     {
+    //         classIds = request.classIds;
+    //     }
+    //
+    //
+    //     classIds = await _context.ClassSubjects
+    //         .Where(cs => cs.SubjectId == request.SubjectId && classIds.Contains(cs.ClassId.Value))
+    //         .Select(cs => cs.ClassId.Value)
+    //         .Distinct()
+    //         .ToListAsync();
+    //
+    //
+    //     if (!classIds.Any())
+    //     {
+    //         return new ApiResponse<object?>(1, "Không có lớp nào trong danh sách được dạy môn học này.", null);
+    //     }
+    //
+    //
+    //     // Convert Duration string thành kiểu TimeOnly nếu có
+    //     TimeOnly? duration = TimeOnly.TryParse(request.Duration, out var parsedDuration) ? parsedDuration : null;
+    //
+    //     var existingTestExam = await _context.TestExams
+    //         .FirstOrDefaultAsync(te => te.StartDate == request.StartDate);
+    //
+    //
+    //     if (existingTestExam != null)
+    //     {
+    //         return new ApiResponse<object?>(1, "Không được trùng lịch kiểm tra ", null);
+    //     }
+    //
+    //     if (request.EndDate <= request.StartDate)
+    //     {
+    //         return new ApiResponse<object?>(1, "Ngày kết thúc phải lớn hơn ngày bắt đầu.", null);
+    //     }
+    //     var semester = await _context.Semesters
+    //         .FirstOrDefaultAsync(s =>
+    //             s.StartDate <= request.StartDate &&
+    //             s.EndDate >= request.EndDate);
+    //
+    //     if (semester == null)
+    //     {
+    //         return new ApiResponse<object?>(1, "Không tìm thấy học kỳ phù hợp với thời gian kiểm tra.", null);
+    //     }
+    //     
+    //     var testExamType = await _context.TestExamTypes
+    //         .FirstOrDefaultAsync(t => t.Id == request.TestExamType);
+    //
+    //     if (testExamType == null)
+    //     {
+    //         return new ApiResponse<object?>(1, "Loại kiểm tra không hợp lệ.", null);
+    //     }
+    //     
+    //     
+    //     
+    //
+    //     if (semester.Name.Equals("Học kỳ I"))
+    //     {
+    //         
+    //     }
+    //
+    //
+    //     // Tạo đối tượng TestExam
+    //     var teacherTestExam = new TestExam
+    //     {
+    //         SubjectId = request.SubjectId,
+    //         DepartmentId = request.DepartmentId,
+    //         Topic = request.Topic,
+    //         Form = request.Form,
+    //         Duration = duration,
+    //         TestExamTypeId = request.TestExamType,
+    //         StartDate = request.StartDate.ToOffset(TimeSpan.FromHours(7)),
+    //         EndDate = request.EndDate.ToOffset(TimeSpan.FromHours(7)),
+    //         Description = request.Description,
+    //         IsAttachmentRequired = request.IsAttachmentRequired,
+    //         ScheduleStatusId = 2,
+    //         UserId = userId,
+    //         SemestersId = semester.Id,
+    //     };
+    //
+    //
+    //     // Xử lý file đính kèm nếu có
+    //     if (!string.IsNullOrEmpty(request.Attachment))
+    //     {
+    //         try
+    //         {
+    //             var cloudinaryService = _serviceProvider.GetService<ICloudinaryService>();
+    //             if (cloudinaryService == null)
+    //             {
+    //                 throw new Exception("Cloudinary service not available");
+    //             }
+    //
+    //             teacherTestExam.Attachment = await cloudinaryService.UploadDocxAsync(request.Attachment);
+    //         }
+    //         catch (Exception ex)
+    //         {
+    //             // Xử lý lỗi khi upload file
+    //             return new ApiResponse<object?>(1, "File upload failed: " + ex.Message);
+    //         }
+    //     }
+    //
+    //     // Lưu TestExam vào cơ sở dữ liệu
+    //     await _context.TestExams.AddAsync(teacherTestExam);
+    //     await _context.SaveChangesAsync(); // Lưu dữ liệu TestExam
+    //
+    //
+    //     var afteraddtestExam = await _context.TestExams.FindAsync(teacherTestExam.Id);
+    //     if (request.IsAttachmentRequired)
+    //     {
+    //         var fileFormat = new FileFormat
+    //         {
+    //             TestExamId = teacherTestExam.Id,
+    //             IsDoc = request.IsDoc,
+    //             IsPowerpoint = request.IsPowerpoint,
+    //             IsXxls = request.IsXxls,
+    //             IsJpeg = request.IsJpeg,
+    //             Is10 = request.Is10,
+    //             Is20 = request.Is20,
+    //             Is30 = request.Is30,
+    //             Is40 = request.Is40,
+    //         };
+    //
+    //         await _context.FileFormats.AddAsync(fileFormat);
+    //         await _context.SaveChangesAsync();
+    //     }
+    //
+    //     var fileProcessor = new FileProcessor(_httpClientFactory);
+    //     string fileUrl = afteraddtestExam.Attachment; // Lấy URL file từ TestExam
+    //
+    //     // Đọc danh sách câu hỏi từ file
+    //     List<Question> questions = await fileProcessor.ReadQuestionsFromFileAsync(fileUrl);
+    //   
+    //
+    //     // Lưu câu hỏi và đáp án vào cơ sở dữ liệu
+    //
+    //     foreach (var question in questions)
+    //     {
+    //         var newQuestion = new Question
+    //         {
+    //             QuestionText = question.QuestionText,
+    //             QuestionType = question.QuestionType,
+    //             Mark = question.Mark,
+    //             TestExamId = teacherTestExam.Id // Liên kết với TestExam
+    //         };
+    //
+    //         await _context.Questions.AddAsync(newQuestion);
+    //         await _context.SaveChangesAsync(); // Lưu câu hỏi
+    //
+    //         foreach (var answer in question.Answers)
+    //         {
+    //             var newAnswer = new Answer
+    //             {
+    //                 Answer1 = answer.Answer1,
+    //                 IsCorrect = answer.IsCorrect,
+    //                 QuestionId = newQuestion.Id, // Liên kết với câu hỏi
+    //                 CreateAt = DateTime.Now,
+    //                 UpdateAt = DateTime.Now
+    //             };
+    //
+    //             await _context.Answers.AddAsync(newAnswer);
+    //         }
+    //
+    //         await _context.SaveChangesAsync();
+    //     }
+    //
+    //     // Thêm quan hệ vào bảng trung gian ClassTestExam
+    //     var testExamClasses = classIds.Select(classId => new ClassTestExam
+    //     {
+    //         TestExamId = teacherTestExam.Id,
+    //         ClassId = classId
+    //     }).ToList();
+    //
+    //     await _context.ClassTestExams.AddRangeAsync(testExamClasses);
+    //     await _context.SaveChangesAsync();
+    //
+    //     // Tạo phản hồi với thông tin đã lưu
+    //     var responseData = new
+    //     {
+    //         SubjectName = _context.Subjects
+    //             .Where(s => s.Id == teacherTestExam.SubjectId)
+    //             .Select(s => s.SubjectName)
+    //             .FirstOrDefault(),
+    //         TestExamId = teacherTestExam.Id,
+    //         DepartmentId = teacherTestExam.DepartmentId,
+    //         Topic = teacherTestExam.Topic,
+    //         Form = teacherTestExam.Form,
+    //         Duration = teacherTestExam.Duration,
+    //         TestExamTypeId = teacherTestExam.TestExamTypeId,
+    //         StartDate = teacherTestExam.StartDate,
+    //         EndDate = teacherTestExam.EndDate,
+    //         Description = teacherTestExam.Description,
+    //         IsAttachmentRequired = teacherTestExam.IsAttachmentRequired,
+    //         ClassIds = testExamClasses.Select(tc => tc.ClassId).ToList()
+    //     };
+    //
+    //     return new ApiResponse<object?>(0, "Tạo lịch kiểm tra thành công", responseData);
+    // }
+
     public async Task<ApiResponse<object?>> CreateTeacherTestExamAsync(int userId, TeacherTestExamRequest request)
+{
+    // Kiểm tra xem giáo viên có được phân công dạy môn học này không
+    bool isAssigned = await _context.TeachingAssignments
+        .AnyAsync(ta => ta.UserId == userId && ta.SubjectId == request.SubjectId);
+
+    if (!isAssigned)
     {
-        // Kiểm tra xem giáo viên có được phân công dạy môn học này không
+        return new ApiResponse<object?>(1, "Giáo viên không được phân công dạy môn học này.", null);
+    }
+
+    // Tìm danh sách lớp dựa vào DepartmentId hoặc classIds
+    List<int> classIds = new List<int>();
+
+    if (request.SelectALL)
+    {
+        classIds = await _context.Classes
+            .Where(c => c.DepartmentId == request.DepartmentId)
+            .Select(c => c.Id)
+            .ToListAsync();
+    }
+    else if (request.classIds != null && request.classIds.Any())
+    {
+        classIds = request.classIds;
+    }
+
+    classIds = await _context.ClassSubjects
+        .Where(cs => cs.SubjectId == request.SubjectId && classIds.Contains(cs.ClassId.Value))
+        .Select(cs => cs.ClassId.Value)
+        .Distinct()
+        .ToListAsync();
+
+    if (!classIds.Any())
+    {
+        return new ApiResponse<object?>(1, "Không có lớp nào trong danh sách được dạy môn học này.", null);
+    }
+
+    TimeOnly? duration = TimeOnly.TryParse(request.Duration, out var parsedDuration) ? parsedDuration : null;
+
+    var existingTestExam = await _context.TestExams
+        .FirstOrDefaultAsync(te => te.StartDate == request.StartDate  && te.UserId == userId);
+
+    if (existingTestExam != null)
+    {
+        return new ApiResponse<object?>(1, "Không được trùng lịch kiểm tra ", null);
+    }
+
+    if (request.EndDate <= request.StartDate)
+    {
+        return new ApiResponse<object?>(1, "Ngày kết thúc phải lớn hơn ngày bắt đầu.", null);
+    }
+
+    var semester = await _context.Semesters
+        .FirstOrDefaultAsync(s => s.StartDate <= request.StartDate && s.EndDate >= request.EndDate);
+
+    var testExamType = await _context.TestExamTypes
+        .FirstOrDefaultAsync(t => t.Id == request.TestExamType);
+
+    if (testExamType == null)
+    {
+        return new ApiResponse<object?>(1, "Loại kiểm tra không hợp lệ.", null);
+    }
+
+    // Kiểm tra số lượng bài kiểm tra theo từng lớp
+    foreach (var classId in classIds)
+    {
+        var existingExamsForClass = await _context.TestExams
+            .Where(te => te.StartDate >= request.StartDate && te.EndDate <= request.EndDate)
+            .Join(_context.ClassTestExams, te => te.Id, cte => cte.TestExamId, (te, cte) => cte.ClassId)
+            .CountAsync(c => c == classId);
+
+        // Lấy số lượng bài kiểm tra tối thiểu theo loại kiểm tra và học kỳ
+        int? minimumEntries = semester.Name.Equals("Học kỳ I") 
+            ? testExamType.MinimunEntriesSem1 
+            : testExamType.MinimunEntriesSem2;
+        if (!minimumEntries.HasValue)
+        {
+            return new ApiResponse<object?>(1, "Không tìm thấy số lượng bài kiểm tra tối thiểu cho loại kiểm tra này.", null);
+        }
+        if (existingExamsForClass >= minimumEntries)
+        {
+            return new ApiResponse<object?>(1, $"Lớp {classId} đã có đủ số lượng bài kiểm tra ({existingExamsForClass}/{minimumEntries}) trong học kỳ này.", null);
+        }
+    }
+
+    var teacherTestExam = new TestExam
+    {
+        SubjectId = request.SubjectId,
+        DepartmentId = request.DepartmentId,
+        Topic = request.Topic,
+        Form = request.Form,
+        Duration = duration,
+        TestExamTypeId = request.TestExamType,
+        StartDate = request.StartDate.ToOffset(TimeSpan.FromHours(7)),
+        EndDate = request.EndDate.ToOffset(TimeSpan.FromHours(7)),
+        Description = request.Description,
+        IsAttachmentRequired = request.IsAttachmentRequired,
+        ScheduleStatusId = 2,
+        UserId = userId,
+        SemestersId = semester.Id,
+    };
+
+    if (!string.IsNullOrEmpty(request.Attachment))
+    {
+        try
+        {
+            var cloudinaryService = _serviceProvider.GetService<ICloudinaryService>();
+            if (cloudinaryService == null)
+            {
+                throw new Exception("Cloudinary service not available");
+            }
+
+            teacherTestExam.Attachment = await cloudinaryService.UploadDocxAsync(request.Attachment);
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse<object?>(1, "File upload failed: " + ex.Message);
+        }
+    }
+
+    await _context.TestExams.AddAsync(teacherTestExam);
+    await _context.SaveChangesAsync();
+
+    var afteraddtestExam = await _context.TestExams.FindAsync(teacherTestExam.Id);
+
+    if (request.IsAttachmentRequired)
+    {
+        var fileFormat = new FileFormat
+        {
+            TestExamId = teacherTestExam.Id,
+            IsDoc = request.IsDoc,
+            IsPowerpoint = request.IsPowerpoint,
+            IsXxls = request.IsXxls,
+            IsJpeg = request.IsJpeg,
+            Is10 = request.Is10,
+            Is20 = request.Is20,
+            Is30 = request.Is30,
+            Is40 = request.Is40,
+        };
+
+        await _context.FileFormats.AddAsync(fileFormat);
+        await _context.SaveChangesAsync();
+    }
+
+    var fileProcessor = new FileProcessor(_httpClientFactory);
+    string fileUrl = afteraddtestExam.Attachment;
+
+    List<Question> questions = await fileProcessor.ReadQuestionsFromFileAsync(fileUrl);
+
+    foreach (var question in questions)
+    {
+        var newQuestion = new Question
+        {
+            QuestionText = question.QuestionText,
+            QuestionType = question.QuestionType,
+            Mark = question.Mark,
+            TestExamId = teacherTestExam.Id
+        };
+
+        await _context.Questions.AddAsync(newQuestion);
+        await _context.SaveChangesAsync();
+
+        foreach (var answer in question.Answers)
+        {
+            var newAnswer = new Answer
+            {
+                Answer1 = answer.Answer1,
+                IsCorrect = answer.IsCorrect,
+                QuestionId = newQuestion.Id,
+                CreateAt = DateTime.Now,
+                UpdateAt = DateTime.Now
+            };
+
+            await _context.Answers.AddAsync(newAnswer);
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
+    var testExamClasses = classIds.Select(classId => new ClassTestExam
+    {
+        TestExamId = teacherTestExam.Id,
+        ClassId = classId
+    }).ToList();
+
+    await _context.ClassTestExams.AddRangeAsync(testExamClasses);
+    await _context.SaveChangesAsync();
+
+    var responseData = new
+    {
+        SubjectName = _context.Subjects
+            .Where(s => s.Id == teacherTestExam.SubjectId)
+            .Select(s => s.SubjectName)
+            .FirstOrDefault(),
+        TestExamId = teacherTestExam.Id,
+        DepartmentId = teacherTestExam.DepartmentId,
+        Topic = teacherTestExam.Topic,
+        Form = teacherTestExam.Form,
+        Duration = teacherTestExam.Duration,
+        TestExamTypeId = teacherTestExam.TestExamTypeId,
+        StartDate = teacherTestExam.StartDate,
+        EndDate = teacherTestExam.EndDate,
+        Description = teacherTestExam.Description,
+        IsAttachmentRequired = teacherTestExam.IsAttachmentRequired,
+        ClassIds = testExamClasses.Select(tc => tc.ClassId).ToList()
+    };
+
+    return new ApiResponse<object?>(0, "Tạo lịch kiểm tra thành công", responseData);
+}
+
+
+    public async Task<ApiResponse<object?>> UpdateTeacherTestExamAsync(int userId, TeacherTestExamRequest request)
+    {
+        
         bool isAssigned = await _context.TeachingAssignments
             .AnyAsync(ta => ta.UserId == userId && ta.SubjectId == request.SubjectId);
 
@@ -254,197 +689,14 @@ public class TeacherTestExamService : ITeacherTestExamService
 
         
         
-        // Tìm danh sách lớp dựa vào DepartmentId hoặc classIds
-        List<int> classIds = new List<int>();
-
-        if (request.SelectALL)
-        {
-            classIds = await _context.Classes
-                .Where(c => c.DepartmentId == request.DepartmentId)
-                .Select(c => c.Id)
-                .ToListAsync();
-        }
-        else if (request.classIds != null && request.classIds.Any())
-        {
-            classIds = request.classIds;
-        }
-
-
-        classIds = await _context.ClassSubjects
-            .Where(cs => cs.SubjectId == request.SubjectId && classIds.Contains(cs.ClassId.Value))
-            .Select(cs => cs.ClassId.Value)
-            .Distinct()
-            .ToListAsync();
-
-
-        if (!classIds.Any())
-        {
-            return new ApiResponse<object?>(1, "Không có lớp nào trong danh sách được dạy môn học này.", null);
-        }
-
-
-        // Convert Duration string thành kiểu TimeOnly nếu có
-        TimeOnly? duration = TimeOnly.TryParse(request.Duration, out var parsedDuration) ? parsedDuration : null;
-
-        var existingTestExam = await _context.TestExams
-            .FirstOrDefaultAsync(te => te.StartDate == request.StartDate);
-
-
-        if (existingTestExam != null)
-        {
-            return new ApiResponse<object?>(1, "Không được trùng lịch kiểm tra ", null);
-        }
-
-        if (request.EndDate <= request.StartDate)
-        {
-            return new ApiResponse<object?>(1, "Ngày kết thúc phải lớn hơn ngày bắt đầu.", null);
-        }
-
-
-        // Tạo đối tượng TestExam
-        var teacherTestExam = new TestExam
-        {
-            SubjectId = request.SubjectId,
-            DepartmentId = request.DepartmentId,
-            Topic = request.Topic,
-            Form = request.Form,
-            Duration = duration,
-            TestExamTypeId = request.TestExamType,
-            StartDate = request.StartDate.ToOffset(TimeSpan.FromHours(7)),
-            EndDate = request.EndDate.ToOffset(TimeSpan.FromHours(7)),
-            Description = request.Description,
-            IsAttachmentRequired = request.IsAttachmentRequired,
-            ScheduleStatusId = 2,
-            UserId = userId,
-        };
-
-
-        // Xử lý file đính kèm nếu có
-        if (!string.IsNullOrEmpty(request.Attachment))
-        {
-            try
-            {
-                var cloudinaryService = _serviceProvider.GetService<ICloudinaryService>();
-                if (cloudinaryService == null)
-                {
-                    throw new Exception("Cloudinary service not available");
-                }
-
-                teacherTestExam.Attachment = await cloudinaryService.UploadDocxAsync(request.Attachment);
-            }
-            catch (Exception ex)
-            {
-                // Xử lý lỗi khi upload file
-                return new ApiResponse<object?>(1, "File upload failed: " + ex.Message);
-            }
-        }
-
-        // Lưu TestExam vào cơ sở dữ liệu
-        await _context.TestExams.AddAsync(teacherTestExam);
-        await _context.SaveChangesAsync(); // Lưu dữ liệu TestExam
-
-
-        var afteraddtestExam = await _context.TestExams.FindAsync(teacherTestExam.Id);
-        if (request.IsAttachmentRequired)
-        {
-            var fileFormat = new FileFormat
-            {
-                TestExamId = teacherTestExam.Id,
-                IsDoc = request.IsDoc,
-                IsPowerpoint = request.IsPowerpoint,
-                IsXxls = request.IsXxls,
-                IsJpeg = request.IsJpeg,
-                Is10 = request.Is10,
-                Is20 = request.Is20,
-                Is30 = request.Is30,
-                Is40 = request.Is40,
-            };
-
-            await _context.FileFormats.AddAsync(fileFormat);
-            await _context.SaveChangesAsync();
-        }
-
-        var fileProcessor = new FileProcessor(_httpClientFactory);
-        string fileUrl = afteraddtestExam.Attachment; // Lấy URL file từ TestExam
-
-        // Đọc danh sách câu hỏi từ file
-        List<Question> questions = await fileProcessor.ReadQuestionsFromFileAsync(fileUrl);
-      
-
-        // Lưu câu hỏi và đáp án vào cơ sở dữ liệu
-
-        foreach (var question in questions)
-        {
-            var newQuestion = new Question
-            {
-                QuestionText = question.QuestionText,
-                QuestionType = question.QuestionType,
-                Mark = question.Mark,
-                TestExamId = teacherTestExam.Id // Liên kết với TestExam
-            };
-
-            await _context.Questions.AddAsync(newQuestion);
-            await _context.SaveChangesAsync(); // Lưu câu hỏi
-
-            foreach (var answer in question.Answers)
-            {
-                var newAnswer = new Answer
-                {
-                    Answer1 = answer.Answer1,
-                    IsCorrect = answer.IsCorrect,
-                    QuestionId = newQuestion.Id, // Liên kết với câu hỏi
-                    CreateAt = DateTime.Now,
-                    UpdateAt = DateTime.Now
-                };
-
-                await _context.Answers.AddAsync(newAnswer);
-            }
-
-            await _context.SaveChangesAsync();
-        }
-
-        // Thêm quan hệ vào bảng trung gian ClassTestExam
-        var testExamClasses = classIds.Select(classId => new ClassTestExam
-        {
-            TestExamId = teacherTestExam.Id,
-            ClassId = classId
-        }).ToList();
-
-        await _context.ClassTestExams.AddRangeAsync(testExamClasses);
-        await _context.SaveChangesAsync();
-
-        // Tạo phản hồi với thông tin đã lưu
-        var responseData = new
-        {
-            SubjectName = _context.Subjects
-                .Where(s => s.Id == teacherTestExam.SubjectId)
-                .Select(s => s.SubjectName)
-                .FirstOrDefault(),
-            TestExamId = teacherTestExam.Id,
-            DepartmentId = teacherTestExam.DepartmentId,
-            Topic = teacherTestExam.Topic,
-            Form = teacherTestExam.Form,
-            Duration = teacherTestExam.Duration,
-            TestExamTypeId = teacherTestExam.TestExamTypeId,
-            StartDate = teacherTestExam.StartDate,
-            EndDate = teacherTestExam.EndDate,
-            Description = teacherTestExam.Description,
-            IsAttachmentRequired = teacherTestExam.IsAttachmentRequired,
-            ClassIds = testExamClasses.Select(tc => tc.ClassId).ToList()
-        };
-
-        return new ApiResponse<object?>(0, "Tạo lịch kiểm tra thành công", responseData);
-    }
-
-
-    public async Task<ApiResponse<object?>> UpdateTeacherTestExamAsync(int userId, TeacherTestExamRequest request)
-    {
         var testExamId = request.Id;
         var teacherTestExam = await _context.TestExams.FindAsync(testExamId);
         if (teacherTestExam == null)
         {
-            return new ApiResponse<object?>(-1, "Không tìm thấy lịch thi", null);
+            return new ApiResponse<object?>(1, "Không tìm thấy lịch thi", null);
         }
+        
+        
 
         var question = await _context.Questions.Where(qs => qs.TestExamId == testExamId).ToListAsync();
         foreach (var anwer in question)
@@ -468,6 +720,18 @@ public class TeacherTestExamService : ITeacherTestExamService
         else if (request.classIds != null && request.classIds.Any())
         {
             classIds = request.classIds;
+        }
+        
+        
+        classIds = await _context.ClassSubjects
+            .Where(cs => cs.SubjectId == request.SubjectId && classIds.Contains(cs.ClassId.Value))
+            .Select(cs => cs.ClassId.Value)
+            .Distinct()
+            .ToListAsync();
+
+        if (!classIds.Any())
+        {
+            return new ApiResponse<object?>(1, "Không có lớp nào trong danh sách được dạy môn học này.", null);
         }
 
         if (request.IsAttachmentRequired)
@@ -506,6 +770,40 @@ public class TeacherTestExamService : ITeacherTestExamService
 
             await _context.SaveChangesAsync();
         }
+        var semester = await _context.Semesters
+            .FirstOrDefaultAsync(s => s.StartDate <= request.StartDate && s.EndDate >= request.EndDate);
+
+        var testExamType = await _context.TestExamTypes
+            .FirstOrDefaultAsync(t => t.Id == request.TestExamType);
+
+        if (testExamType == null)
+        {
+            return new ApiResponse<object?>(1, "Loại kiểm tra không hợp lệ.", null);
+        }
+
+        // Kiểm tra số lượng bài kiểm tra theo từng lớp
+        foreach (var classId in classIds)
+        {
+            var existingExamsForClass = await _context.TestExams
+                .Where(te => te.StartDate >= request.StartDate && te.EndDate <= request.EndDate)
+                .Join(_context.ClassTestExams, te => te.Id, cte => cte.TestExamId, (te, cte) => cte.ClassId)
+                .CountAsync(c => c == classId);
+
+            // Lấy số lượng bài kiểm tra tối thiểu theo loại kiểm tra và học kỳ
+            int? minimumEntries = semester.Name.Equals("Học kỳ I") 
+                ? testExamType.MinimunEntriesSem1 
+                : testExamType.MinimunEntriesSem2;
+            if (!minimumEntries.HasValue)
+            {
+                return new ApiResponse<object?>(1, "Không tìm thấy số lượng bài kiểm tra tối thiểu cho loại kiểm tra này.", null);
+            }
+            if (existingExamsForClass >= minimumEntries)
+            {
+                return new ApiResponse<object?>(1, $"Lớp {classId} đã có đủ số lượng bài kiểm tra ({existingExamsForClass}/{minimumEntries}) trong học kỳ này.", null);
+            }
+        }
+        
+        
 
         // Chuyển đổi thời gian
         TimeOnly? duration = TimeOnly.TryParse(request.Duration, out var parsedDuration) ? parsedDuration : null;
@@ -522,6 +820,7 @@ public class TeacherTestExamService : ITeacherTestExamService
         teacherTestExam.Description = request.Description;
         teacherTestExam.UserId = userId;
         teacherTestExam.IsAttachmentRequired = request.IsAttachmentRequired;
+        teacherTestExam.SemestersId = semester.Id;
 
 
         if (!string.IsNullOrEmpty(request.Attachment))
@@ -543,6 +842,9 @@ public class TeacherTestExamService : ITeacherTestExamService
                 return new ApiResponse<object?>(1, "File upload failed: " + ex.Message);
             }
         }
+        
+        
+        
 
         _context.TestExams.Update(teacherTestExam);
         await _context.SaveChangesAsync();

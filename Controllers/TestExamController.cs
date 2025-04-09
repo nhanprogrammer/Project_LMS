@@ -20,13 +20,13 @@ namespace Project_LMS.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllDisciplinesAsync(string? keyword, int? pageNumber, int? pageSize,
-            string? sortDirection)
+        public async Task<IActionResult> GetAllDisciplinesAsync(int? pageNumber, int? pageSize, string? sortDirection,  int? departmentId,
+            int? classId ,int? academicYearId, string? keyword)
         {
             try
             {
                 var response =
-                    await _testExamService.GetAllTestExamsAsync(keyword, pageNumber, pageSize, sortDirection);
+                    await _testExamService.GetAllTestExamsAsync(keyword, pageNumber, pageSize, sortDirection, departmentId, classId,academicYearId);
 
                 if (response.Status == 1)
                 {

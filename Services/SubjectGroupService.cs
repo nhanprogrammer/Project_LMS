@@ -149,7 +149,20 @@ public class SubjectGroupService : ISubjectGroupService
         }
         var subjectGroup = _mapper.Map<SubjectGroup>(createSubjectGroupRequest);
 
-        
+        var existingSubjectIds = await _context.SubjectGroupSubjects
+            .Where(sgs => createSubjectGroupRequest.SubjectIds.Contains(sgs.SubjectId))
+            .Select(sgs => sgs.SubjectId)
+            .ToListAsync();
+
+        if (existingSubjectIds.Any())
+        {
+            return new ApiResponse<SubjectGroupResponse>(
+                1,
+                $"Các môn học đã thuộc tổ bộ môn khác: {string.Join(", ", existingSubjectIds)}",
+                null
+            );
+        }
+
         
         await _subjectGroupRepository.AddAsync(subjectGroup);
 
