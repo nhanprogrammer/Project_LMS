@@ -16,17 +16,18 @@ namespace Project_LMS.Controllers
     public class TranscriptController : ControllerBase
     {
         private readonly ITranscriptService _transcriptService;
+        private readonly IAuthService _authService;
 
 
-        public TranscriptController(ITranscriptService transcriptService)
+        public TranscriptController(ITranscriptService transcriptService, IAuthService authService)
         {
             _transcriptService = transcriptService;
-
+            _authService = authService;
         }
 
 
         [HttpGet]
-        public async Task<IActionResult> GetTranscriptAsync([FromQuery]TranscriptRequest transcriptRequest)
+        public async Task<IActionResult> GetTranscriptAsync([FromQuery] TranscriptRequest transcriptRequest)
         {
             try
             {
@@ -47,7 +48,7 @@ namespace Project_LMS.Controllers
             }
         }
         [HttpGet("exportexcel")]
-        public async Task<IActionResult> ExportExcelTranscriptAsync([FromQuery]TranscriptRequest transcriptRequest)
+        public async Task<IActionResult> ExportExcelTranscriptAsync([FromQuery] TranscriptRequest transcriptRequest)
         {
             var result = await _transcriptService.ExportExcelTranscriptAsync(transcriptRequest);
             return Ok(result);
@@ -77,6 +78,12 @@ namespace Project_LMS.Controllers
         [HttpGet("dropdownofstudent")]
         public async Task<IActionResult> GetAllDropdownOfStudent()
         {
+            var user = await _authService.GetUserAsync();
+            if (user == null)
+            {
+                return Unauthorized(new ApiResponse<object>(1, "Token không hợp lệ hoặc đã hết hạn!", null)); 
+            }
+
             var result = await _transcriptService.DropdownTranscriptStudent();
             return Ok(result);
         }
