@@ -133,7 +133,7 @@ namespace Project_LMS.Controllers
             }
         }
 
-        [Authorize(Policy = "DATA-MNG-VIEW")]
+        [Authorize("SUPER-ADMIN,ADMIN,STUDENT,TEACHER")]
         [HttpGet("user-info")]
         public async Task<IActionResult> GetUserInfo()
         {
