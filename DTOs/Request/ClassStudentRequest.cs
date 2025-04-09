@@ -18,14 +18,13 @@ namespace Project_LMS.DTOs.Request
 
         [Required(ErrorMessage = "FileName không được bỏ trống.")]
         public string FileName { get; set; }
+
         [Required(ErrorMessage = "ChangeDate không được bỏ trống.")]
         public DateTime ChangeDate { get; set; }
 
-        [JsonIgnore]
-        public int? UserCreate { get; set; }
+        [JsonIgnore] public int? UserCreate { get; set; }
 
-        [JsonIgnore]
-        public int? UserUpdate { get; set; }
+        [JsonIgnore] public int? UserUpdate { get; set; }
     }
 
     public class ClassStudentRequestValidator : AbstractValidator<ClassStudentRequest>
@@ -43,6 +42,7 @@ namespace Project_LMS.DTOs.Request
                 {
                     context.AddFailure("ClassId", "Lớp học không tồn tại trong hệ thống.");
                 }
+
                 if (!ClassExists(cs.ClassId) && !StudentExists(cs.UserId))
                 {
                     if (!CheckClass(cs.ClassId, cs.UserId))
@@ -56,8 +56,8 @@ namespace Project_LMS.DTOs.Request
                 .Must(StudentExists)
                 .WithMessage("UserId không tồn tại trong hệ thống.");
             RuleFor(cs => cs.ChangeDate)
-    .GreaterThanOrEqualTo(DateTime.Now)
-    .WithMessage("Ngày thay đổi không được nhỏ hơn ngày hiện tại.");
+                .GreaterThanOrEqualTo(DateTime.Now)
+                .WithMessage("Ngày thay đổi không được nhỏ hơn ngày hiện tại.");
         }
 
         private bool ClassExists(int classId)
@@ -72,7 +72,8 @@ namespace Project_LMS.DTOs.Request
 
         private bool CheckClass(int classId, int studentId)
         {
-            var classStudent = _context.ClassStudents.FirstOrDefault(cs => cs.UserId == studentId && cs.IsActive == true);
+            var classStudent =
+                _context.ClassStudents.FirstOrDefault(cs => cs.UserId == studentId && cs.IsActive == true);
             //if (classStudent?.Class == null) return false;
 
             return _context.Classes.Any(c => c.Id == classId && c.AcademicYearId == classStudent.Class.AcademicYearId);

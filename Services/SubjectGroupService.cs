@@ -139,7 +139,7 @@ public class SubjectGroupService : ISubjectGroupService
     public async Task<ApiResponse<SubjectGroupResponse>> CreateSubjectGroupAsync(
         CreateSubjectGroupRequest createSubjectGroupRequest)
     {
-        var exitingSubjectGroup = await _context.SubjectGroups.FirstOrDefaultAsync(c=>c.Name==createSubjectGroupRequest.Name);
+        var exitingSubjectGroup = await _context.SubjectGroups.FirstOrDefaultAsync(c => c.Name == createSubjectGroupRequest.Name);
         if (exitingSubjectGroup != null)
         {
             return new ApiResponse<SubjectGroupResponse>
@@ -164,6 +164,8 @@ public class SubjectGroupService : ISubjectGroupService
         }
 
         
+
+
         await _subjectGroupRepository.AddAsync(subjectGroup);
 
         var createdSubjectGroup = await _subjectGroupRepository

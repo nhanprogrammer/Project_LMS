@@ -16,12 +16,12 @@ public class GradeEntryService : IGradeEntryService
         _logger = logger;
     }
 
-    public async Task<ApiResponse<GradingDataResponse>> GetGradingData(int testId, int teacherId)
+    public async Task<ApiResponse<GradingDataResponse>> GetGradingData(int testId, int teacherId, int? classId = null)
     {
         try
         {
-            _logger.LogInformation($"Lấy dữ liệu chấm điểm cho testId: {testId}, teacherId: {teacherId}");
-            var gradingData = await _gradeEntryRepository.GetGradingDataAsync(testId, teacherId);
+            _logger.LogInformation($"Lấy dữ liệu chấm điểm cho testId: {testId}, teacherId: {teacherId}, classId: {classId}");
+            var gradingData = await _gradeEntryRepository.GetGradingDataAsync(testId, teacherId, classId);
             return new ApiResponse<GradingDataResponse>(0, "Lấy dữ liệu chấm điểm thành công!", gradingData);
         }
         catch (Exception ex)
@@ -37,35 +37,54 @@ public class GradeEntryService : IGradeEntryService
             {
                 detailedMessage = "Không tìm thấy bài kiểm tra hoặc kỳ thi này trong hệ thống";
             }
-            else if (ex.Message.Contains("Bài kiểm tra không được liên kết"))
+            else if (ex.Message.Contains("Bài kiểm tra không được liên kết") || ex.Message.Contains("chưa gán cho lớp học"))
             {
                 detailedMessage = "Bài kiểm tra hoặc kỳ thi này chưa được gán cho lớp học nào";
+            }
+            else if (ex.Message.Contains("Lớp được chỉ định không liên kết"))
+            {
+                detailedMessage = "Lớp được chỉ định không liên kết với bài kiểm tra này";
             }
             else if (ex.Message.Contains("Không tìm thấy lớp học"))
             {
                 detailedMessage = "Không tìm thấy thông tin lớp học trong hệ thống";
             }
-            else if (ex.Message.Contains("Lớp này không học môn"))
+            else if (ex.Message.Contains("Lớp") && ex.Message.Contains("không được gán môn học"))
             {
                 detailedMessage = "Lớp học này không được gán môn học của bài kiểm tra hoặc kỳ thi";
             }
-            else if (ex.Message.Contains("Bạn không có quyền"))
+            else if (ex.Message.Contains("Không phải người tạo bài thi"))
             {
-                detailedMessage =
-                    "Giáo viên không có quyền chấm điểm bài kiểm tra này vì không phải Admin, không phải giáo viên chủ nhiệm của lớp, và không được phân công dạy môn học này cho lớp vào thời điểm bài kiểm tra";
+                detailedMessage = "Giáo viên không có quyền chấm điểm bài kiểm tra này vì không phải người tạo bài thi";
+            }
+            else if (ex.Message.Contains("Không được phân công giảng dạy"))
+            {
+                detailedMessage = "Giáo viên không có quyền chấm điểm bài kiểm tra này vì không được phân công giảng dạy môn học này cho lớp";
             }
             else if (ex.Message.Contains("chưa được phê duyệt"))
             {
                 detailedMessage = "Bài kiểm tra hoặc kỳ thi này chưa được phê duyệt, không thể chấm điểm";
             }
-            else if (ex.Message.Contains("chưa hoàn thành hoặc chưa kết thúc"))
+            else if (ex.Message.Contains("Bài kiểm tra hoặc kỳ thi này chưa hoàn thành hoặc chưa kết thúc"))
             {
-                detailedMessage =
-                    "Bài kiểm tra hoặc kỳ thi này chưa hoàn thành hoặc chưa kết thúc, không thể chấm điểm";
+                detailedMessage = "Bài kiểm tra hoặc kỳ thi này chưa kết thúc, không thể chấm điểm";
+            }
+            else if (ex.Message.Contains("Bài kiểm tra hoặc kỳ thi này vẫn đang diễn ra") || ex.Message.Contains("chưa kết thúc"))
+            {
+                detailedMessage = "Bài kiểm tra hoặc kỳ thi này chưa kết thúc, không thể chấm điểm";
             }
             else if (ex.Message.Contains("Chỉ Admin hoặc giáo viên chủ nhiệm"))
             {
                 detailedMessage = "Chỉ Admin hoặc giáo viên chủ nhiệm của lớp mới có thể chấm điểm cho kỳ thi này";
+            }
+            else if (ex.Message.Contains("Không có quyền") || ex.Message.Contains("không có quyền"))
+            {
+                detailedMessage = "Giáo viên không có quyền chấm điểm bài thi này";
+            }
+            else if (ex.InnerException != null)
+            {
+                _logger.LogError(ex.InnerException, "Inner Exception: {Message}", ex.InnerException.Message);
+                detailedMessage = $"Lỗi hệ thống: {ex.InnerException.Message}";
             }
             else
             {
@@ -125,27 +144,35 @@ public class GradeEntryService : IGradeEntryService
             }
             else if (ex.Message.Contains("Giáo viên không có quyền chấm điểm"))
             {
-                detailedMessage =
-                    "Giáo viên không có quyền chấm điểm bài kiểm tra này vì không phải Admin, không phải giáo viên chủ nhiệm của lớp, và không được phân công dạy môn học này cho lớp vào thời điểm bài kiểm tra";
+                detailedMessage = "Giáo viên không có quyền chấm điểm bài thi này";
+            }
+            else if (ex.Message.Contains("Không phải người tạo bài thi"))
+            {
+                detailedMessage = "Giáo viên không có quyền chấm điểm bài thi này vì không phải người tạo bài thi";
+            }
+            else if (ex.Message.Contains("Không được phân công giảng dạy"))
+            {
+                detailedMessage = "Giáo viên không có quyền chấm điểm bài thi này vì không được phân công giảng dạy môn học này cho lớp";
             }
             else if (ex.Message.Contains("Bài kiểm tra hoặc kỳ thi này chưa hoàn thành hoặc chưa kết thúc"))
             {
-                detailedMessage =
-                    "Bài kiểm tra hoặc kỳ thi này chưa hoàn thành hoặc chưa kết thúc, không thể chấm điểm";
+                detailedMessage = "Bài kiểm tra hoặc kỳ thi này chưa kết thúc, không thể chấm điểm";
             }
-            else if (ex.Message.Contains("Bài kiểm tra hoặc kỳ thi này vẫn đang diễn ra"))
+            else if (ex.Message.Contains("Bài kiểm tra hoặc kỳ thi này vẫn đang diễn ra") || ex.Message.Contains("chưa kết thúc"))
             {
-                detailedMessage = "Bài kiểm tra hoặc kỳ thi này vẫn đang diễn ra, chưa thể chấm điểm";
+                detailedMessage = "Bài kiểm tra hoặc kỳ thi này chưa kết thúc, không thể chấm điểm";
             }
             else if (ex.Message.Contains("Một hoặc nhiều học sinh trong danh sách điểm không thuộc lớp học"))
             {
-                detailedMessage =
-                    "Một hoặc nhiều học sinh trong danh sách điểm không thuộc lớp học này hoặc đã bị xóa khỏi hệ thống";
+                detailedMessage = "Một hoặc nhiều học sinh trong danh sách điểm không thuộc lớp học này hoặc đã bị xóa khỏi hệ thống";
             }
             else if (ex.Message.Contains("Điểm số của một hoặc nhiều học sinh không hợp lệ"))
             {
-                detailedMessage =
-                    "Điểm số của một hoặc nhiều học sinh không hợp lệ, điểm phải nằm trong khoảng từ 0 đến 10";
+                detailedMessage = "Điểm số của một hoặc nhiều học sinh không hợp lệ, điểm phải nằm trong khoảng từ 0 đến 10";
+            }
+            else if (ex.Message.Contains("đã được chấm điểm"))
+            {
+                detailedMessage = "Bài kiểm tra hoặc kỳ thi này đã được chấm điểm, không thể chấm lại!";
             }
 
             return new ApiResponse<bool>(1, detailedMessage, false);

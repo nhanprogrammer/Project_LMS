@@ -36,7 +36,6 @@
 
     public class TeachingAssignmentWrapperResponse
     {
-        public List<UserResponseTeachingAssignment>? Teachers { get; set; }
         public PaginatedResponse<TeachingAssignmentResponseCreateUpdate>? TeachingAssignments { get; set; }
     }
 

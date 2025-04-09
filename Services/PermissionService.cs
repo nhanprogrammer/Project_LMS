@@ -462,6 +462,25 @@ namespace Project_LMS.Services
             {
                 throw new NotFoundException("Người dùng không tồn tại.");
             }
+            
+
+            if (user.Role.Name.ToUpper() == "TEACHER")
+            {
+                var teachingAssignments = await _context.TeachingAssignments
+                    .Where(a => a.UserId == userId && a.IsDelete == false)
+                    .ToListAsync();
+
+                bool isCurrentlyTeaching = teachingAssignments.Any(a =>
+                    a.StartDate <= DateTime.Now && a.EndDate >= DateTime.Now
+                );
+
+                if (isCurrentlyTeaching)
+                {
+                    throw new InvalidOperationException("Người dùng đang trong thời gian giảng dạy, không thể thay đổi quyền.");
+                }
+            }
+
+
 
             if (disable)
             {
@@ -481,13 +500,13 @@ namespace Project_LMS.Services
             }
             else
             {
-                    // ✅ Chỉ lưu `ReRoleId` nếu chưa có (tránh bị ghi đè sai)
-                    if (!user.ReRoleId.HasValue)
-                    {
-                        user.ReRoleId = user.RoleId; // Lưu lại vai trò gốc (TEACHER/STUDENT)
-                    }
-                    user.RoleId = 5; // Cấp quyền ADMIN
-           
+                // ✅ Chỉ lưu `ReRoleId` nếu chưa có (tránh bị ghi đè sai)
+                if (!user.ReRoleId.HasValue)
+                {
+                    user.ReRoleId = user.RoleId; // Lưu lại vai trò gốc (TEACHER/STUDENT)
+                }
+                user.RoleId = 5; // Cấp quyền ADMIN
+
 
                 // Cập nhật nhóm quyền (không xóa khi disable)
                 user.GroupModulePermissonId = groupId;

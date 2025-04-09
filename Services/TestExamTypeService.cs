@@ -220,5 +220,18 @@ namespace Project_LMS.Services
             var response = _mapper.Map<TestExamTypeResponse>(testExamType);
             return new ApiResponse<TestExamTypeResponse>(0, "Lấy loại điểm thành công!", response);
         }
+        public async Task<List<DropdownTestExamTypeResponse>> GetDropdown()
+{
+    var testExamTypes = await _context.TestExamTypes
+        .Where(t => !t.IsDelete.HasValue || !t.IsDelete.Value) 
+        .Select(t => new DropdownTestExamTypeResponse
+        {
+            Id = t.Id,
+            Name = t.PointTypeName ?? string.Empty
+        })
+        .ToListAsync();
+
+    return testExamTypes;
+}
     }
 }

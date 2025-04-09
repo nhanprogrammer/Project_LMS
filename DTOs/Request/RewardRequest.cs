@@ -1,4 +1,4 @@
-﻿using System;
+﻿ using System;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using FluentValidation;
@@ -14,7 +14,7 @@ namespace Project_LMS.DTOs.Request
         public int? SemesterId { get; set; }
 
         //public int? RewardCode { get; set; }
-        public string? RewardName { get; set; } = null!;
+        public string? FileName { get; set; } = null!;
 
         public string RewardContent { get; set; } = null!;
         [JsonIgnore]
@@ -40,7 +40,8 @@ namespace Project_LMS.DTOs.Request
 
             RuleFor(x => x.UserCode)
                 .NotNull().WithMessage("Mã học viên không được để trống.")
-                .Must(UserExists).WithMessage("Mã học viên không tồn tại trong hệ thống.");
+                .Must(UserExists).WithMessage("Mã học viên không tồn tại trong hệ thống.")
+                .Must(StatusExists).WithMessage("Học viên không thuộc trạng thái đang đi học không được khen thưởng.");
 
             RuleFor(x => x.SemesterId)
                 .NotNull().WithMessage("Mã học kỳ không được để trống.")
@@ -61,6 +62,15 @@ namespace Project_LMS.DTOs.Request
 
             var user =  _context.Users
                 .FirstOrDefault(u => u.UserCode == userCode && u.IsDelete ==false);
+
+            return user != null; 
+        }     
+        private bool StatusExists(string? userCode)
+        {
+            if (userCode == null) return false; // Kiểm tra ID hợp lệ
+
+            var user =  _context.Users
+                .FirstOrDefault(u => u.UserCode == userCode && u.IsDelete ==false && u.StudentStatusId ==1);
 
             return user != null; 
         } 

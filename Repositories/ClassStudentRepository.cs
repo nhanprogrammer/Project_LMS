@@ -232,6 +232,18 @@ namespace Project_LMS.Repositories
                 .FirstOrDefaultAsync();
         }
 
+        public async Task<List<ClassStudent>> FindAllStudentByIdIsActive(int studentId)
+        {
+            return await _context.ClassStudents
+                .Include(cs => cs.User)
+                .Include(cs => cs.Class)
+                .Where(cs => cs.UserId == studentId
+                    && cs.IsActive == true
+                    && cs.IsDelete == false
+                    && cs.User.IsDelete == false
+            )
+                .ToListAsync(); // Thay đổi FirstOrDefaultAsync thành ToListAsync
+        }
         public async Task<List<ClassStudent>> FindStudentByStudentAcademic(int studentId, int academicId)
         {
             return await _context.ClassStudents
@@ -360,6 +372,7 @@ namespace Project_LMS.Repositories
             return await _context.ClassStudents
             .Include(cs => cs.Class)
             .Include(cs => cs.Class != null ? cs.Class.AcademicYear : null)
+            .Include(cs => cs.Class != null ? cs.Class.Department : null)
             .Where(cs => cs.UserId == userId && cs.IsDelete == false)
             .ToListAsync(); ;
         }
@@ -406,6 +419,14 @@ namespace Project_LMS.Repositories
                 .FirstOrDefaultAsync(cs => cs.UserId == userId
                     && cs.ClassId == classId
                     && cs.IsDelete == false && cs.IsActive == true);
+        }
+        public async Task<IEnumerable<ClassStudent>> FindStudentByStudentDepartment(int studentId, int departmentId)
+        {
+            return await _context.ClassStudents
+                .Include(cs => cs.Class)
+                .Where(cs => cs.UserId == studentId && cs.Class.DepartmentId == departmentId && cs.IsActive == true
+                 && cs.IsDelete == false && cs.Class.IsDelete == false && cs.User.IsDelete == false && cs.Class.Department.IsDelete == false)
+                .ToListAsync();
         }
     }
 }

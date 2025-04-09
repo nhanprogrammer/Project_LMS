@@ -10,5 +10,6 @@ namespace Project_LMS.Interfaces.Repositories
         Task AddAsync(SchoolTransfer schoolTransfer);
         Task UpdateAsync(SchoolTransfer schoolTransfer);
         Task DeleteAsync(int id);
+        Task<SchoolTransfer> GetByStudentId(int studentId);
     }
 }

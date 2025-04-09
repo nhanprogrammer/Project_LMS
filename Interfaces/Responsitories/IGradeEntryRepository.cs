@@ -5,7 +5,6 @@ namespace Project_LMS.Interfaces.Responsitories;
 
 public interface IGradeEntryRepository
 {
-
-    Task<GradingDataResponse> GetGradingDataAsync(int testId, int teacherId);
+    Task<GradingDataResponse> GetGradingDataAsync(int testId, int teacherId, int? classId = null);
     Task<bool> SaveGradesAsync(SaveGradesRequest request, int teacherId);
 }

@@ -19,6 +19,7 @@ public class CreateAcademicHoldRequest
     [Required(ErrorMessage = "HoldDate là bắt buộc.")]
     public DateTimeOffset HoldDate { get; set; }
     public string? Reason { get; set; }
+    
     public string? FileName { get; set; }
     //public DateTimeOffset CreateAt { get; set; }
     [JsonIgnore]

@@ -30,11 +30,14 @@ namespace Project_LMS.Services
                 if (user == null)
                     return new ApiResponse<PaginatedResponse<SubjectResponse>>(1, "Không có quyền truy cập", null);
 
+                // Truy vấn cơ sở dữ liệu
                 var query = _context.Subjects
                     .Include(s => s.SubjectType)
-                    .Include(s => s.SubjectGroupSubjects) 
+                    .Include(s => s.SubjectGroupSubjects)
+                    .ThenInclude(sgs => sgs.SubjectGroup)
                     .Where(s => !s.IsDelete.HasValue || !s.IsDelete.Value);
 
+                // Lọc theo từ khóa nếu có
                 if (!string.IsNullOrWhiteSpace(keyword))
                 {
                     keyword = keyword.Trim().ToLower();
@@ -44,8 +47,10 @@ namespace Project_LMS.Services
                     );
                 }
 
+                // Sắp xếp theo ID giảm dần
                 query = query.OrderByDescending(s => s.Id);
 
+                // Tính toán phân trang
                 var totalItems = await query.CountAsync();
                 var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
 
@@ -54,8 +59,19 @@ namespace Project_LMS.Services
                     .Take(pageSize)
                     .ToListAsync();
 
-                var subjectResponses = _mapper.Map<List<SubjectResponse>>(subjects);
+                // Ánh xạ dữ liệu sang SubjectResponse
+                var subjectResponses = subjects.Select(subject =>
+                {
+                    var response = _mapper.Map<SubjectResponse>(subject);
 
+                    // Lấy SubjectGroupId từ SubjectGroupSubjects nếu tồn tại
+                    response.SubjectGroupId = subject.SubjectGroupSubjects
+                        .FirstOrDefault(sgs => !sgs.IsDelete.HasValue || !sgs.IsDelete.Value)?.SubjectGroupId;
+
+                    return response;
+                }).ToList();
+
+                // Tạo phản hồi phân trang
                 var paginatedResponse = new PaginatedResponse<SubjectResponse>
                 {
                     Items = subjectResponses,
@@ -85,12 +101,21 @@ namespace Project_LMS.Services
 
                 var subject = await _context.Subjects
                     .Include(s => s.SubjectType)
+                    .Include(s => s.SubjectGroupSubjects)
+                    .ThenInclude(sgs => sgs.SubjectGroup)
                     .FirstOrDefaultAsync(s => s.Id == id && (!s.IsDelete.HasValue || !s.IsDelete.Value));
 
                 if (subject == null)
                     return new ApiResponse<SubjectResponse>(1, "Không tìm thấy môn học", null);
 
+                // Lấy subjectGroupId từ SubjectGroupSubjects nếu tồn tại
+                var subjectGroupId = subject.SubjectGroupSubjects
+                    .FirstOrDefault(sgs => !sgs.IsDelete.HasValue || !sgs.IsDelete.Value)?.SubjectGroupId;
+
+                // Ánh xạ dữ liệu sang SubjectResponse
                 var response = _mapper.Map<SubjectResponse>(subject);
+                response.SubjectGroupId = subjectGroupId; // Gán subjectGroupId vào response
+
                 return new ApiResponse<SubjectResponse>(0, "Lấy thông tin môn học thành công", response);
             }
             catch (Exception ex)
@@ -98,7 +123,6 @@ namespace Project_LMS.Services
                 return new ApiResponse<SubjectResponse>(1, $"Lỗi khi lấy thông tin môn học: {ex.Message}", null);
             }
         }
-
         public async Task<ApiResponse<SubjectResponse>> CreateSubjectAsync(SubjectRequest request)
         {
             try
@@ -425,6 +449,37 @@ namespace Project_LMS.Services
                     Name = st.Name ?? string.Empty
                 })
                 .ToListAsync();
+        }
+        public async Task<List<SubjectDropdownResponse>> GetSubjectDropdownBySubjectGroupIdAsync(int subjectGroupId)
+        {
+            if (subjectGroupId <= 0)
+            {
+                return new List<SubjectDropdownResponse>();
+            }
+
+            var subjectGroupExists = await _context.SubjectGroups
+                .AnyAsync(sg => sg.Id == subjectGroupId &&
+                              (sg.IsDelete == null || sg.IsDelete == false));
+
+            if (!subjectGroupExists)
+            {
+                return new List<SubjectDropdownResponse>();
+            }
+
+            var subjects = await _context.SubjectGroupSubjects
+                .Where(sgs => sgs.SubjectGroupId == subjectGroupId &&
+                              (sgs.IsDelete == null || sgs.IsDelete == false) &&
+                              sgs.Subject != null &&
+                              (sgs.Subject.IsDelete == null || sgs.Subject.IsDelete == false))
+                .Select(sgs => new SubjectDropdownResponse
+                {
+                    Id = sgs.Subject.Id,
+                    Name = sgs.Subject.SubjectName ?? string.Empty
+                })
+                .Distinct()
+                .ToListAsync();
+
+            return subjects;
         }
 
     }

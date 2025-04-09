@@ -10,7 +10,7 @@ using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers
 {
-    [Authorize(Policy = "DATA-MNG-VIEW")]
+
     [Route("api/[controller]")]
     [ApiController]
     public class TestExamTypeController : ControllerBase
@@ -23,7 +23,7 @@ namespace Project_LMS.Controllers
             _service = service;
             _authService = authService;
         }
-        
+
         [HttpGet]
         public Task<ApiResponse<PaginatedResponse<TestExamTypeResponse>>> GetAll(
             [FromQuery, Range(1, int.MaxValue)] int pageNumber = 1,
@@ -33,6 +33,7 @@ namespace Project_LMS.Controllers
             return _service.GetAll(pageNumber, pageSize, keyword);
         }
 
+        [Authorize(Policy = "DATA-MNG-VIEW")]
         [HttpGet("coefficients")]
         public async Task<ActionResult<ApiResponse<List<int>>>> GetCoefficients()
         {
@@ -129,6 +130,19 @@ namespace Project_LMS.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new ApiResponse<string>(1, $"Đã xảy ra lỗi khi lấy loại điểm: {ex.Message}", null));
+            }
+        }
+        [HttpGet("get-all-test-exam-type")]
+        public async Task<ActionResult<ApiResponse<List<DropdownTestExamTypeResponse>>>> GetDropdown()
+        {
+            try
+            {
+                var response = await _service.GetDropdown();
+                return Ok(new ApiResponse<List<DropdownTestExamTypeResponse>>(0, "Lấy danh sách TestExamType thành công!", response));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, $"Đã xảy ra lỗi khi lấy danh sách TestExamType: {ex.Message}", null));
             }
         }
     }

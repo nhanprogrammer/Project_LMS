@@ -22,239 +22,264 @@ public class GradeEntryRepository : IGradeEntryRepository
         _logger = logger;
     }
 
-    public async Task<GradingDataResponse> GetGradingDataAsync(int testId, int teacherId)
+    public async Task<GradingDataResponse> GetGradingDataAsync(int testId, int teacherId, int? classId = null)
     {
+        TestExam test = null;
         try
         {
-            // Lấy thông tin giáo viên
-            var teacher = await _context.Users.FindAsync(teacherId);
-            if (teacher == null)
-            {
-                throw new Exception("Không tìm thấy giáo viên!");
-            }
+            _logger.LogInformation(
+                $"Getting grading data for TestId={testId}, TeacherId={teacherId}, ClassId={classId}");
 
-            // Lấy thông tin bài kiểm tra hoặc lịch thi
-            var test = await _context.TestExams
-                .Include(t => t.Subject)
-                .FirstOrDefaultAsync(t => t.Id == testId && t.IsDelete == false);
-            if (test == null)
-            {
-                throw new Exception("Không tìm thấy bài kiểm tra hoặc lịch thi!");
-            }
+            var teacher = await ValidateTeacherAsync(teacherId);
+            test = await GetTestExamAsync(testId);
 
-            // Kiểm tra ClassId
-            if (!test.ClassId.HasValue)
-            {
-                throw new Exception("Bài kiểm tra không được liên kết với lớp học nào!");
-            }
+            var classTestExam = await GetClassTestExamsAsync(testId);
+            int selectedClassId = await GetSelectedClassIdAsync(classId, classTestExam, testId);
 
-            int classId = test.ClassId.Value;
+            var classInfo = await ValidateClassAsync(selectedClassId);
+            await ValidateClassSubjectAsync(selectedClassId, test.SubjectId);
 
-            // Kiểm tra quyền truy cập
-            var classInfo = await _context.Classes
-                .FirstOrDefaultAsync(c => c.Id == classId && c.IsDelete == false);
-            if (classInfo == null)
-            {
-                throw new Exception("Không tìm thấy lớp học!");
-            }
+            await ValidateAccessAndTestStatusAsync(teacherId, testId, test);
 
-            // Kiểm tra xem lớp có học môn của bài kiểm tra/lịch thi không
-            var classSubject = await _context.ClassSubjects
-                .FirstOrDefaultAsync(cs =>
-                    cs.ClassId == classId && cs.SubjectId == test.SubjectId && cs.IsDelete == false);
-            if (classSubject == null)
-            {
-                throw new Exception("Lớp này không học môn của bài kiểm tra/lịch thi!");
-            }
+            var studentGrades = await GetStudentGradesAsync(selectedClassId, test, classInfo);
+            var duration = GetTestDuration(test, testId);
+            var proposalContent = await ExtractProposalContentFromFileAsync(test.Attachment);
 
-            // Kiểm tra quyền truy cập
-            bool hasAccess = false;
-            if (teacher.RoleId == 1) // Admin
-            {
-                hasAccess = true;
-            }
-            else if (classInfo.UserId == teacherId) // Giáo viên chủ nhiệm
-            {
-                hasAccess = true;
-            }
-            else
-            {
-                // Kiểm tra phân công giảng dạy tại thời điểm bài kiểm tra
-                var teachingAssignment = await _context.TeachingAssignments
-                    .FirstOrDefaultAsync(ta =>
-                        ta.UserId == teacherId && ta.ClassId == classId && ta.SubjectId == test.SubjectId &&
-                        ta.IsDelete == false);
-                if (teachingAssignment != null &&
-                    teachingAssignment.StartDate <= test.StartDate &&
-                    teachingAssignment.EndDate >= test.StartDate)
-                {
-                    hasAccess = true;
-                }
-            }
-
-            if (!hasAccess)
-            {
-                throw new Exception("Bạn không có quyền chấm điểm cho lớp này!");
-            }
-
-            // Kiểm tra trạng thái bài kiểm tra/lịch thi
-            if (test.ScheduleStatusId == null)
-            {
-                _logger.LogWarning($"TestId: {testId} không có ScheduleStatusId, giả định là 5 (Đã hoàn thành).");
-                test.ScheduleStatusId = 5; // Giả định để vượt qua kiểm tra
-            }
-
-            if (test.ScheduleStatusId == 1) // 1 = Chờ phê duyệt
-            {
-                throw new Exception("Bài kiểm tra/lịch thi chưa được phê duyệt, không thể chấm điểm!");
-            }
-
-            // Chỉ cho phép chấm điểm khi trạng thái là "Đã hoàn thành" (5) hoặc "Đã kết thúc" (7)
-            if (test.ScheduleStatusId != 5 && test.ScheduleStatusId != 7)
-            {
-                throw new Exception("Bài kiểm tra/lịch thi chưa hoàn thành hoặc chưa kết thúc, không thể chấm điểm!");
-            }
-
-            // Nếu là lịch thi (is_exam = true), áp dụng quy tắc bổ sung
-            if (test.IsExam == null)
-            {
-                _logger.LogWarning($"TestId: {testId} không có IsExam, giả định là false.");
-                test.IsExam = false; // Giả định để vượt qua kiểm tra
-            }
-
-            if (test.IsExam == true)
-            {
-                // Yêu cầu quyền đặc biệt cho lịch thi
-                if (teacher.RoleId != 1 && classInfo.UserId != teacherId)
-                {
-                    throw new Exception("Chỉ Admin hoặc giáo viên chủ nhiệm mới có thể chấm điểm kỳ thi!");
-                }
-            }
-
-            // Lấy danh sách học sinh trong lớp tại thời điểm bài kiểm tra
-            var classStudents = await _context.ClassStudents
-                .Where(cs => cs.ClassId == classId &&
-                             cs.IsActive == true &&
-                             cs.IsDelete == false &&
-                             cs.CreateAt <= test.StartDate)
-                .ToListAsync();
-
-            // Lấy thông tin học sinh từ bảng users
-            var studentIds = classStudents
-                .Where(cs => cs.UserId.HasValue)
-                .Select(cs => cs.UserId.Value)
-                .ToList();
-            var students = await _context.Users
-                .Where(u => studentIds.Contains(u.Id) && u.IsDelete == false)
-                .ToListAsync();
-
-            // Kiểm tra số lượng học sinh
-            if (students.Count != classInfo.StudentCount)
-            {
-                _logger.LogWarning(
-                    $"Số lượng học sinh trong lớp {classId} không khớp: Expected {classInfo.StudentCount}, Found {students.Count}");
-            }
-
-            // Lấy bài nộp của học sinh
-            var assignments = await _context.Assignments
-                .Where(a => a.TestExamId == testId && a.IsDelete == false)
-                .ToListAsync();
-            // Ghi log để kiểm tra bài nộp
-            if (!assignments.Any())
-            {
-                _logger.LogInformation($"Không tìm thấy bài nộp nào cho TestId: {testId}");
-            }
-            else
-            {
-                foreach (var assignment in assignments)
-                {
-                    _logger.LogInformation(
-                        $"Bài nộp của học sinh {assignment.UserId} cho TestId: {testId}, SubmissionFile: {assignment.SubmissionFile}");
-                }
-            }
-
-            var submittedAssignments = await _context.Assignments
-                .Where(a => a.TestExamId == testId && a.IsDelete == false && a.IsSubmit == true)
-                .ToListAsync();
-
-            // Tạo danh sách học sinh và điểm số
-            var studentGrades = classStudents
-                .Where(cs => cs.UserId.HasValue)
-                .Join(students,
-                    cs => cs.UserId.Value,
-                    s => s.Id,
-                    (cs, s) => new { ClassStudent = cs, Student = s })
-                .Where(joined => submittedAssignments.Any(a => a.UserId == joined.Student.Id))
-                .Select(joined => new StudentGradeResponse
-                {
-                    StudentId = joined.Student.Id,
-                    StudentName = joined.Student.FullName,
-                    Score = assignments.FirstOrDefault(a => a.UserId == joined.Student.Id)?.TotalScore,
-                    SubmissionStatus = assignments.Any(a => a.UserId == joined.Student.Id && a.IsSubmit == true)
-                        ? "Đã nộp"
-                        : "Chưa nộp",
-                    SubmissionFile = assignments.FirstOrDefault(a => a.UserId == joined.Student.Id)?.SubmissionFile,
-                    Comment = assignments.FirstOrDefault(a => a.UserId == joined.Student.Id)?.Comment,
-                    ClassStatus = joined.ClassStudent.IsActive == true && joined.ClassStudent.IsDelete == false
-                        ? "Đang học"
-                        : "Đã rời lớp",
-                    SubmissionDate = assignments
-                        .FirstOrDefault(a => a.UserId == joined.Student.Id && a.IsSubmit == true)?.SubmissionDate,
-                    SubmissionDuration = CalculateSubmissionDuration(
-                        test.StartDate,
-                        assignments.FirstOrDefault(a => a.UserId == joined.Student.Id)?.SubmissionDate
-                    )
-                }).ToList();
-
-            // Chuyển đổi Duration từ định dạng "HH:mm:ss" sang TimeOnly
-            TimeOnly duration;
-            try
-            {
-                if (test.Duration.HasValue)
-                {
-                    duration = test.Duration.Value;
-                }
-                else
-                {
-                    _logger.LogWarning($"TestId: {testId} không có Duration, sử dụng giá trị mặc định 0 phút.");
-                    duration = TimeOnly.FromTimeSpan(TimeSpan.FromMinutes(0));
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex,
-                    $"Không thể chuyển đổi Duration '{test.Duration}' sang TimeOnly, sử dụng giá trị mặc định 0 phút.");
-                duration = TimeOnly.FromTimeSpan(TimeSpan.FromMinutes(0));
-            }
-
-            // Đọc nội dung đề tài từ file attachment (nếu có)
-            string proposalContent = await ExtractProposalContentFromFileAsync(test.Attachment);
-
-            // Tạo dữ liệu trả về
-            var gradingData = new GradingDataResponse
-            {
-                TestId = test.Id,
-                TestName = test.Topic ?? "Unknown", // Xử lý trường hợp Topic là null
-                ClassId = test.ClassId,
-                ClassName = classInfo.Name,
-                Subject = test.Subject?.SubjectName ?? "Unknown", // Xử lý trường hợp Subject là null
-                StartTime = test.StartDate ?? DateTimeOffset.MinValue,
-                EndTime = test.EndDate ?? DateTimeOffset.MinValue,
-                Duration = duration,
-                Form = test.Form ?? "Unknown", // Xử lý trường hợp Form là null
-                Description = test.Description,
-                Attachment = test.Attachment,
-                IsExam = test.IsExam ?? false, // Xử lý trường hợp IsExam là null
-                ProposalContent = proposalContent,
-                StudentGrades = studentGrades
-            };
-
-            return gradingData;
+            return CreateGradingDataResponse(test, selectedClassId, classInfo, duration, proposalContent,
+                studentGrades);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Lỗi khi lấy dữ liệu chấm điểm: {Message}", ex.Message);
+            LogError(ex, test);
             throw;
+        }
+    }
+
+    private async Task<List<StudentGradeResponse>> GetStudentGradesAsync(int selectedClassId, TestExam test,
+        Class classInfo)
+    {
+        // Lấy danh sách học sinh trong lớp tại thời điểm bài kiểm tra
+        var classStudents = await _context.ClassStudents
+            .Where(cs => cs.ClassId == selectedClassId &&
+                         cs.IsActive == true &&
+                         cs.IsDelete == false &&
+                         cs.CreateAt <= test.StartDate)
+            .ToListAsync();
+
+        // Lấy thông tin học sinh từ bảng users
+        var studentIds = classStudents
+            .Where(cs => cs.UserId.HasValue)
+            .Select(cs => cs.UserId.Value)
+            .ToList();
+        var students = await _context.Users
+            .Where(u => studentIds.Contains(u.Id) && u.IsDelete == false)
+            .ToListAsync();
+
+        if (students.Count != classInfo.StudentCount)
+        {
+            _logger.LogWarning(
+                $"Số lượng học sinh trong lớp {selectedClassId} không khớp: Expected {classInfo.StudentCount}, Found {students.Count}");
+        }
+
+        // Lấy bài nộp của học sinh
+        var assignments = await _context.Assignments
+            .Where(a => a.TestExamId == test.Id && a.IsDelete == false)
+            .ToListAsync();
+
+        var submittedAssignments = assignments.Where(a => a.IsSubmit == true).ToList();
+
+        // Tạo danh sách học sinh và điểm số
+        return classStudents
+            .Where(cs => cs.UserId.HasValue)
+            .Join(students,
+                cs => cs.UserId.Value,
+                s => s.Id,
+                (cs, s) => new { ClassStudent = cs, Student = s })
+            .Where(joined => submittedAssignments.Any(a => a.UserId == joined.Student.Id))
+            .Select(joined => new StudentGradeResponse
+            {
+                StudentId = joined.Student.Id,
+                StudentName = joined.Student.FullName,
+                Score = assignments.FirstOrDefault(a => a.UserId == joined.Student.Id)?.TotalScore,
+                SubmissionStatus = assignments.Any(a => a.UserId == joined.Student.Id && a.IsSubmit == true)
+                    ? "Đã nộp"
+                    : "Chưa nộp",
+                SubmissionFile = assignments.FirstOrDefault(a => a.UserId == joined.Student.Id)?.SubmissionFile,
+                Comment = assignments.FirstOrDefault(a => a.UserId == joined.Student.Id)?.Comment,
+                ClassStatus = joined.ClassStudent.IsActive == true && joined.ClassStudent.IsDelete == false
+                    ? "Đang học"
+                    : "Đã rời lớp",
+                SubmissionDate = assignments
+                    .FirstOrDefault(a => a.UserId == joined.Student.Id && a.IsSubmit == true)?.SubmissionDate,
+                SubmissionDuration = CalculateSubmissionDuration(
+                    test.StartDate,
+                    assignments.FirstOrDefault(a => a.UserId == joined.Student.Id)?.SubmissionDate
+                )
+            }).ToList();
+    }
+
+    private GradingDataResponse CreateGradingDataResponse(
+        TestExam test,
+        int selectedClassId,
+        Class classInfo,
+        TimeOnly duration,
+        string proposalContent,
+        List<StudentGradeResponse> studentGrades)
+    {
+        return new GradingDataResponse
+        {
+            TestId = test.Id,
+            TestName = test.Topic ?? "Unknown",
+            ClassId = selectedClassId,
+            ClassName = classInfo.Name,
+            Subject = test.Subject?.SubjectName ?? "Unknown",
+            StartTime = test.StartDate ?? DateTimeOffset.MinValue,
+            EndTime = test.EndDate ?? DateTimeOffset.MinValue,
+            Duration = duration,
+            Form = test.Form ?? "Unknown",
+            Description = test.Description,
+            Attachment = test.Attachment,
+            IsExam = test.IsExam ?? false,
+            ProposalContent = proposalContent,
+            StudentGrades = studentGrades
+        };
+    }
+
+    private async Task<User> ValidateTeacherAsync(int teacherId)
+    {
+        var teacher = await _context.Users.FindAsync(teacherId);
+        if (teacher == null)
+        {
+            throw new Exception("Không tìm thấy giáo viên!");
+        }
+
+        return teacher;
+    }
+
+    private async Task<TestExam> GetTestExamAsync(int testId)
+    {
+        var test = await _context.TestExams
+            .Include(t => t.Subject)
+            .FirstOrDefaultAsync(t => t.Id == testId && t.IsDelete == false);
+        if (test == null)
+        {
+            throw new Exception("Không tìm thấy bài kiểm tra hoặc lịch thi!");
+        }
+
+        return test;
+    }
+
+    private async Task<List<ClassTestExam>> GetClassTestExamsAsync(int testId)
+    {
+        var classTestExam = await _context.ClassTestExams
+            .Where(cte => cte.TestExamId == testId && cte.IsDelete == false)
+            .ToListAsync();
+
+        _logger.LogInformation($"Số lượng lớp trong ClassTestExams cho TestId {testId}: {classTestExam.Count}");
+
+        if (!classTestExam.Any())
+        {
+            _logger.LogWarning($"Không tìm thấy bản ghi nào trong ClassTestExams cho TestId {testId}");
+            throw new Exception("Bài kiểm tra/lịch thi này chưa được gán cho lớp học nào trong ClassTestExams!");
+        }
+
+        return classTestExam;
+    }
+
+    private async Task<int> GetSelectedClassIdAsync(int? classId, List<ClassTestExam> classTestExam, int testId)
+    {
+        if (classId.HasValue)
+        {
+            if (!classTestExam.Any(cte => cte.ClassId == classId.Value))
+            {
+                _logger.LogWarning($"ClassId {classId.Value} không tồn tại trong ClassTestExams của TestId {testId}");
+                throw new Exception($"Lớp được chỉ định (ID: {classId.Value}) không liên kết với bài kiểm tra này!");
+            }
+
+            _logger.LogInformation($"ClassId được chỉ định cho TestId {testId}: {classId.Value}");
+            return classId.Value;
+        }
+
+        var selectedClassId = classTestExam.First().ClassId.Value;
+        _logger.LogInformation(
+            $"Không truyền ClassId, sử dụng ClassId đầu tiên từ ClassTestExams cho TestId {testId}: {selectedClassId}");
+        return selectedClassId;
+    }
+
+    private async Task<Class> ValidateClassAsync(int selectedClassId)
+    {
+        var classInfo = await _context.Classes
+            .FirstOrDefaultAsync(c => c.Id == selectedClassId && c.IsDelete == false);
+        if (classInfo == null)
+        {
+            throw new Exception("Không tìm thấy lớp học!");
+        }
+
+        return classInfo;
+    }
+
+    private async Task ValidateClassSubjectAsync(int selectedClassId, int? subjectId)
+    {
+        var classSubject = await _context.ClassSubjects
+            .FirstOrDefaultAsync(cs =>
+                cs.ClassId == selectedClassId && cs.SubjectId == subjectId && cs.IsDelete == false);
+
+        _logger.LogInformation(
+            $"Kiểm tra ClassSubject: ClassId={selectedClassId}, SubjectId={subjectId}, Found={classSubject != null}");
+
+        if (classSubject == null)
+        {
+            _logger.LogError("Lớp {ClassId} không được gán môn học {SubjectId} của bài kiểm tra/lịch thi!",
+                selectedClassId, subjectId);
+            throw new Exception(
+                $"Lớp {selectedClassId} không được gán môn học (ID: {subjectId}) của bài kiểm tra/lịch thi! Vui lòng thêm môn học này cho lớp hoặc chọn lớp khác.");
+        }
+    }
+
+    private async Task ValidateAccessAndTestStatusAsync(int teacherId, int testId, TestExam test)
+    {
+        bool hasAccess = await HasGradingPermissionAsync(teacherId, testId, test.IsExam ?? false);
+        if (!hasAccess)
+        {
+            throw new Exception("Bạn không có quyền chấm điểm cho lớp này!");
+        }
+
+        var endDateUtc = test.EndDate.HasValue ? test.EndDate.Value.ToUniversalTime() : DateTimeOffset.MaxValue;
+        if (endDateUtc > DateTimeOffset.UtcNow)
+        {
+            throw new Exception("Bài kiểm tra hoặc kỳ thi này chưa kết thúc, không thể chấm điểm");
+        }
+    }
+
+    private TimeOnly GetTestDuration(TestExam test, int testId)
+    {
+        try
+        {
+            if (test.Duration.HasValue)
+            {
+                return test.Duration.Value;
+            }
+
+            _logger.LogWarning($"TestId: {testId} không có Duration, sử dụng giá trị mặc định 0 phút.");
+            return TimeOnly.FromTimeSpan(TimeSpan.FromMinutes(0));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                $"Không thể chuyển đổi Duration '{test.Duration}' sang TimeOnly, sử dụng giá trị mặc định 0 phút.");
+            return TimeOnly.FromTimeSpan(TimeSpan.FromMinutes(0));
+        }
+    }
+
+    private void LogError(Exception ex, TestExam test)
+    {
+        _logger.LogError(ex, "Lỗi khi lấy dữ liệu chấm điểm: {Message}. Stack trace: {StackTrace}", ex.Message,
+            ex.StackTrace);
+        if (test != null)
+        {
+            _logger.LogInformation(
+                "Thông tin test đang xử lý: ID={TestId}, SubjectId={SubjectId}, UserId={UserId}, ClassId={ClassId}",
+                test.Id, test.SubjectId, test.UserId, test.ClassId);
         }
     }
 
@@ -278,17 +303,62 @@ public class GradeEntryRepository : IGradeEntryRepository
                 throw new Exception("Không tìm thấy bài kiểm tra hoặc kỳ thi này trong hệ thống");
             }
 
-            // Kiểm tra ClassId của bài kiểm tra
-            if (!test.ClassId.HasValue)
+            // Kiểm tra nếu UserId của bài thi là null
+            if (test.UserId == null)
+            {
+                _logger.LogWarning("Bài thi ID: {TestId} không có thông tin người tạo (UserId là null)",
+                    request.TestId);
+                // Vẫn tiếp tục xử lý
+            }
+            else if (test.UserId == teacherId)
+            {
+                _logger.LogInformation("Giáo viên ID: {TeacherId} là người tạo bài thi ID: {TestId}", teacherId,
+                    request.TestId);
+                // Người tạo bài thi có quyền chấm điểm, tiếp tục xử lý
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "Kiểm tra bài thi ID: {TestId}, người tạo: {UserId}, giáo viên hiện tại: {TeacherId}",
+                    request.TestId, test.UserId, teacherId);
+            }
+
+            // Lấy danh sách lớp liên kết với bài kiểm tra từ ClassTestExams
+            var classTestExam = await _context.ClassTestExams
+                .Where(cte => cte.TestExamId == request.TestId && cte.IsDelete == false)
+                .ToListAsync();
+            if (!classTestExam.Any())
             {
                 throw new Exception("Bài kiểm tra hoặc kỳ thi này chưa được gán cho lớp học nào");
             }
 
-            int classId = test.ClassId.Value;
+            // Xử lý classId: từ ClassTestExams
+            int selectedClassId;
+            if (request.ClassId.HasValue)
+            {
+                if (!classTestExam.Any(cte => cte.ClassId == request.ClassId.Value))
+                {
+                    _logger.LogWarning(
+                        $"ClassId={request.ClassId.Value} không tồn tại trong ClassTestExams của TestId={request.TestId}");
+                    throw new Exception(
+                        $"Lớp được chỉ định (ID: {request.ClassId.Value}) không liên kết với bài kiểm tra này!");
+                }
+
+                selectedClassId = request.ClassId.Value;
+                _logger.LogInformation($"Sử dụng ClassId từ request: {selectedClassId}");
+            }
+            else
+            {
+                selectedClassId = classTestExam.First().ClassId.Value;
+                _logger.LogInformation(
+                    $"Không có ClassId trong request, sử dụng ClassId đầu tiên từ ClassTestExams: {selectedClassId}");
+            }
+
+            _logger.LogInformation($"Selected ClassId for TestId {request.TestId}: {selectedClassId}");
 
             // Kiểm tra thông tin lớp học
             var classInfo = await _context.Classes
-                .FirstOrDefaultAsync(c => c.Id == classId && c.IsDelete == false);
+                .FirstOrDefaultAsync(c => c.Id == selectedClassId && c.IsDelete == false);
             if (classInfo == null)
             {
                 throw new Exception("Không tìm thấy thông tin lớp học trong hệ thống");
@@ -297,39 +367,43 @@ public class GradeEntryRepository : IGradeEntryRepository
             // Kiểm tra lớp có học môn của bài kiểm tra không
             var classSubject = await _context.ClassSubjects
                 .FirstOrDefaultAsync(cs =>
-                    cs.ClassId == classId && cs.SubjectId == test.SubjectId && cs.IsDelete == false);
+                    cs.ClassId == selectedClassId && cs.SubjectId == test.SubjectId && cs.IsDelete == false);
             if (classSubject == null)
             {
                 throw new Exception("Lớp học này không được gán môn học của bài kiểm tra hoặc kỳ thi");
             }
 
             // Kiểm tra quyền truy cập
-            bool hasAccess = await HasGradingPermissionAsync(teacherId, classId, test.SubjectId.Value,
-                test.StartDate.Value, test.IsExam.Value, classInfo.UserId);
+            bool hasAccess = await HasGradingPermissionAsync(teacherId, request.TestId, test.IsExam ?? false);
             if (!hasAccess)
             {
-                throw new Exception(
-                    "Giáo viên không có quyền chấm điểm bài kiểm tra này vì không phải Admin, không phải giáo viên chủ nhiệm của lớp, và không được phân công dạy môn học này cho lớp vào thời điểm bài kiểm tra");
-            }
-
-            // Kiểm tra trạng thái bài kiểm tra
-            var allowedStatuses = new[] { 5, 7 }; // Có thể thay bằng enum hoặc cấu hình
-            if (!allowedStatuses.Contains<int>(test.ScheduleStatusId.Value))
-            {
-                throw new Exception(
-                    "Bài kiểm tra hoặc kỳ thi này chưa hoàn thành hoặc chưa kết thúc, không thể chấm điểm");
+                if (test.UserId != null && test.UserId != teacherId)
+                {
+                    throw new Exception(
+                        "Giáo viên không có quyền chấm điểm bài thi này vì không phải người tạo bài thi!");
+                }
+                else
+                {
+                    throw new Exception("Giáo viên không có quyền chấm điểm bài thi này!");
+                }
             }
 
             // Kiểm tra thời gian kết thúc bài kiểm tra
-            if (test.EndDate > DateTimeOffset.UtcNow)
+            var endDateUtc = test.EndDate.HasValue ? test.EndDate.Value.ToUniversalTime() : DateTimeOffset.MaxValue;
+            _logger.LogInformation(
+                $"TestId: {request.TestId}, EndDate (UTC): {endDateUtc}, UtcNow: {DateTimeOffset.UtcNow}");
+
+            if (endDateUtc > DateTimeOffset.UtcNow)
             {
-                throw new Exception("Bài kiểm tra hoặc kỳ thi này vẫn đang diễn ra, chưa thể chấm điểm");
+                _logger.LogWarning(
+                    $"Bài kiểm tra TestId: {request.TestId} chưa kết thúc (EndDate: {endDateUtc}, Now: {DateTimeOffset.UtcNow})");
+                throw new Exception("Bài kiểm tra hoặc kỳ thi này chưa kết thúc, không thể chấm điểm");
             }
 
             // Lấy danh sách học sinh hợp lệ trong lớp
             var classStudents = await _context.ClassStudents
                 .Where(cs =>
-                    cs.ClassId == classId && cs.IsActive == true && cs.IsDelete == false &&
+                    cs.ClassId == selectedClassId && cs.IsActive == true && cs.IsDelete == false &&
                     cs.CreateAt <= test.StartDate)
                 .ToListAsync();
 
@@ -345,7 +419,7 @@ public class GradeEntryRepository : IGradeEntryRepository
 
             // Ghi log danh sách học sinh hợp lệ
             _logger.LogInformation(
-                $"Danh sách học sinh hợp lệ thuộc lớp ClassId: {classId} tại thời điểm bài kiểm tra TestId: {request.TestId}: {string.Join(", ", validStudents)}");
+                $"Danh sách học sinh hợp lệ thuộc lớp ClassId: {selectedClassId} tại thời điểm bài kiểm tra TestId: {request.TestId}: {string.Join(", ", validStudents)}");
 
             // Kiểm tra học sinh có thuộc lớp không
             foreach (var grade in request.Grades)
@@ -389,6 +463,17 @@ public class GradeEntryRepository : IGradeEntryRepository
                         _logger.LogInformation(
                             $"Bài nộp của học sinh {assignment.UserId} cho TestId: {request.TestId}, SubmissionFile: {assignment.SubmissionFile}");
                     }
+                }
+            }
+
+            // Kiểm tra xem bài thi đã được chấm chưa
+            foreach (var grade in request.Grades)
+            {
+                var assignment = assignments.FirstOrDefault(a => a.UserId == grade.StudentId);
+                if (assignment != null && assignment.StatusAssignmentId == 3)
+                {
+                    throw new Exception(
+                        $"Bài nộp của học sinh {grade.StudentId} đã được chấm điểm, không thể chấm lại!");
                 }
             }
 
@@ -439,30 +524,113 @@ public class GradeEntryRepository : IGradeEntryRepository
         }
     }
 
-    // Hàm phụ kiểm tra quyền truy cập (giữ nguyên)
-    private async Task<bool> HasGradingPermissionAsync(int teacherId, int classId, int subjectId,
-        DateTimeOffset testStartDate, bool isExam, int? classTeacherId)
+    private async Task<bool> HasGradingPermissionAsync(int teacherId, int testId, bool isExam)
     {
-        var teacher = await _context.Users.FindAsync(teacherId);
-        if (teacher == null) return false;
-
-        if (teacher.RoleId == 1) return true; // Admin có toàn quyền
-
-        if (classTeacherId == teacherId) return true; // Giáo viên chủ nhiệm
-
-        if (isExam) return false; // Kỳ thi chỉ cho Admin hoặc giáo viên chủ nhiệm
-
-        // Kiểm tra phân công giảng dạy
-        var teachingAssignment = await _context.TeachingAssignments
-            .FirstOrDefaultAsync(ta =>
-                ta.UserId == teacherId && ta.ClassId == classId && ta.SubjectId == subjectId && ta.IsDelete == false);
-        if (teachingAssignment != null && teachingAssignment.StartDate <= testStartDate &&
-            teachingAssignment.EndDate >= testStartDate)
+        try
         {
-            return true;
-        }
+            var teacher = await _context.Users.FindAsync(teacherId);
+            if (teacher == null)
+            {
+                _logger.LogWarning("Không tìm thấy giáo viên với ID: {TeacherId}", teacherId);
+                return false;
+            }
 
-        return false;
+            if (teacher.RoleId == 1)
+            {
+                _logger.LogInformation("Giáo viên ID: {TeacherId} là Admin, có toàn quyền", teacherId);
+                return true; // Admin có toàn quyền
+            }
+
+            // Kiểm tra xem giáo viên có phải là người tạo bài thi không
+            var test = await _context.TestExams
+                .FirstOrDefaultAsync(t => t.Id == testId && t.IsDelete == false);
+
+            if (test == null)
+            {
+                _logger.LogWarning("Không tìm thấy bài thi với ID: {TestId}", testId);
+                return false;
+            }
+
+            // Kiểm tra nếu UserId của bài thi là null
+            if (test.UserId == null)
+            {
+                _logger.LogWarning("Bài thi ID: {TestId} không có thông tin người tạo (UserId là null)", testId);
+                // Vẫn tiếp tục kiểm tra các điều kiện khác
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "Kiểm tra bài thi ID: {TestId}, người tạo: {UserId}, giáo viên hiện tại: {TeacherId}",
+                    testId, test.UserId, teacherId);
+
+                // Nếu giáo viên là người tạo bài thi
+                if (test.UserId == teacherId)
+                {
+                    _logger.LogInformation("Giáo viên ID: {TeacherId} là người tạo bài thi ID: {TestId}", teacherId,
+                        testId);
+                    return true;
+                }
+            }
+
+            // Kiểm tra quyền truy cập vào lớp học từ class_test_exams
+            var classTestExam = await _context.ClassTestExams
+                .Where(cte => cte.TestExamId == testId && cte.IsDelete == false)
+                .ToListAsync();
+
+            if (!classTestExam.Any())
+            {
+                _logger.LogWarning("Không tìm thấy bản ghi class_test_exam nào cho TestId: {TestId}", testId);
+                return false;
+            }
+
+            foreach (var cte in classTestExam)
+            {
+                // Kiểm tra giáo viên chủ nhiệm
+                var classInfo = await _context.Classes
+                    .FirstOrDefaultAsync(c => c.Id == cte.ClassId && c.IsDelete == false);
+                if (classInfo == null)
+
+                {
+                    _logger.LogWarning("Không tìm thấy thông tin lớp với ID: {ClassId}", cte.ClassId);
+                    continue;
+                }
+
+                if (classInfo.UserId == teacherId)
+                {
+                    _logger.LogInformation("Giáo viên ID: {TeacherId} là chủ nhiệm lớp ID: {ClassId}", teacherId,
+                        cte.ClassId);
+                    return true; // Giáo viên chủ nhiệm
+                }
+
+                // Kiểm tra giáo viên được phân công giảng dạy môn học
+                if (test.SubjectId.HasValue)
+                {
+                    var teacherAssignment = await _context.TeachingAssignments
+                        .FirstOrDefaultAsync(ta =>
+                            ta.ClassId == cte.ClassId &&
+                            ta.SubjectId == test.SubjectId &&
+                            ta.UserId == teacherId &&
+                            ta.IsDelete == false);
+
+                    if (teacherAssignment != null)
+                    {
+                        _logger.LogInformation(
+                            "Giáo viên ID: {TeacherId} được phân công dạy môn ID: {SubjectId} cho lớp ID: {ClassId}",
+                            teacherId, test.SubjectId, cte.ClassId);
+                        return true; // Giáo viên được phân công giảng dạy
+                    }
+                }
+            }
+
+            _logger.LogWarning("Giáo viên ID: {TeacherId} không có quyền chấm điểm cho bài thi ID: {TestId}", teacherId,
+                testId);
+            return false; // Nếu không thuộc các trường hợp trên thì không có quyền
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi kiểm tra quyền chấm điểm: {Message}", ex.Message);
+            return false;
+        }
     }
 
     private async Task<string> ExtractProposalContentFromFileAsync(string fileUrl)

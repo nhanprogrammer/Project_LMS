@@ -215,6 +215,10 @@ namespace Project_LMS.Controllers
             {
                 return NotFound(new ApiResponse<string>(1, ex.Message, null));
             }
+            catch (InvalidOperationException ex)
+            {
+                return StatusCode(409, new ApiResponse<string>(1, ex.Message, null));
+            }
             catch (Exception)
             {
                 return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi, vui lòng thử lại sau.", null));

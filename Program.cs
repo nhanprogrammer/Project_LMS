@@ -36,7 +36,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowAll",
         policy =>
         {
-            policy.WithOrigins("http://localhost:3000")
+            policy.WithOrigins("http://localhost:3000","https://dangnvpc07460.id.vn")
                 .AllowAnyHeader()
                 .AllowAnyMethod()
                 .AllowCredentials();
@@ -90,7 +90,6 @@ builder.Services.AddScoped<ISchoolTransferService, SchoolTransferService>();
 builder.Services.AddScoped<ISemesterService, SemesterService>();
 builder.Services.AddScoped<IDistrictsService, DistrictsService>();
 builder.Services.AddScoped<IProvincesService, ProvincesService>();
-builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddScoped<IClassService, ClassService>();
 builder.Services.AddScoped<ILessonService, LessonService>();
 builder.Services.AddScoped<IFavouritesService, FavouritesService>();
@@ -270,35 +269,50 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     }
                 }
 
-                // var handler = new JwtSecurityTokenHandler();
-                // var jwtToken = handler.ReadToken(token) as JwtSecurityToken;
-
-                // if (jwtToken == null)
-                // {
-                //     context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                //     context.Response.ContentType = "application/json";
-                //     var response = new ApiResponse<string>(1, "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", null);
-                //     await context.Response.WriteAsync(JsonSerializer.Serialize(response));
-                //     return;
-                // }
-
-                // Kiểm tra token trong blacklist
-                if (!string.IsNullOrEmpty(token) && memoryCache.TryGetValue($"blacklist:{token}", out _))
-                {
-                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                    context.Response.ContentType = "application/json";
-                    var response = new ApiResponse<string>(1, "Token đã bị vô hiệu hóa. Vui lòng đăng nhập lại.", null);
-                    await context.Response.WriteAsync(JsonSerializer.Serialize(response));
-                    return;
-                }
-
-                // Lưu token vào context nếu hợp lệ
+                // Nếu có token thì kiểm tra hết hạn
                 if (!string.IsNullOrEmpty(token))
                 {
-                    context.HttpContext.Items["Token"] = token;
-                    context.Token = token;
+                    var handler = new JwtSecurityTokenHandler();
+
+                    try
+                    {
+                        var jwtToken = handler.ReadJwtToken(token);
+                        var exp = jwtToken.ValidTo;
+
+                        if (exp < DateTime.UtcNow)
+                        {
+                            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                            context.Response.ContentType = "application/json";
+                            var response = new ApiResponse<string>(1, "Token đã hết hạn. Vui lòng đăng nhập lại.", null);
+                            await context.Response.WriteAsync(JsonSerializer.Serialize(response));
+                            return;
+                        }
+
+                        // Kiểm tra token blacklist
+                        if (memoryCache.TryGetValue($"blacklist:{token}", out _))
+                        {
+                            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                            context.Response.ContentType = "application/json";
+                            var response = new ApiResponse<string>(1, "Token đã bị vô hiệu hóa. Vui lòng đăng nhập lại.", null);
+                            await context.Response.WriteAsync(JsonSerializer.Serialize(response));
+                            return;
+                        }
+
+                        // Token hợp lệ -> lưu vào context
+                        context.HttpContext.Items["Token"] = token;
+                        context.Token = token;
+                    }
+                    catch (Exception ex)
+                    {
+                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                        context.Response.ContentType = "application/json";
+                        var response = new ApiResponse<string>(1, "Token không hợp lệ!", null);
+                        await context.Response.WriteAsync(JsonSerializer.Serialize(response));
+                        return;
+                    }
                 }
             },
+
             OnChallenge = context =>
             {
                 context.HandleResponse();
@@ -347,6 +361,10 @@ builder.Services.AddLogging(logging =>
     logging.SetMinimumLevel(LogLevel.Information); // Cấu hình mức log tối thiểu
 });
 
+// Đăng ký NotificationQueueService
+builder.Services.AddSingleton<NotificationQueueService>();
+builder.Services.AddHostedService(provider => provider.GetRequiredService<NotificationQueueService>());
+builder.Services.AddHostedService<TestExamNotificationService>();
 var app = builder.Build();
 app.MapHub<MeetHubService>("/meetHub");
 app.Use(async (context, next) =>
@@ -394,4 +412,5 @@ RecurringJob.AddOrUpdate<AcademicHoldStatusCheckerJob>(
     {
         TimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")
     });
+
 app.Run();

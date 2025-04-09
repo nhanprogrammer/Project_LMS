@@ -12,6 +12,7 @@ public class AcademicYearWithSemestersDto
     public int? UserCreate { get; set; }
     public int? UserUpdate { get; set; }
     public bool IsDelete { get; set; }
+    public string AcademicYearName { get; set; }
     public List<SemesterDto> Semesters { get; set; }
 }
 
@@ -22,4 +23,5 @@ public class SemesterDto
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
     public bool IsDelete { get; set; }
+    public string SemestersName { get; set; }
 }

@@ -261,19 +261,17 @@ namespace Project_LMS.Services
             var classStudents = await _reportRepository.GetClassStudentsByStudentIdAsync(studentId);
 
             var academicYearIds = classStudents
-                .Where(cs => cs.Class?.AcademicYearId.HasValue == true)
+                .Where(cs => cs.Class?.AcademicYearId.HasValue == true && cs.IsActive == true && cs.IsDelete == false)
                 .Select(cs => cs.Class.AcademicYearId.Value)
-                .Distinct()
                 .ToList();
 
             var semesters = await _reportRepository.GetSemestersByAcademicYearIdsAsync(academicYearIds);
-            
 
             var classSubjectDetails = new List<(ClassStudent Cs, ClassSubject Subject, Lesson? FirstLesson)>();
 
             foreach (var cs in classStudents)
             {
-               var subjects = await _reportRepository.GetClassSubjectsWithSubjectsByClassIdAsync(cs.ClassId ?? 0);
+                var subjects = await _reportRepository.GetClassSubjectsWithSubjectsByClassIdAsync(cs.ClassId ?? 0);
 
                 foreach (var subject in subjects)
                 {
@@ -281,17 +279,57 @@ namespace Project_LMS.Services
                     classSubjectDetails.Add((cs, subject, firstLesson));
                 }
             }
-
+            foreach (var classSubjectDetail in classSubjectDetails)
+            {
+                Console.WriteLine($"ClassId: {classSubjectDetail.Cs.ClassId}, SubjectId: {classSubjectDetail.Subject.SubjectId}, FirstLesson: {classSubjectDetail.FirstLesson?.StartDate}");
+            }
             var groupedBySemester = semesters
-                .GroupBy(s => new
+            .GroupBy(s => new
+            {
+                SemesterId = s.Id,
+                SemesterName = s.Name,
+                AcademicYear = s.AcademicYear,
+                StartDate = s.StartDate,
+                EndDate = s.EndDate
+            })
+            .Select(g =>
+            {
+                var classDetails = classSubjectDetails
+                    .Where(cs => cs.Cs.Class?.AcademicYearId == g.Key.AcademicYear?.Id)
+                    .Select(cs => new StudentClassDetail
+                    {
+                        ClassId = cs.Cs.ClassId ?? 0,
+                        ClassName = cs.Cs.Class?.Name ?? "Unknown Class",
+                        SubjectName = cs.Subject.Subject?.SubjectName ?? "Unknown Subject",
+                        Status = cs.Cs.Class != null && cs.Cs.Class.EndDate.HasValue && DateTime.Now > cs.Cs.Class.EndDate.Value
+                            ? "Đã hoàn thành"
+                            : (cs.Cs.Class?.StartDate.HasValue == true && DateTime.Now < cs.Cs.Class.StartDate.GetValueOrDefault()
+                                ? "Chưa bắt đầu"
+                                : "Chưa hoàn thành"),
+                        FirstSchedule = cs.FirstLesson != null
+                            ? new ClassScheduleDetail
+                            {
+                                StartTime = cs.FirstLesson.StartDate ?? DateTime.MinValue,
+                                EndTime = cs.FirstLesson.EndDate ?? DateTime.MinValue,
+                            }
+                            : null
+                    })
+                    .ToList();
+
+                // Nếu không có dữ liệu, thêm một phần tử chỉ ra rằng không có dữ liệu
+                if (!classDetails.Any())
                 {
-                    SemesterId = s.Id,
-                    SemesterName = s.Name,
-                    AcademicYear = s.AcademicYear,
-                    StartDate = s.StartDate,
-                    EndDate = s.EndDate
-                })
-                .Select(g => new StudentSemesterStatisticsResponse
+                    classDetails.Add(new StudentClassDetail
+                    {
+                        ClassId = 0,
+                        ClassName = "Không có lớp học",
+                        SubjectName = "Không có môn học",
+                        Status = "Không có dữ liệu",
+                        FirstSchedule = null
+                    });
+                }
+
+                return new StudentSemesterStatisticsResponse
                 {
                     SemesterName = (g.Key.SemesterName ?? "Unknown Semester") + " - " +
                         (g.Key.StartDate.HasValue && g.Key.EndDate.HasValue && g.Key.StartDate <= g.Key.EndDate
@@ -302,38 +340,10 @@ namespace Project_LMS.Services
                     AcademicYear = g.Key.AcademicYear != null
                         ? $"{g.Key.AcademicYear.StartDate:yyyy} - {g.Key.AcademicYear.EndDate:yyyy}"
                         : "Unknown Year",
-                    ClassDetails = classSubjectDetails
-                        .Where(cs => cs.Cs.Class?.AcademicYearId == g.Key.AcademicYear?.Id &&
-                                    cs.Cs.Class?.StartDate.HasValue == true &&
-                                    g.Key.StartDate.HasValue &&
-                                    g.Key.EndDate.HasValue &&
-                                    cs.Cs.Class.StartDate.Value >= g.Key.StartDate.Value &&
-                                    cs.Cs.Class.StartDate.Value <= g.Key.EndDate.Value)
-                        .Distinct()
-                        .Select(cs => new StudentClassDetail
-                        {
-                            ClassId = cs.Cs.ClassId ?? 0,
-                            ClassName = cs.Cs.Class?.Name ?? "Unknown Class",
-                            SubjectName = cs.Subject.Subject?.SubjectName ?? "Unknown Subject",
-                            StartDate = cs.Cs.Class?.StartDate,
-                            EndDate = cs.Cs.Class?.EndDate,
-                            Status = cs.Cs.Class != null && cs.Cs.Class.EndDate.HasValue && DateTime.Now > cs.Cs.Class.EndDate.Value
-                                ? "Đã hoàn thành"
-                                : (cs.Cs.Class?.StartDate.HasValue == true && DateTime.Now < cs.Cs.Class.StartDate.GetValueOrDefault()
-                                    ? "Chưa bắt đầu"
-                                    : "Chưa hoàn thành"),
-                            FirstSchedule = cs.FirstLesson != null
-                                ? new ClassScheduleDetail
-                                {
-                                    StartTime = cs.FirstLesson.StartDate ?? DateTime.MinValue,
-                                    EndTime = cs.FirstLesson.EndDate ?? DateTime.MinValue,
-                                }
-                                : null
-                        }).Distinct()
-                        .ToList()
-                })
-                .Distinct()
-                .ToList();
+                    ClassDetails = classDetails
+                };
+            })
+            .ToList();
             return groupedBySemester;
         }
     }

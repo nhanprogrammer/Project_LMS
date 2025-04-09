@@ -56,7 +56,7 @@ public class AssignmentRepository : IAssignmentRepository
             .Where(asm => asm.IsDelete == false && asm.TestExam.SemestersId == semesterId && asm.TestExam.ClassId == classId && asm.TestExam.SubjectId == subjectId && asm.TotalScore >= 0 && asm.TestExam.IsDelete == false && asm.User.IsDelete == false);
         if (!string.IsNullOrWhiteSpace(searchItem))
         {
-            query=  query.Where
+            query = query.Where
                 (asm =>
                 asm.User.UserCode.ToLower().Contains(searchItem.ToLower()) ||
                 asm.User.FullName.ToLower().Contains(searchItem.ToLower())
@@ -126,7 +126,13 @@ public class AssignmentRepository : IAssignmentRepository
         double avgSemester2 = totalCoefficientSemester2 > 0 ? totalScoreSemester2 / totalCoefficientSemester2 : 0;
 
         // Công thức trung bình có trọng số (học kỳ 2 nhân đôi)
-        return await querySemester2.CountAsync() >0? (avgSemester1 + (avgSemester2 * 2)) / 3 : avgSemester1;
+        return await querySemester2.CountAsync() > 0 ? (avgSemester1 + (avgSemester2 * 2)) / 3 : avgSemester1;
     }
 
+    public async Task<List<Assignment>> GetAllByStudentIdAndAcademicId(int studentId, int academicId)
+    {
+        return await _context.Assignments
+            .Include(asm=>asm.TestExam).ThenInclude(t=>t.Semesters)
+            .Where(asm => asm.UserId == studentId && asm.TestExam.Class.AcademicYearId == academicId && asm.IsDelete == false && asm.TestExam.IsDelete == false).ToListAsync();
+    }
 }

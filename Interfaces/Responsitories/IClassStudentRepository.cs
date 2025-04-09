@@ -22,5 +22,7 @@ namespace Project_LMS.Interfaces.Responsitories
         Task<ClassStudent> FindByUserIdAndSchoolYear(int userId, int schoolYear);
         public Task AddChangeClassAsync(ClassStudentRequest request);
         public Task<ClassStudent> GetClassStudentChangeInfo(int userId, int classId);
+        public Task<List<ClassStudent>> FindAllStudentByIdIsActive(int studentId);
+        public Task<IEnumerable<ClassStudent>> FindStudentByStudentDepartment(int studentId, int departmentId);
     }
 }

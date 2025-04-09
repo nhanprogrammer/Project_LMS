@@ -24,5 +24,11 @@ namespace Project_LMS.Interfaces
         Task<ApiResponse<bool>> DeleteNotificationAsync(DeleteRequest request, int userId); // Thêm phương thức xóa
         Task<ApiResponse<bool>> SelectIsReadAsync(DeleteRequest request, int userId); // Thêm phương thức
         Task AddNotificationToUsersAsync(List<int> userIds, string subject, string content);
+
+        Task<ApiResponse<bool>> SendClassNotificationAsync(int senderUserId, int classId, string subject,
+            string content, bool? type = false);
+
+        Task<ApiResponse<bool>> SendUserListNotificationAsync(int senderUserId, List<int> userIds, string subject,
+            string content, bool? type = false);
     }
 }

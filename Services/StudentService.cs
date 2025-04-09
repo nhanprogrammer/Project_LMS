@@ -552,7 +552,7 @@ public class StudentService : IStudentService
             {
                 sheet5.Cells[row + 2, 0].PutValue(row + 1);
                 sheet5.Cells[row + 2, 1].PutValue(rewards[row].RewardContent);
-                sheet5.Cells[row + 2, 2].PutValue(rewards[row].RewardName);
+                sheet5.Cells[row + 2, 2].PutValue(rewards[row].FileName);
                 sheet5.Cells[row + 2, 3].PutValue(rewards[row].RewardDate?.ToString("dd/MM/yyyy") ?? "N/A");
             }
             sheet5.AutoFitColumns();
@@ -586,7 +586,7 @@ public class StudentService : IStudentService
             {
                 sheet6.Cells[row + 2, 0].PutValue(row + 1);
                 sheet6.Cells[row + 2, 1].PutValue(disciplines[row].DisciplineContent);
-                sheet6.Cells[row + 2, 2].PutValue(disciplines[row].Name);
+                sheet6.Cells[row + 2, 2].PutValue(disciplines[row].FileName);
                 sheet6.Cells[row + 2, 3].PutValue(disciplines[row].DisciplineDate?.ToString("dd/MM/yyyy") ?? "N/A");
             }
             sheet6.AutoFitColumns();
@@ -923,13 +923,13 @@ public class StudentService : IStudentService
         var disciplines = student.Disciplines.Select(dcl => (object)new
         {
             dcl.DisciplineContent,
-            dcl.Name,
+            dcl.FileName,
             dcl.DisciplineDate
         }).ToList();
         var rewards = student.Rewards.Select(r => new
         {
             r.RewardContent,
-            r.RewardName,
+            r.FileName,
             r.RewardDate
         }).ToList();
 
@@ -1243,7 +1243,7 @@ public class StudentService : IStudentService
                         request.SchoolYear, studentFind.Id, request.ClassId);
                 }
             }
-
+            var emailOld = studentFind.Email;
             // Tiếp tục xử lý
             var student = _mapper.Map(request, studentFind);
 
@@ -1254,20 +1254,22 @@ public class StudentService : IStudentService
             student.Image = url;
 
             student.UpdateAt = DateTime.Now;
-            var user = await _studentRepository.UpdateAsync(student);
-            _logger.LogInformation("Cập nhật học viên thành công.");
 
-            if (request.Email != studentFind.Email)
+
+            if (!request.Email.Equals(emailOld))
             {
                 student.Username = await GeneratedUsername(request.Email);
                 string password = await GenerateSecurePassword(10);
+
                 student.Password = BCrypt.Net.BCrypt.HashPassword(password);
                 Task.Run(async () =>
                 {
-                    await ExecuteEmail(user.Email, user.FullName, user.Username, password);
+                    await ExecuteEmail(request.Email, request.FullName, student.Username, password);
                 });
             }
-
+            Console.WriteLine("Email ================================="+studentFind.Email+" - "+request.Email);
+            var user = await _studentRepository.UpdateAsync(student);
+            _logger.LogInformation("Cập nhật học viên thành công.");
             return new ApiResponse<object>(0, "Cập nhật học viên thành công.");
         }
         catch (DbUpdateException ex)
@@ -1446,5 +1448,6 @@ public class StudentService : IStudentService
             };
         }
     }
+
 
 }

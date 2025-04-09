@@ -12,7 +12,6 @@ public class CreateLessonRequest
     [Required(ErrorMessage = "Mã người trợ giảng không được bỏ trống")]
     [Range(1, int.MaxValue, ErrorMessage = "Mã người trợ giảng phải lớn hơn 0")]
     public int? UserId { get; set; }
-    [Required(ErrorMessage = "Mã buổi học không được bỏ trống")]
     public string? ClassLessonCode { get; set; }
     [Required(ErrorMessage = "Mô tả không được bỏ trống")]
     public string? Description { get; set; }
