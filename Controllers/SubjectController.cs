@@ -203,7 +203,7 @@ namespace Project_LMS.Controllers
 
             return Ok(new ApiResponse<object>(0, "Lấy danh sách môn học thành công!", result));
         }
-        
+
         [HttpGet("get-all-subjects")]
         public async Task<IActionResult> GetSubjectDropdown()
         {
@@ -214,6 +214,30 @@ namespace Project_LMS.Controllers
                 if (subjects == null || !subjects.Any())
                 {
                     return Ok(new ApiResponse<List<SubjectDropdownResponse>>(1, "Không có môn học nào!", null));
+                }
+
+                return Ok(new ApiResponse<List<SubjectDropdownResponse>>(0, "Lấy danh sách môn học thành công!", subjects));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, $"Lỗi hệ thống: {ex.Message}", null));
+            }
+        }
+        [HttpGet("dropdown-by-subject-group/{subjectGroupId}")]
+        public async Task<IActionResult> GetSubjectDropdownBySubjectGroupId(int subjectGroupId)
+        {
+            if (subjectGroupId <= 0)
+            {
+                return BadRequest(new ApiResponse<object>(1, "SubjectGroupId không hợp lệ."));
+            }
+
+            try
+            {
+                var subjects = await _subjectService.GetSubjectDropdownBySubjectGroupIdAsync(subjectGroupId);
+
+                if (subjects == null || !subjects.Any())
+                {
+                    return Ok(new ApiResponse<List<SubjectDropdownResponse>>(1, "Không có môn học nào thuộc tổ bộ môn này!", null));
                 }
 
                 return Ok(new ApiResponse<List<SubjectDropdownResponse>>(0, "Lấy danh sách môn học thành công!", subjects));

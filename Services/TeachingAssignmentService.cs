@@ -55,7 +55,7 @@ public class TeachingAssignmentService : ITeachingAssignmentService
             var user = await _authService.GetUserAsync();
             if (user == null)
                 throw new UnauthorizedAccessException("Token không hợp lệ hoặc đã hết hạn!");
-
+            
             // Kiểm tra trạng thái Active của người dùng được phân công
             var assignedUser = await _context.Users
             .Where(u => u.Id == request.UserId && (u.IsDelete == false || u.IsDelete == null))

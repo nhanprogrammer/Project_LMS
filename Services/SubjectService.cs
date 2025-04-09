@@ -450,6 +450,37 @@ namespace Project_LMS.Services
                 })
                 .ToListAsync();
         }
+        public async Task<List<SubjectDropdownResponse>> GetSubjectDropdownBySubjectGroupIdAsync(int subjectGroupId)
+        {
+            if (subjectGroupId <= 0)
+            {
+                return new List<SubjectDropdownResponse>();
+            }
+
+            var subjectGroupExists = await _context.SubjectGroups
+                .AnyAsync(sg => sg.Id == subjectGroupId &&
+                              (sg.IsDelete == null || sg.IsDelete == false));
+
+            if (!subjectGroupExists)
+            {
+                return new List<SubjectDropdownResponse>();
+            }
+
+            var subjects = await _context.SubjectGroupSubjects
+                .Where(sgs => sgs.SubjectGroupId == subjectGroupId &&
+                              (sgs.IsDelete == null || sgs.IsDelete == false) &&
+                              sgs.Subject != null &&
+                              (sgs.Subject.IsDelete == null || sgs.Subject.IsDelete == false))
+                .Select(sgs => new SubjectDropdownResponse
+                {
+                    Id = sgs.Subject.Id,
+                    Name = sgs.Subject.SubjectName ?? string.Empty
+                })
+                .Distinct()
+                .ToListAsync();
+
+            return subjects;
+        }
 
     }
 }
