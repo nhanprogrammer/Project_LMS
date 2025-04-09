@@ -185,7 +185,6 @@ namespace Project_LMS.Controllers
             return Ok(new ApiResponse<object>(0, "Lấy danh sách môn học thành công!", result));
         }
 
-        [Authorize(Policy = "DATA-MNG-VIEW")]
         [HttpGet("by-subject-group/{subjectGroupId}")]
         public async Task<IActionResult> GetSubjectsBySubjectGroupId(int subjectGroupId)
         {
