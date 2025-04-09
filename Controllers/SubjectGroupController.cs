@@ -7,7 +7,7 @@ using Project_LMS.Interfaces.Services;
 
 namespace Project_LMS.Controllers;
 
-[Authorize(Policy = "DATA-MNG-VIEW")]
+
 [Route("api/[controller]")]
 [ApiController]
 public class SubjectGroupController : ControllerBase
@@ -19,7 +19,7 @@ public class SubjectGroupController : ControllerBase
         _subjectGroupService = subjectGroupService;
     }
 
-
+[Authorize(Policy = "DATA-MNG-VIEW")]
     [HttpGet]
     public async Task<IActionResult> GetAllDisciplinesAsync(int? pageNumber,
         int? pageSize,
@@ -50,7 +50,7 @@ public class SubjectGroupController : ControllerBase
 
         return Ok(new ApiResponse<SubjectGroupResponse>(response.Status, response.Message, response.Data));
     }
-
+[Authorize(Policy = "DATA-MNG-VIEW")]
     [HttpGet("{id?}")]
     public async Task<IActionResult> UpdateDiscipline(int id)
     {
