@@ -20,8 +20,6 @@ namespace Project_LMS.Authorization
 
         protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, PermissionRequirement requirement)
         {
-            // var userPermissions = context.User.FindAll("Permission").Select(c => c.Value).ToList();
-
             var email = context.User.FindFirstValue(ClaimTypes.Email);
             if (string.IsNullOrWhiteSpace(email))
             {
@@ -40,16 +38,25 @@ namespace Project_LMS.Authorization
 
             var userPermissions = await _permissionService.ListPermission(userId);
 
-            if (requirement.Permission == "TEACHER" || requirement.Permission == "STUDENT")
+            // Kiểm tra xem requirement.Permission có chứa dấu phẩy không
+            if (requirement.Permission.Contains(","))
             {
-                if (userPermissions.Contains("TEACHER") || userPermissions.Contains("STUDENT"))
+                // Tách chuỗi thành mảng các quyền
+                var requiredPermissions = requirement.Permission.Split(',');
+
+                // Logic OR: Nếu user có ít nhất một quyền trong danh sách
+                if (requiredPermissions.Any(perm => userPermissions.Contains(perm.Trim())))
                 {
                     context.Succeed(requirement);
                 }
             }
-            else if (userPermissions.Contains(requirement.Permission))
+            else
             {
-                context.Succeed(requirement);
+                // Logic AND: Trường hợp thông thường với một quyền duy nhất
+                if (userPermissions.Contains(requirement.Permission))
+                {
+                    context.Succeed(requirement);
+                }
             }
         }
     }

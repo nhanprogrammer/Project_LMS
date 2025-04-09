@@ -47,7 +47,10 @@ namespace Project_LMS.Authorization
                     "SUPER-ADMIN",
                     "ADMIN",
                     "TEACHER",
-                    "STUDENT"
+                    "STUDENT",
+
+                    // Quyền này sẽ được kiểm tra tách dấu phẩy trong handler rồi mới kiểm tra lại.
+                    "SUPER-ADMIN,ADMIN,STUDENT,TEACHER"
                 };
 
                 foreach (var permission in permissions)
@@ -55,7 +58,6 @@ namespace Project_LMS.Authorization
                     options.AddPolicy(permission, policy =>
                         policy.Requirements.Add(new PermissionRequirement(permission)));
                 }
-
             });
 
             return services;
