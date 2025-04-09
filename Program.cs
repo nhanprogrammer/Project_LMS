@@ -25,8 +25,6 @@ using FluentValidation.AspNetCore;
 using FluentValidation;
 using Project_LMS.Hubs;
 using Project_LMS.Middleware;
-using Hangfire;
-using Hangfire.PostgreSql;
 using Project_LMS.Controllers;
 using System.IdentityModel.Tokens.Jwt;
 
@@ -53,31 +51,7 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c => { c.SwaggerDoc("v1", new OpenApiInfo { Title = "Project_LMS", Version = "v1" }); });
-builder.Services.AddHangfire(config => config
-    .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
-    .UseSimpleAssemblyNameTypeSerializer()
-    .UseRecommendedSerializerSettings()
-    .UsePostgreSqlStorage(
-        options => options.UseNpgsqlConnection(builder.Configuration.GetConnectionString("DefaultConnection")),
-        new PostgreSqlStorageOptions
-        {
-            QueuePollInterval = TimeSpan.FromSeconds(30),
-            InvisibilityTimeout = TimeSpan.FromMinutes(10),
-            DistributedLockTimeout = TimeSpan.FromMinutes(5),
-            PrepareSchemaIfNecessary = true,
-            EnableTransactionScopeEnlistment = true // Bật TransactionScope
-        }
-    )
-);
 
-builder.Services.AddHangfireServer(options =>
-{
-    options.WorkerCount = 5;                                     // Giảm số lượng workers (mặc định là 20)
-    options.Queues = new[] { "default", "critical" };            // Phân chia hàng đợi theo mức độ ưu tiên
-    options.ServerName = $"{Environment.MachineName}:{Guid.NewGuid()}"; // Đặt tên server
-    options.SchedulePollingInterval = TimeSpan.FromMinutes(1);    // Giảm tần suất kiểm tra lịch
-    options.CancellationCheckInterval = TimeSpan.FromMinutes(5);  // Giảm tần suất kiểm tra hủy
-});
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<ValidationFilter>();
@@ -401,6 +375,5 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-app.UseHangfireDashboard();
 
 app.Run();
