@@ -41,7 +41,7 @@ namespace Project_LMS.Services
 
         public async Task<ApiResponse<object>> ExportExcelTranscriptAsync(TranscriptRequest request)
         {
-            if (request.StudentId == null) {
+            if (request.StudentId == null || request.StudentId == 0) {
                 var user = await _authService.GetUserAsync();
                 if (user != null)
                 {
@@ -447,7 +447,7 @@ namespace Project_LMS.Services
         {
             try
             {
-                if (request.StudentId == null)
+                if (request.StudentId == null || request.StudentId == 0)
                 {
                     // Lấy thông tin người dùng từ AuthService
                     var user = await _authService.GetUserAsync();
