@@ -28,8 +28,9 @@ namespace Project_LMS.Services
         private readonly ICloudinaryService _cloudinaryService;
         private readonly IAssignmentRepository _assignmentRepository;
         private readonly IAuthService _authService;
+        private readonly ISemesterService _semesterService;
 
-        public TranscriptService(IClassStudentRepository classStudentRepository, IStudentRepository studentRepository, ITestExamTypeRepository testExamTypeRepository, ICloudinaryService cloudinaryService, IAssignmentRepository assignmentRepository, IAuthService authService)
+        public TranscriptService(IClassStudentRepository classStudentRepository, IStudentRepository studentRepository, ITestExamTypeRepository testExamTypeRepository, ICloudinaryService cloudinaryService, IAssignmentRepository assignmentRepository, IAuthService authService, ISemesterService semesterService)
         {
             _classStudentRepository = classStudentRepository;
             _studentRepository = studentRepository;
@@ -37,11 +38,12 @@ namespace Project_LMS.Services
             _cloudinaryService = cloudinaryService;
             _assignmentRepository = assignmentRepository;
             _authService = authService;
+            _semesterService = semesterService;
         }
 
         public async Task<ApiResponse<object>> ExportExcelTranscriptAsync(TranscriptRequest request)
         {
-            if (request.StudentId == null)
+            if (request.StudentId == null || request.StudentId == 0)
             {
                 var user = await _authService.GetUserAsync();
                 if (user != null)
@@ -448,7 +450,7 @@ namespace Project_LMS.Services
         {
             try
             {
-                if (request.StudentId == null)
+                if (request.StudentId == null || request.StudentId == 0)
                 {
                     // Lấy thông tin người dùng từ AuthService
                     var user = await _authService.GetUserAsync();
@@ -460,9 +462,10 @@ namespace Project_LMS.Services
                             request.StudentId = studentAuth.Id;
                         }
                     }
+                    Console.WriteLine(user.FullName + " Fullnamene");
                 }
 
-
+                Console.WriteLine(request.StudentId + " StudentIDNEMa");
                 var student = await _studentRepository.FindStudentById(request.StudentId);
                 if (student == null)
                     return new ApiResponse<object>(1, "Học viên không tồn tại.");
@@ -626,46 +629,32 @@ namespace Project_LMS.Services
             // Lấy tất cả ClassStudent của học sinh
             var classStudents = await _classStudentRepository.FindAllClassStudentByUserId(id);
 
-            // Lọc và sắp xếp ClassStudent: chỉ lấy IsActive == true, IsDelete == false, và sắp xếp theo năm học mới nhất
+            // Lọc và sắp xếp ClassStudent
             var filteredClassStudents = classStudents
-                .Where(cs => cs.IsActive == true && (cs.IsDelete == null || cs.IsDelete == false)) // Lọc IsActive == true và IsDelete == false
-                .OrderByDescending(cs => cs.Class?.AcademicYear?.EndDate) // Sắp xếp theo EndDate giảm dần (năm học mới nhất trước)
+                .Where(cs => cs.IsActive == true && (cs.IsDelete == null || cs.IsDelete == false))
+                .OrderByDescending(cs => cs.Class?.AcademicYear?.EndDate)
                 .ToList();
 
             var academicResponse = new List<Dictionary<string, object>>();
-
-            // Biến để theo dõi bản ghi đầu tiên (mới nhất)
             bool isFirstRecord = true;
 
-            // Lặp qua danh sách đã lọc và sắp xếp
             foreach (ClassStudent cs in filteredClassStudents)
             {
-                var semesters = await _assignmentRepository.GetAllByStudentIdAndAcademicId(id, cs.Class.AcademicYearId ?? 0);
+                // Gọi repository method để lấy học kỳ
+                var semesters = await _semesterService.GetSemestersByAcademicYearIdAsync(cs.Class.AcademicYearId ?? 0);
 
-                var orderedSemesters = semesters
-                    .Where(asm => asm.TestExam != null && asm.TestExam.Semesters != null)
-                    .GroupBy(asm => asm.TestExam.Semesters.Id)
-                    .Select(group => new
-                    {
-                        Id = group.Key,
-                        Name = group.First().TestExam.Semesters.Name
-                    })
-                    .OrderBy(asm => asm.Name)
-                    .ToList();
-
-                // Đặt active = true cho bản ghi đầu tiên, false cho các bản ghi còn lại
                 bool active = isFirstRecord;
                 isFirstRecord = false;
 
                 academicResponse.Add(new Dictionary<string, object>
-                {
-                    { "academicId", cs.Class.AcademicYearId },
-                    { "departmentId", cs.Class.DepartmentId },
-                    { "departmentName", cs.Class?.Department?.Name ?? "N/A" },
-                    { "academicDate", cs.Class.AcademicYear?.StartDate?.ToString("yyyy") + " - " + cs.Class.AcademicYear?.EndDate?.ToString("yyyy") },
-                    { "semesters", orderedSemesters },
-                    { "active", active }
-                });
+        {
+            { "academicId", cs.Class.AcademicYearId },
+            { "departmentId", cs.Class.DepartmentId },
+            { "departmentName", cs.Class?.Department?.Name ?? "N/A" },
+            { "academicDate", cs.Class.AcademicYear?.StartDate?.ToString("yyyy") + " - " + cs.Class.AcademicYear?.EndDate?.ToString("yyyy") },
+            { "semesters", semesters },
+            { "active", active }
+        });
             }
 
             return new ApiResponse<object>(0, "Lấy danh sách dropdown thành công.")
