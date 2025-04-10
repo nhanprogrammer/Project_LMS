@@ -678,6 +678,7 @@ public class TeachingAssignmentService : ITeachingAssignmentService
             .Select(t => new TeachingAssignmentResponseCreateUpdate
             {
                 Id = t.Id,
+                ClassCode = t.Class != null ? t.Class.ClassCode : null,
                 UserId = t.UserId,
                 FullName = t.User != null ? t.User.FullName : null,
                 ClassId = t.ClassId,

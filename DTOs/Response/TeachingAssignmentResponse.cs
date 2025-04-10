@@ -1,4 +1,6 @@
-﻿namespace Project_LMS.DTOs.Response
+﻿using System.Text.Json.Serialization;
+
+namespace Project_LMS.DTOs.Response
 {
     public class TeachingAssignmentResponse
     {
@@ -14,6 +16,7 @@
     public class TeachingAssignmentResponseCreateUpdate
     {
         public int Id { get; set; }
+        public string? ClassCode { get; set; } 
         public int? UserId { get; set; }
         public string? FullName { get; set; } // Giảng viên
         public int? ClassId { get; set; }
