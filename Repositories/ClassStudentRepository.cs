@@ -429,5 +429,12 @@ namespace Project_LMS.Repositories
                  && cs.IsDelete == false && cs.Class.IsDelete == false && cs.User.IsDelete == false && cs.Class.Department.IsDelete == false)
                 .ToListAsync();
         }
+
+        public async Task<int> CountByClassId(int classId)
+        {
+            return await _context.ClassStudents
+                .Where(cs => cs.ClassId == classId && cs.IsDelete == false && cs.IsActive == true)
+                .CountAsync();
+        }
     }
 }

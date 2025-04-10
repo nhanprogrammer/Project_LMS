@@ -35,13 +35,28 @@ namespace Project_LMS.Repositories
         /// </summary>
         public async Task<int> GetTotalTeachersAsync(int academicYearId)
         {
-            return await _context.TeachingAssignments
+            // Lấy danh sách giảng viên giảng dạy từ TeachingAssignments
+            var teachingTeachers = await _context.TeachingAssignments
                 .Where(ta => ta.Class != null && ta.Class.AcademicYearId == academicYearId && ta.IsDelete == false)
                 .Select(ta => ta.UserId)
                 .Distinct()
-                .CountAsync();
-        }
+                .ToListAsync();
 
+            // Lấy danh sách giảng viên chủ nhiệm từ Classes
+            var homeroomTeachers = await _context.Classes
+                .Where(c => c.AcademicYearId == academicYearId && c.IsDelete == false && c.UserId != null)
+                .Select(c => c.UserId)
+                .Distinct()
+                .ToListAsync();
+
+            // Gộp hai danh sách và loại bỏ trùng lặp
+            var allTeachers = teachingTeachers
+                .Union(homeroomTeachers)
+                .Distinct();
+
+            // Đếm tổng số giảng viên
+            return allTeachers.Count();
+        }
         /// <summary>
         /// Đếm tổng số lớp học trong một niên khóa.
         /// </summary>

@@ -24,5 +24,6 @@ namespace Project_LMS.Interfaces.Responsitories
         public Task<ClassStudent> GetClassStudentChangeInfo(int userId, int classId);
         public Task<List<ClassStudent>> FindAllStudentByIdIsActive(int studentId);
         public Task<IEnumerable<ClassStudent>> FindStudentByStudentDepartment(int studentId, int departmentId);
+        Task<int> CountByClassId(int classId);
     }
 }
