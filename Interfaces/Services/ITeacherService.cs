@@ -14,6 +14,7 @@ public interface ITeacherService
     public Task<ApiResponse<PaginatedResponse<object>>> GetAllByAcademic(int acadimicId, PaginationRequest request, bool orderBy, string column, string searchItem);
     public Task<ApiResponse<object>> ExportExcelByAcademic(int acadimicId, bool orderBy, string column, string searchItem);
     Task<List<UserResponseTeachingAssignment>> GetTeachersAsync();
+    Task<List<UserResponseTeachingAssignment>> GetTeacherBySubjectIdAsync(int subjectId);
     //public Task<ApiResponse<object>> DropdownDepartmentTeacher();
 
 }

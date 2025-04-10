@@ -405,4 +405,9 @@ public class TeacherService : ITeacherService
     {
         return await _teacherRepository.GetTeachersAsync();
     }
+
+    public async Task<List<UserResponseTeachingAssignment>> GetTeacherBySubjectIdAsync(int subjectId)
+    {
+        return await _teacherRepository.GetTeacherBySubjectIdAsync(subjectId);
+    }
 }
