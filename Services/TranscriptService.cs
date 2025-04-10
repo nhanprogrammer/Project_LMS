@@ -28,9 +28,8 @@ namespace Project_LMS.Services
         private readonly ICloudinaryService _cloudinaryService;
         private readonly IAssignmentRepository _assignmentRepository;
         private readonly IAuthService _authService;
-        private readonly ISemesterService _semesterService;
 
-        public TranscriptService(IClassStudentRepository classStudentRepository, IStudentRepository studentRepository, ITestExamTypeRepository testExamTypeRepository, ICloudinaryService cloudinaryService, IAssignmentRepository assignmentRepository, IAuthService authService, ISemesterService semesterService)
+        public TranscriptService(IClassStudentRepository classStudentRepository, IStudentRepository studentRepository, ITestExamTypeRepository testExamTypeRepository, ICloudinaryService cloudinaryService, IAssignmentRepository assignmentRepository, IAuthService authService)
         {
             _classStudentRepository = classStudentRepository;
             _studentRepository = studentRepository;
@@ -38,13 +37,11 @@ namespace Project_LMS.Services
             _cloudinaryService = cloudinaryService;
             _assignmentRepository = assignmentRepository;
             _authService = authService;
-            _semesterService = semesterService;
         }
 
         public async Task<ApiResponse<object>> ExportExcelTranscriptAsync(TranscriptRequest request)
         {
-            if (request.StudentId == null || request.StudentId == 0)
-            {
+            if (request.StudentId == null) {
                 var user = await _authService.GetUserAsync();
                 if (user != null)
                 {
@@ -56,12 +53,12 @@ namespace Project_LMS.Services
                 }
             }
 
-            var student = await _studentRepository.FindStudentById(request.StudentId);
+            var student = await _studentRepository.FindStudentById(request.StudentId );
             if (student == null)
                 return new ApiResponse<object>(1, "Học viên không tồn tại.");
 
-            var classStudents = await _classStudentRepository.FindStudentByStudentDepartment(student.Id, (int)request.DepartmentId);
-            var classStudent = classStudents.FirstOrDefault(cs => cs.IsClassTransitionStatus == false);
+            var classStudents = await _classStudentRepository.FindStudentByStudent(student.Id);
+            var classStudent = classStudents.OrderByDescending(cs=>cs.Class.AcademicYear.EndDate).FirstOrDefault(cs => cs.IsClassTransitionStatus == false);
             //if (classStudent == null)
             //    return new ApiResponse<object>(1, "Không tìm thấy lớp học của học viên.");
 
@@ -450,7 +447,7 @@ namespace Project_LMS.Services
         {
             try
             {
-                if (request.StudentId == null || request.StudentId == 0)
+                if (request.StudentId == null)
                 {
                     // Lấy thông tin người dùng từ AuthService
                     var user = await _authService.GetUserAsync();
@@ -462,15 +459,14 @@ namespace Project_LMS.Services
                             request.StudentId = studentAuth.Id;
                         }
                     }
-                    Console.WriteLine(user.FullName + " Fullnamene");
                 }
 
-                Console.WriteLine(request.StudentId + " StudentIDNEMa");
+
                 var student = await _studentRepository.FindStudentById(request.StudentId);
                 if (student == null)
                     return new ApiResponse<object>(1, "Học viên không tồn tại.");
 
-                var classStudents = await _classStudentRepository.FindStudentByStudentDepartment(student.Id, request.DepartmentId);
+                var classStudents = await _classStudentRepository.FindStudentByStudent(student.Id);
                 var classStudent = classStudents.FirstOrDefault(cs => cs.IsClassTransitionStatus == false);
 
                 var subjects = classStudent?.Class?.ClassSubjects?.Select(cs => cs.Subject).ToList() ?? new List<Subject?>();
@@ -613,6 +609,7 @@ namespace Project_LMS.Services
 
         }
         public async Task<ApiResponse<object>> DropdownTranscriptStudent()
+
         {
             int id = 0;
             // Lấy thông tin người dùng từ AuthService
@@ -626,33 +623,33 @@ namespace Project_LMS.Services
                 }
             }
 
-            // Lấy tất cả ClassStudent của học sinh
             var classStudents = await _classStudentRepository.FindAllClassStudentByUserId(id);
+            var academicResponse = new List<Dictionary<string, object>>();
 
-            // Lọc và sắp xếp ClassStudent
-            var filteredClassStudents = classStudents
-                .Where(cs => cs.IsActive == true && (cs.IsDelete == null || cs.IsDelete == false))
-                .OrderByDescending(cs => cs.Class?.AcademicYear?.EndDate)
+            foreach (ClassStudent cs in classStudents)
+            {
+                var semesters = await _assignmentRepository.GetAllByStudentIdAndAcademicId(id, cs.Class.AcademicYearId ?? 0);
+
+                var orderedSemesters = semesters
+                .Where(asm => asm.TestExam != null && asm.TestExam.Semesters != null)
+                .GroupBy(asm => asm.TestExam.Semesters.Id)
+                .Select(group => new
+                {
+                    Id = group.Key,
+                    Name = group.First().TestExam.Semesters.Name
+                })
+                .OrderBy(asm => asm.Name)
                 .ToList();
 
-            var academicResponse = new List<Dictionary<string, object>>();
-            bool isFirstRecord = true;
-
-            foreach (ClassStudent cs in filteredClassStudents)
-            {
-                // Gọi repository method để lấy học kỳ
-                var semesters = await _semesterService.GetSemestersByAcademicYearIdAsync(cs.Class.AcademicYearId ?? 0);
-
-                bool active = isFirstRecord;
-                isFirstRecord = false;
+                bool active = cs.IsActive ?? false;
 
                 academicResponse.Add(new Dictionary<string, object>
         {
             { "academicId", cs.Class.AcademicYearId },
             { "departmentId", cs.Class.DepartmentId },
-            { "departmentName", cs.Class?.Department?.Name ?? "N/A" },
+            { "departmentName", cs.Class?.Department?.Name ?? "N/A"},
             { "academicDate", cs.Class.AcademicYear?.StartDate?.ToString("yyyy") + " - " + cs.Class.AcademicYear?.EndDate?.ToString("yyyy") },
-            { "semesters", semesters },
+            { "semesters", orderedSemesters },
             { "active", active }
         });
             }
@@ -662,6 +659,7 @@ namespace Project_LMS.Services
                 Data = academicResponse
             };
         }
+
     }
 }
 
