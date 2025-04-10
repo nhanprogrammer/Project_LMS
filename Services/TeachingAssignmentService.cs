@@ -1,10 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Namespace.DTOs.Response.TopicListResponseDto;
 using NuGet.Protocol;
 using Project_LMS.Data;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Exceptions;
 using Project_LMS.Interfaces;
+using Project_LMS.Interfaces.Responsitories;
 using Project_LMS.Interfaces.Services;
 using Project_LMS.Models;
 
@@ -14,10 +16,15 @@ public class TeachingAssignmentService : ITeachingAssignmentService
 {
     private readonly ApplicationDbContext _context;
     private readonly IAuthService _authService;
-    public TeachingAssignmentService(ApplicationDbContext context, IAuthService authService)
+    private readonly ITopicRepository _topicRepository;
+    private readonly ITeachingAssignmentRepository _teachingAssignmentRepository;   
+    public TeachingAssignmentService(ApplicationDbContext context, IAuthService authService, ITopicRepository topicRepository, ITeachingAssignmentRepository teachingAssignmentRepository)
+
     {
         _context = context;
         _authService = authService;
+        _topicRepository = topicRepository;
+        _teachingAssignmentRepository = teachingAssignmentRepository;
     }
 
     public async Task<TeachingAssignmentResponseCreateUpdate?> GetById(int id)
@@ -747,5 +754,92 @@ public class TeachingAssignmentService : ITeachingAssignmentService
 
         return classes;
     }
+
+    public async Task<ApiResponse<TopicListResponseDto>> GetTopicsByAssignmentIdPaginatedAsync(int teachingAssignmentId, PaginationRequest request)
+    {
+        try
+        {
+            // 1. Lấy thông tin về teachingAssignment
+            var teachingAssignment = await _teachingAssignmentRepository.GetByIdWithDetailsAsync(teachingAssignmentId);
+
+            if (teachingAssignment == null)
+            {
+                return new ApiResponse<TopicListResponseDto>(1, "Không tìm thấy thông tin phân công giảng dạy");
+            }
+
+            // 2. Lấy tổng số bản ghi và dữ liệu phân trang
+            var totalItems = await _topicRepository.CountByAssignmentIdAsync(teachingAssignmentId);
+
+            if (totalItems == 0)
+            {
+                // Vẫn tạo response với danh sách trống
+                var emptyResponse = new TopicListResponseDto
+                {
+                    TeacherName = teachingAssignment.User?.FullName,
+                    ClassName = teachingAssignment.Class?.Name,
+                    SubjectName = teachingAssignment.Subject?.SubjectName,
+                    TopicItems = new PaginatedResponse<TopicItemDto>
+                    {
+                        Items = new List<TopicItemDto>(),
+                        PageNumber = request.PageNumber,
+                        PageSize = request.PageSize,
+                        TotalItems = 0,
+                        TotalPages = 0,
+                        HasNextPage = false,
+                        HasPreviousPage = false
+                    }
+                };
+
+                return new ApiResponse<TopicListResponseDto>(0, "Không có dữ liệu chủ đề", emptyResponse);
+            }
+
+            // 3. Lấy danh sách topics theo phân trang
+            var topics = await _topicRepository.GetByAssignmentIdPaginatedAsync(
+                teachingAssignmentId,
+                request.PageNumber,
+                request.PageSize);
+
+            // 4. Chuyển đổi topics thành TopicItemDto
+            var topicItems = topics.Select(t => new TopicItemDto
+            {
+                TopicId = t.Id,
+                Title = t.Title,
+                Description = t.Description,
+                CloseAt = t.CloseAt,
+            }).ToList();
+
+            // 5. Tính toán thông tin phân trang
+            int totalPages = (int)Math.Ceiling(totalItems / (double)request.PageSize);
+
+            // 6. Tạo PaginatedResponse cho TopicItems
+            var paginatedTopics = new PaginatedResponse<TopicItemDto>
+            {
+                Items = topicItems,
+                PageNumber = request.PageNumber,
+                PageSize = request.PageSize,
+                TotalItems = totalItems,
+                TotalPages = totalPages,
+                HasPreviousPage = request.PageNumber > 1,
+                HasNextPage = request.PageNumber < totalPages
+            };
+
+            // 7. Tạo và trả về kết quả cuối cùng
+            var result = new TopicListResponseDto
+            {
+                TeacherName = teachingAssignment.User?.FullName,
+                ClassName = teachingAssignment.Class?.Name,
+                SubjectName = teachingAssignment.Subject?.SubjectName,
+                TopicItems = paginatedTopics
+            };
+
+            return new ApiResponse<TopicListResponseDto>(0, "Lấy dữ liệu thành công!", result);
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse<TopicListResponseDto>(1, "Đã xảy ra lỗi khi lấy dữ liệu chủ đề");
+        }
+    }
+
+
 
 }

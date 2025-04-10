@@ -4,5 +4,6 @@ namespace Project_LMS.Interfaces.Responsitories
     public interface ITeachingAssignmentRepository
     {
         public Task<List<TeachingAssignment>> GetAllByClasses(List<int> classIds);
+        public Task<TeachingAssignment> GetByIdWithDetailsAsync(int teachingAssignmentId);
     }
 }
