@@ -244,7 +244,7 @@ namespace Project_LMS.Repositories
             )
                 .ToListAsync(); // Thay đổi FirstOrDefaultAsync thành ToListAsync
         }
-        public async Task<List<ClassStudent>> FindStudentByStudentAcademic(int studentId, int academicId)
+        public async Task<List<ClassStudent>> FindStudentByStudent(int studentId)
         {
             return await _context.ClassStudents
                  .Include(cs => cs.User).ThenInclude(u => u.Assignments).ThenInclude(asm => asm.TestExam).ThenInclude(te => te.TestExamType)
@@ -254,7 +254,7 @@ namespace Project_LMS.Repositories
                  .Include(cs => cs.Class).ThenInclude(c => c.User)
                  .Include(cs => cs.Class).ThenInclude(c => c.ClassSubjects).ThenInclude(cs => cs.Subject)
                  .Include(cs => cs.Class).ThenInclude(c => c.TeachingAssignments).ThenInclude(t => t.User)
-                 .Where(cs => cs.UserId == studentId && cs.IsDelete == false && cs.Class.IsDelete == false).ToListAsync();
+                 .Where(cs => cs.UserId == studentId && cs.IsDelete == false && cs.Class.IsDelete == false && cs.IsActive ==true).ToListAsync();
         }
 
         public async Task<List<ClassStudent>> GetAllByClasses(List<int> ids, PaginationRequest request, string column, bool orderBy, string searchTerm = null)
@@ -438,3 +438,5 @@ namespace Project_LMS.Repositories
         }
     }
 }
+
+
