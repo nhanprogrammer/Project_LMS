@@ -311,21 +311,21 @@ public class MappingProfile : Profile
         CreateMap<SchoolTransfer, SchoolTransferResponse>();
 
         CreateMap<SubjectGroup, SubjectGroupResponse>()
-            .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
-            .ForMember(dest => dest.FullName,
-                opt => opt.MapFrom(src => src.User != null ? src.User.FullName : "Unknown"))
-            .ForMember(dest => dest.Subjects, opt => opt.MapFrom(src =>
-                src.SubjectGroupSubjects != null && src.SubjectGroupSubjects.Any()
-                    ? src.SubjectGroupSubjects
-                        .Where(sgs => sgs.SubjectGroupId == src.Id)
-                        .Select(sgs => new SubjectInfo
-                        {
-                            Id = sgs.Id,
-                            SubjectCode = sgs.Subject != null ? sgs.Subject.SubjectCode : "Unknown",
-                            SubjectName = sgs.Subject != null ? sgs.Subject.SubjectName : "Unknown"
-                        }).ToList()
-                    : new List<SubjectInfo>()
-            ));
+    .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
+    .ForMember(dest => dest.FullName,
+        opt => opt.MapFrom(src => src.User != null ? src.User.FullName : "Unknown"))
+    .ForMember(dest => dest.Subjects, opt => opt.MapFrom(src =>
+        src.SubjectGroupSubjects != null && src.SubjectGroupSubjects.Any()
+            ? src.SubjectGroupSubjects
+                .Where(sgs => (sgs.IsDelete == null || sgs.IsDelete == false) && sgs.Subject != null)
+                .Select(sgs => new SubjectInfo
+                {
+                    Id = sgs.Id, 
+                    SubjectCode = sgs.Subject.SubjectCode ?? "Unknown",
+                    SubjectName = sgs.Subject.SubjectName ?? "Unknown"
+                }).ToList()
+            : new List<SubjectInfo>()
+    ));
 
 
         CreateMap<CreateSubjectGroupRequest, SubjectGroup>()
