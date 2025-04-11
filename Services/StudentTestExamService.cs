@@ -280,6 +280,7 @@ public class StudentTestExamService : IStudentTestExamService
                         ? testExam.StartDate.Value.ToString("dddd, 'ngày' dd-MM-yyyy, HH:mm",
                             new System.Globalization.CultureInfo("vi-VN"))
                         : string.Empty,
+                    Title = "Để A"
                 };
 
                 if (q.QuestionType == "trắc nghiệm")
@@ -321,6 +322,15 @@ public class StudentTestExamService : IStudentTestExamService
         {
             return new ApiResponse<object>(1, $"User {UserId} không có bài kiểm tra {request.TestExamId}", null);
         }
+        
+        var existingAssignment = await _context.Assignments
+            .FirstOrDefaultAsync(a => a.UserId == UserId && a.TestExamId == request.TestExamId && a.IsSubmit==true);
+
+        if (existingAssignment != null)
+        {
+            return new ApiResponse<object>(1, "Bạn đã nộp bài kiểm tra này rồi và không thể nộp lại.", null);
+        }
+
 
         // ✅ Kiểm tra thời gian hợp lệ
         var testExam = await _context.TestExams.FirstOrDefaultAsync(ts => ts.Id == request.TestExamId);
@@ -346,7 +356,7 @@ public class StudentTestExamService : IStudentTestExamService
 
         // Retrieve all questions for the TestExamId
         var questions = await _context.Questions
-            .Where(q => q.TestExamId == request.TestExamId)
+            .Where(q => q.TestExamId == request.TestExamId && q.QuestionType == "trắc nghiệm")
             .ToListAsync();
 
         if (questions.Count == 0)
