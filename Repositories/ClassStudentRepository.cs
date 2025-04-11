@@ -374,7 +374,8 @@ namespace Project_LMS.Repositories
             .Include(cs => cs.Class != null ? cs.Class.AcademicYear : null)
             .Include(cs => cs.Class != null ? cs.Class.Department : null)
             .Include(cs => cs.Class != null ? cs.Class.ClassSubjects : null)
-            .Where(cs => cs.UserId == userId && cs.IsDelete == false)
+            .Where(cs => cs.UserId == userId && cs.IsDelete == false && cs.Class != null && cs.Class.IsDelete == false
+            && cs.IsActive == true && cs.IsDelete == false)
             .ToListAsync(); ;
         }
         public async Task<ClassStudent?> FindByUserIdAndSchoolYearAndClassId(int userId, int schoolYearId, int classId)
