@@ -9,7 +9,7 @@ using Project_LMS.Interfaces.Responsitories;
 
 namespace Project_LMS.Repositories
 {
-    public class SubjectGroupRepository :ISubjectGroupRepository
+    public class SubjectGroupRepository : ISubjectGroupRepository
     {
         private readonly ApplicationDbContext _context;
 
@@ -20,15 +20,28 @@ namespace Project_LMS.Repositories
 
         public async Task<SubjectGroup> GetByIdAsync(int id)
         {
-            return await _context.SubjectGroups
-                .Include(sg => sg.SubjectGroupSubjects.Where(sgs => sgs.IsDelete == false))  
+            var subjectGroup = await _context.SubjectGroups
+                .Include(sg => sg.SubjectGroupSubjects
+                .Where(sgs => (sgs.IsDelete == null || sgs.IsDelete == false) && sgs.Subject != null))
                 .ThenInclude(sgs => sgs.Subject)
-                .Include(sg=>sg.User)
-                .FirstOrDefaultAsync(sg => sg.Id == id) ?? throw new InvalidOperationException("SubjectGroup not found");
+                .Include(sg => sg.User)
+                .FirstOrDefaultAsync(sg => sg.Id == id && (sg.IsDelete == null || sg.IsDelete == false))
+                ?? throw new InvalidOperationException("SubjectGroup not found");
+
+            if (subjectGroup.User == null)
+            {
+                throw new InvalidOperationException("User associated with SubjectGroup not found");
+            }
+            foreach (var subjectGroupSubject in subjectGroup.SubjectGroupSubjects)
+            {
+                System.Console.WriteLine($"SubjectGroupSubject1111: {subjectGroupSubject.SubjectId}, Subject: {subjectGroupSubject.Subject?.SubjectName}");
+            }
+
+            return subjectGroup;
         }
-        
-      
-        
+
+
+
         public async Task SaveAsync()
         {
             await _context.SaveChangesAsync();
@@ -64,7 +77,7 @@ namespace Project_LMS.Repositories
                 entity.IsDelete = true;
                 _context.SubjectGroups.Update(entity);
                 var relatedSubjects = _context.SubjectGroupSubjects.Where(sgs => sgs.SubjectGroupId == id);
-              _context.SubjectGroupSubjects.RemoveRange(relatedSubjects);
+                _context.SubjectGroupSubjects.RemoveRange(relatedSubjects);
                 await _context.SaveChangesAsync();
             }
         }

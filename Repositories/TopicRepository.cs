@@ -783,5 +783,64 @@ namespace Project_LMS.Repositories
                    latestRecord.IsDelete == false &&
                    latestRecord.IsActive == true;
         }
+        public async Task<int> CountByAssignmentIdAsync(int teachingAssignmentId)
+        {
+            return await _context.Topics
+                .Where(t => t.TeachingAssignmentId == teachingAssignmentId && t.IsDelete == false)
+                .CountAsync();
+        }
+
+        public async Task<List<Topic>> GetByAssignmentIdPaginatedAsync(
+            int teachingAssignmentId,
+            int pageNumber,
+            int pageSize,
+            string? column = null,
+            bool orderBy = true,
+            string? searchItem = null)
+        {
+            // Bắt đầu với truy vấn cơ bản
+            var query = _context.Topics
+       .Include(t => t.TeachingAssignment)
+           .ThenInclude(ta => ta.User)
+       .Include(t => t.TeachingAssignment)
+           .ThenInclude(ta => ta.Class)
+       .Include(t => t.TeachingAssignment)
+           .ThenInclude(ta => ta.Subject)
+       .Where(t => t.TeachingAssignmentId == teachingAssignmentId && t.IsDelete == false);
+
+            // Sau đó mới áp dụng các điều kiện khác
+            if (!string.IsNullOrEmpty(searchItem))
+            {
+                query = query.Where(t =>
+                    t.Title.Contains(searchItem) ||
+                    t.Description.Contains(searchItem));
+            }
+
+            // Áp dụng Order cuối cùng
+            if (!string.IsNullOrEmpty(column))
+            {
+                switch (column.ToLower())
+                {
+                    case "id":
+                        query = orderBy
+                            ? query.OrderBy(t => t.Id)
+                            : query.OrderByDescending(t => t.Id);
+                        break;
+                        // Các trường hợp khác...
+                }
+            }
+            else
+            {
+                query = orderBy
+                    ? query.OrderBy(t => t.Id)
+                    : query.OrderByDescending(t => t.Id);
+            }
+
+            // Áp dụng phân trang và thực thi truy vấn
+            return await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+        }
     }
 }

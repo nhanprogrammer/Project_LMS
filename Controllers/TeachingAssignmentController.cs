@@ -137,16 +137,23 @@ namespace Project_LMS.Controllers
         }
 
         [HttpGet("topics")]
-        public async Task<IActionResult> GetTopicsByAssignment([FromQuery] int TeachingAssignmentId)
+        public async Task<IActionResult> GetTopicsByAssignment([FromQuery] int TeachingAssignmentId, [FromQuery] PaginationRequest request)
         {
-            var topics = await _service.GetTopicsByAssignmentIdAsync(TeachingAssignmentId);
-
-            if (topics == null || !topics.Any())
+            // Kiểm tra và thiết lập giá trị mặc định cho request phân trang nếu null
+            request ??= new PaginationRequest
             {
-                return BadRequest(new ApiResponse<object>(1, "Không tìm thấy dữ liệu chủ đề"));
+                PageNumber = 1,
+                PageSize = 10,
+            };
+
+            var result = await _service.GetTopicsByAssignmentIdPaginatedAsync(TeachingAssignmentId, request);
+
+            if (result.Status != 0)
+            {
+                return BadRequest(result);
             }
 
-            return Ok(new ApiResponse<object>(0, "Lấy dữ liệu thành công!", topics));
+            return Ok(result);
         }
     }
 }

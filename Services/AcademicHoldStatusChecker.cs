@@ -1,21 +1,61 @@
 using Microsoft.EntityFrameworkCore;
 using Project_LMS.Data;
 using Project_LMS.Models;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Project_LMS.Services
 {
-    public class AcademicHoldStatusCheckerJob
+    public class AcademicHoldStatusCheckerService : BackgroundService
     {
         private readonly IServiceScopeFactory _serviceScopeFactory;
-        private readonly ILogger<AcademicHoldStatusCheckerJob> _logger;
+        private readonly ILogger<AcademicHoldStatusCheckerService> _logger;
 
-        public AcademicHoldStatusCheckerJob(IServiceScopeFactory serviceScopeFactory, ILogger<AcademicHoldStatusCheckerJob> logger)
+        public AcademicHoldStatusCheckerService(
+            IServiceScopeFactory serviceScopeFactory,
+            ILogger<AcademicHoldStatusCheckerService> logger)
         {
             _serviceScopeFactory = serviceScopeFactory;
             _logger = logger;
         }
 
-        public async Task ExecuteAsync(CancellationToken stoppingToken)
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            _logger.LogInformation("AcademicHoldStatusCheckerService đã khởi động.");
+
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                // Tính thời gian chờ đến 22:07
+                var now = DateTime.Now;
+                var nextRun = now.Date.AddDays(1); // 00:00 của ngày hôm sau
+                if (now.Hour < 0) // Nếu chưa đến 12h đêm hôm nay, chạy vào 12h đêm hôm nay
+                {
+                    nextRun = now.Date; // 00:00 của ngày hiện tại
+                }
+
+                var delay = nextRun - now;
+                _logger.LogInformation("Chờ đến {NextRun} để chạy kiểm tra trạng thái bảo lưu. Thời gian chờ: {Delay}", nextRun, delay);
+
+                // Chuyển delay thành milliseconds và đảm bảo không âm
+                int delayMilliseconds = (int)delay.TotalMilliseconds;
+                if (delayMilliseconds < 0)
+                {
+                    _logger.LogWarning("Thời gian chờ âm ({DelayMilliseconds} ms), điều chỉnh để chạy ngay lập tức.", delayMilliseconds);
+                    delayMilliseconds = 0;
+                }
+
+                // Chờ đến thời điểm chạy
+                await Task.Delay(delayMilliseconds, stoppingToken);
+
+                // Thực thi logic kiểm tra trạng thái bảo lưu
+                await CheckAcademicHoldStatus(stoppingToken);
+            }
+
+            _logger.LogInformation("AcademicHoldStatusCheckerService đã dừng.");
+        }
+
+        private async Task CheckAcademicHoldStatus(CancellationToken stoppingToken)
         {
             _logger.LogInformation("Bắt đầu kiểm tra trạng thái bảo lưu tại thời điểm: {Now}", DateTime.UtcNow);
 

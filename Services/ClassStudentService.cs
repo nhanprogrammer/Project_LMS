@@ -112,7 +112,7 @@ namespace Project_LMS.Services
                 await _classStudentRepository.GetAllByClasses(classesId, request, column, orderBy, searchItem);
             if (classStudents == null || !classStudents.Any())
             {
-                return new ApiResponse<PaginatedResponse<object>>(3, "No class students found.")
+                return new ApiResponse<PaginatedResponse<object>>(1, "No class students found.")
                 {
                     Data = new PaginatedResponse<object> { Items = new List<object>() }
                 };

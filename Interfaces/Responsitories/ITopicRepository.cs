@@ -12,4 +12,12 @@ public interface ITopicRepository
     Task<bool> DeleteTopic(int userId, int teachingAssignmentId, int id);
     Task<IEnumerable<TopicResponse>> SearchTopic(int userId, int teachingAssignmentId, string? keyword);
     Task<bool> IsUserInClassAsync(int userId, int classId);
+    Task<int> CountByAssignmentIdAsync(int teachingAssignmentId);
+     Task<List<Topic>> GetByAssignmentIdPaginatedAsync(
+        int teachingAssignmentId,
+        int pageNumber,
+        int pageSize,
+        string? column = null,
+        bool orderBy = true,
+        string? searchItem = null);
 }

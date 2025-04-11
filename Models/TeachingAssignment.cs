@@ -23,7 +23,7 @@ namespace Project_LMS.Models
         public int? UserUpdate { get; set; }
         public bool? IsDelete { get; set; }
         public string? Description { get; set; }
-        public virtual Class? Class { get; set; }
+        public virtual Class Class { get; set; } = new Class();
         public virtual Subject? Subject { get; set; }
         public virtual User? User { get; set; }
         public virtual ICollection<QuestionAnswer> QuestionAnswers { get; set; }

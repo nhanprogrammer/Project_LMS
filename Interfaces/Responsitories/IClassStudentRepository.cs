@@ -14,7 +14,7 @@ namespace Project_LMS.Interfaces.Responsitories
         public Task<ClassStudent> FindClassStudentByUserCodeClassId(string userCode, int classId);
         public Task<ClassStudent> FindStudentByClassAndStudent(int classId, int studentId);
         public Task<ClassStudent> FindStudentByIdIsActive(int studentId);
-        public Task<List<ClassStudent>> FindStudentByStudentAcademic(int studentId, int academicId);
+        public Task<List<ClassStudent>> FindStudentByStudent(int studentId);
         Task<ClassStudent?> FindByUserId(int userId);
         public Task<List<ClassStudent>> FindAllClassStudentByUserId(int userId);
         Task<ClassStudent?> FindByUserIdAndSchoolYearAndClassId(int userId, int schoolYearId, int classId);
@@ -23,6 +23,6 @@ namespace Project_LMS.Interfaces.Responsitories
         public Task AddChangeClassAsync(ClassStudentRequest request);
         public Task<ClassStudent> GetClassStudentChangeInfo(int userId, int classId);
         public Task<List<ClassStudent>> FindAllStudentByIdIsActive(int studentId);
-        public Task<IEnumerable<ClassStudent>> FindStudentByStudentDepartment(int studentId, int departmentId);
+        Task<int> CountByClassId(int classId);
     }
 }

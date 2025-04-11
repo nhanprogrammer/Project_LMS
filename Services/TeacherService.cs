@@ -296,28 +296,50 @@ public class TeacherService : ITeacherService
             Console.WriteLine($"Error sending email to {email}: {ex.Message}");
         }
     }
-
-    public async Task<ApiResponse<PaginatedResponse<object>>> GetAllByAcademic(int acadimicId, PaginationRequest request, bool orderBy, string column, string searchItem)
+    public async Task<ApiResponse<PaginatedResponse<object>>> GetAllByAcademic(int academicId, PaginationRequest request, bool orderBy, string column, string searchItem)
     {
-        var classes = await _classRepository.GetAllClassByAcademic(acadimicId);
-        var teachingAssignment = await _assignmentRepository.GetAllByClasses(classes.Select(c => c.Id).ToList());
-        var teacherIds = teachingAssignment.Select(a => (int)a.UserId).ToList();
-        var teachers = await _teacherRepository.GetAllByIds(teacherIds, request, orderBy, column, searchItem);
-        var teacherResponse = teachers.Select(t => (object)new
+        // Lấy danh sách các lớp thuộc niên khóa
+        var classes = await _classRepository.GetAllClassByAcademic(academicId);
+
+        // Lấy danh sách giáo viên phân công giảng dạy từ TeachingAssignment
+        var teachingAssignments = await _assignmentRepository.GetAllByClasses(classes.Select(c => c.Id).ToList());
+        var teachingAssignmentTeacherIds = teachingAssignments.Select(a => (int)a.UserId).Distinct().ToList();
+
+        // Lấy danh sách giáo viên chủ nhiệm từ Class
+        var homeroomTeacherIds = classes
+            .Where(c => c.UserId.HasValue)
+            .Select(c => c.UserId.Value)
+            .Distinct()
+            .ToList();
+
+        // Hợp nhất danh sách giáo viên chủ nhiệm và giáo viên phân công giảng dạy
+        var allTeacherIds = teachingAssignmentTeacherIds
+            .Union(homeroomTeacherIds)
+            .ToList();
+
+        // Lấy thông tin giáo viên từ danh sách ID
+        var teachers = await _teacherRepository.GetAllByIds(allTeacherIds, request, orderBy, column, searchItem);
+
+        // Chuẩn bị dữ liệu phản hồi
+        var teacherResponse = teachers.Select(t => new
         {
             t.UserCode,
             t.FullName,
             t.BirthDate,
-            gender = (t?.Gender != null && t.Gender.Length > 0) ? t.Gender[0] : false,
-            t?.SubjectGroup?.Name,
+            Gender = (t?.Gender != null && t.Gender.Length > 0) ? t.Gender[0] : false,
+            SubjectGroupName = t?.SubjectGroup?.Name,
             t?.Ethnicity,
-            roleName = t?.Role?.Name,
-            t?.TeacherStatus?.StatusName
+            RoleName = t?.Role?.Name,
+            TeacherStatusName = t?.TeacherStatus?.StatusName
         }).ToList();
-        int totalItems = await _teacherRepository.CountByClasses(teacherIds, searchItem);
+
+        // Tính tổng số lượng giáo viên
+        int totalItems = await _teacherRepository.CountByClasses(allTeacherIds, searchItem);
+
+        // Chuẩn bị dữ liệu phân trang
         var paginatedResponse = new PaginatedResponse<object>
         {
-            Items = teacherResponse,
+            Items = teacherResponse.Cast<object>().ToList(),
             PageNumber = request.PageNumber,
             PageSize = request.PageSize,
             TotalItems = totalItems,
@@ -325,12 +347,12 @@ public class TeacherService : ITeacherService
             HasPreviousPage = request.PageNumber > 1,
             HasNextPage = request.PageNumber < (int)Math.Ceiling(totalItems / (double)request.PageSize)
         };
+
         return new ApiResponse<PaginatedResponse<object>>(0, "Lấy danh sách giảng viên thành công")
         {
             Data = paginatedResponse
         };
     }
-
     public async Task<ApiResponse<object>> ExportExcelByAcademic(int acadimicId, bool orderBy, string column, string searchItem)
     {
         var classes = await _classRepository.GetAllClassByAcademic(acadimicId);
@@ -382,5 +404,10 @@ public class TeacherService : ITeacherService
     public async Task<List<UserResponseTeachingAssignment>> GetTeachersAsync()
     {
         return await _teacherRepository.GetTeachersAsync();
+    }
+
+    public async Task<List<UserResponseTeachingAssignment>> GetTeacherBySubjectIdAsync(int subjectId)
+    {
+        return await _teacherRepository.GetTeacherBySubjectIdAsync(subjectId);
     }
 }

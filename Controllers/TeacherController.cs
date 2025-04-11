@@ -4,12 +4,11 @@ using Microsoft.AspNetCore.Mvc;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 using Project_LMS.Interfaces.Services;
-using Project_LMS.DTOs.Response;
 
 
 namespace Project_LMS.Controllers
 {
-    [Authorize(Policy = "TEACHER-REC-VIEW")]
+
     [Route("api/[controller]")]
     [ApiController]
     public class TeacherController : ControllerBase
@@ -23,6 +22,7 @@ namespace Project_LMS.Controllers
             _studentService = studentService;
         }
 
+        [Authorize(Policy = "TEACHER-REC-VIEW")]
         [HttpGet("{usercode}")]
         public async Task<IActionResult> GetByUserCode(string? usercode)
         {
@@ -83,6 +83,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "TEACHER-REC-VIEW")]
         [HttpGet("getall")]
         public async Task<IActionResult> GetAll(int academicId, [FromQuery] PaginationRequest request, bool orderBy, string column)
         {
@@ -97,6 +98,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "TEACHER-REC-VIEW")]
         [HttpGet("getall/search")]
         public async Task<IActionResult> GetAllSearch(int academicId, [FromQuery] PaginationRequest request, bool orderBy, string column, string searchItem)
         {
@@ -111,6 +113,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "TEACHER-REC-VIEW")]
         [HttpGet("getall/export")]
         public async Task<IActionResult> ExportExcel(int academicId, bool orderBy, string column)
         {
@@ -125,6 +128,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "TEACHER-REC-VIEW")]
         [HttpGet("getall/export/search")]
         public async Task<IActionResult> ExportExcelSearch(int academicId, bool orderBy, string column, string searchItem)
         {
@@ -139,6 +143,7 @@ namespace Project_LMS.Controllers
             }
         }
 
+        [Authorize(Policy = "TEACHER-REC-VIEW")]
         [HttpGet("generateusercode")]
         public async Task<IActionResult> GenerateUsercode()
         {
@@ -155,6 +160,7 @@ namespace Project_LMS.Controllers
                 return StatusCode(500, $"Lỗi server: {ex.Message}");
             }
         }
+
         [HttpGet("get-all-teachers")]
         public async Task<ActionResult<ApiResponse<List<UserResponseTeachingAssignment>>>> GetTeachers()
         {
@@ -174,5 +180,27 @@ namespace Project_LMS.Controllers
                 return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi khi lấy danh sách giảng viên.", ex.Message));
             }
         }
+
+        [HttpGet("get-all-teacher-by-subjectId/{subjectId}")]
+        public async Task<ActionResult<ApiResponse<List<UserResponseTeachingAssignment>>>>
+GetTeacherBySubjectId(int subjectId)
+        {
+            try
+            {
+                var teacher = await _teacherService.GetTeacherBySubjectIdAsync(subjectId);
+
+                if (teacher == null)
+                {
+                    return Ok(new ApiResponse<List<UserResponseTeachingAssignment>>(1, "Không có giảng viên nào.", null));
+                }
+
+                return Ok(new ApiResponse<List<UserResponseTeachingAssignment>>(0, "Lấy danh sách giảng viên thành công!", teacher));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(1, "Đã xảy ra lỗi khi lấy danh sách giảng viên.", ex.Message));
+            }
+        }
+
     }
 }

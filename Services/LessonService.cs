@@ -123,10 +123,8 @@ namespace Project_LMS.Services
                 // Kiểm tra người trợ giảng không phải là người tạo buổi học
                 if (request.UserId == user.Id)
                     return new ApiResponse<LessonResponse>(1, "Người trợ giảng không thể là người tạo buổi học", null);
-                var teachingAssignmentToLesson = await _context.TeachingAssignments
-                .FirstOrDefaultAsync(ta => ta.UserId == user.Id &&
-                              ta.Id == request.TeachingAssignmentId &&
-                              (ta.IsDelete == false || ta.IsDelete == null));
+
+                // Kiểm tra trợ giảng có tồn tại và có quyền dạy môn học không
                 var assistant = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.UserId && (!u.IsDelete.HasValue || !u.IsDelete.Value));
                 if (assistant == null)
                 {
@@ -137,23 +135,22 @@ namespace Project_LMS.Services
                 {
                     return new ApiResponse<LessonResponse>(1, "Trợ giảng phải là giáo viên", null);
                 }
+
+                // Kiểm tra phân công giảng dạy
+                var teachingAssignmentToLesson = await _context.TeachingAssignments
+                    .FirstOrDefaultAsync(ta => ta.UserId == user.Id &&
+                                               ta.Id == request.TeachingAssignmentId &&
+                                               (ta.IsDelete == false || ta.IsDelete == null));
+
                 if (teachingAssignmentToLesson == null)
                     return new ApiResponse<LessonResponse>(1, "Bạn không được phân công giảng dạy lớp học này. Không thể tạo buổi học.", null);
 
-                // Nếu không truyền ClassLessonCode, tự động generate
-                if (string.IsNullOrWhiteSpace(request.ClassLessonCode))
-                {
-                    request.ClassLessonCode = await _codeGeneratorService.GenerateCodeAsync("CLS", async (code) =>
-                    {
-                        return await _context.Lessons.AnyAsync(cl => cl.ClassLessonCode == code);
-                    });
-                }
                 // Validate ClassLessonCode uniqueness
                 if (!string.IsNullOrEmpty(request.ClassLessonCode))
                 {
                     var existingLesson = await _context.Lessons
                         .FirstOrDefaultAsync(l => l.ClassLessonCode == request.ClassLessonCode &&
-                                                (!l.IsDelete.HasValue || !l.IsDelete.Value));
+                                                  (!l.IsDelete.HasValue || !l.IsDelete.Value));
                     if (existingLesson != null)
                     {
                         return new ApiResponse<LessonResponse>(1, "Mã bài học đã tồn tại", null);
@@ -167,49 +164,29 @@ namespace Project_LMS.Services
 
                 if (teachingAssignment == null)
                     return new ApiResponse<LessonResponse>(1, "Không tìm thấy phân công giảng dạy", null);
-
-                // Validate lesson time within TeachingAssignment time range 
+                // Kiểm tra quyền dạy môn học của trợ giảng
+                var teacherSubjectExists = await _context.TeacherClassSubjects
+                    .AnyAsync(tcs => tcs.UserId == request.UserId &&
+                                     tcs.SubjectsId == teachingAssignment.SubjectId &&
+                                     (!tcs.IsDelete.HasValue || !tcs.IsDelete.Value));
+                if (!teacherSubjectExists)
+                {
+                    return new ApiResponse<LessonResponse>(1, "Trợ giảng không được phép dạy môn học này", null);
+                }
+                // Nếu không truyền ClassLessonCode, tự động generate
+                if (string.IsNullOrWhiteSpace(request.ClassLessonCode))
+                {
+                    request.ClassLessonCode = await _codeGeneratorService.GenerateCodeAsync("CLS", async (code) =>
+                    {
+                        return await _context.Lessons.AnyAsync(cl => cl.ClassLessonCode == code);
+                    });
+                }
+                // Validate lesson time within TeachingAssignment time range
                 if (request.StartDate < teachingAssignment.StartDate || request.EndDate > teachingAssignment.EndDate)
                 {
                     return new ApiResponse<LessonResponse>(1,
                         $"Thời gian buổi học phải nằm trong khoảng thời gian của phân công giảng dạy " +
                         $"({teachingAssignment.StartDate:dd/MM/yyyy HH:mm} - {teachingAssignment.EndDate:dd/MM/yyyy HH:mm})", null);
-                }
-
-                // Kiểm tra trùng lịch của người trợ giảng
-                var assistantScheduleConflict = await _context.Lessons
-                    .Where(l =>
-                        (!l.IsDelete.HasValue || !l.IsDelete.Value) &&
-                        (
-                            // Kiểm tra cả vai trò trợ giảng và giảng viên
-                            l.UserId == request.UserId || // Là trợ giảng
-                            l.TeachingAssignment.UserId == request.UserId // Là giảng viên
-                        ) &&
-                        (
-                            (request.StartDate >= l.StartDate && request.StartDate <= l.EndDate) ||
-                            (request.EndDate >= l.StartDate && request.EndDate <= l.EndDate) ||
-                            (request.StartDate <= l.StartDate && request.EndDate >= l.EndDate)
-                        )
-                    )
-                    .AnyAsync();
-
-                if (assistantScheduleConflict)
-                {
-                    return new ApiResponse<LessonResponse>(1,
-                        "Người trợ giảng đã có lịch dạy hoặc trợ giảng trong khung giờ này", null);
-                }
-
-                // Validate lesson time overlap with other lessons
-                var hasOverlap = teachingAssignment.Lessons.Any(l =>
-                    (request.StartDate >= l.StartDate && request.StartDate <= l.EndDate) ||
-                    (request.EndDate >= l.StartDate && request.EndDate <= l.EndDate) ||
-                    (request.StartDate <= l.StartDate && request.EndDate >= l.EndDate)
-                );
-
-                if (hasOverlap)
-                {
-                    return new ApiResponse<LessonResponse>(1,
-                        "Thời gian buổi học trùng với buổi học khác trong cùng phân công giảng dạy", null);
                 }
 
                 // Create new lesson
@@ -252,9 +229,7 @@ namespace Project_LMS.Services
                 if (request.UserId == user.Id)
                     return new ApiResponse<LessonResponse>(1, "Người trợ giảng không thể là người cập nhật buổi học", null);
                 var teachingAssignmentToLesson = await _context.TeachingAssignments
-                .FirstOrDefaultAsync(ta => ta.UserId == user.Id &&
-               ta.Id == request.TeachingAssignmentId &&
-               (ta.IsDelete == false || ta.IsDelete == null));
+                .FirstOrDefaultAsync(ta => ta.UserId == user.Id && ta.Id == request.TeachingAssignmentId && (ta.IsDelete == false || ta.IsDelete == null));
 
                 var assistant = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.UserId && (!u.IsDelete.HasValue || !u.IsDelete.Value));
                 if (assistant == null)
@@ -266,8 +241,10 @@ namespace Project_LMS.Services
                 {
                     return new ApiResponse<LessonResponse>(1, "Trợ giảng phải là giáo viên", null);
                 }
+
                 if (teachingAssignmentToLesson == null)
                     return new ApiResponse<LessonResponse>(1, "Bạn không được phân công giảng dạy lớp học này. Không thể tạo buổi học.", null);
+
                 var existingLesson = await _context.Lessons
                     .Include(l => l.TeachingAssignment)
                     .FirstOrDefaultAsync(l => l.Id == request.Id && (!l.IsDelete.HasValue || !l.IsDelete.Value));
@@ -275,7 +252,11 @@ namespace Project_LMS.Services
                 if (existingLesson == null)
                     return new ApiResponse<LessonResponse>(1, "Không tìm thấy bài học", null);
 
-                // Validate ClassLessonCode uniqueness
+                if (existingLesson.EndDate < DateTime.UtcNow)
+                {
+                    return new ApiResponse<LessonResponse>(1, "Buổi học đã kết thúc, không thể cập nhật.", null);
+                }
+                
                 if (!string.IsNullOrEmpty(request.ClassLessonCode) &&
                            request.ClassLessonCode != existingLesson.ClassLessonCode)
                 {
@@ -296,7 +277,14 @@ namespace Project_LMS.Services
 
                 if (teachingAssignment == null)
                     return new ApiResponse<LessonResponse>(1, "Không tìm thấy phân công giảng dạy", null);
-
+                var teacherSubjectExists = await _context.TeacherClassSubjects
+                                    .AnyAsync(tcs => tcs.UserId == request.UserId &&
+                                                     tcs.SubjectsId == teachingAssignment.SubjectId &&
+                                                     (!tcs.IsDelete.HasValue || !tcs.IsDelete.Value));
+                if (!teacherSubjectExists)
+                {
+                    return new ApiResponse<LessonResponse>(1, "Trợ giảng không được phép dạy môn học này", null);
+                }
                 // Validate lesson time within TeachingAssignment time range
                 if (request.StartDate < teachingAssignment.StartDate || request.EndDate > teachingAssignment.EndDate)
                 {

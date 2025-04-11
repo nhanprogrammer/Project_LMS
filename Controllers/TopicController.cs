@@ -7,8 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace Project_LMS.Controllers
 {
-    [Authorize(Policy = "TEACHER")]
-    [Authorize(Policy = "STUDENT")]
+    [Authorize(Policy = "STUDENT,TEACHER")]
     [ApiController]
     [Route("api/[controller]")]
     public class TopicController : ControllerBase

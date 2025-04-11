@@ -1,4 +1,5 @@
-﻿using Project_LMS.DTOs.Request;
+﻿using Namespace.DTOs.Response.TopicListResponseDto;
+using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
 
 namespace Project_LMS.Interfaces.Services;
@@ -12,5 +13,6 @@ public interface ITeachingAssignmentService
     Task<PaginatedResponse<TeachingAssignmentResponseCreateUpdate>> GetTeachingAssignments(int? academicYearId, int? subjectGroupId, int? userId, int pageNumber = 1, int pageSize = 10);
     Task<List<TopicResponseByAssignmentId>> GetTopicsByAssignmentIdAsync(int assignmentId);
     Task<List<ClassResponseSearch>> SearchClass(string? keyword);
+    public Task<ApiResponse<TopicListResponseDto>> GetTopicsByAssignmentIdPaginatedAsync(int teachingAssignmentId, PaginationRequest request);
 
 }

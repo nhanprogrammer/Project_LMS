@@ -221,5 +221,37 @@ namespace Project_LMS.Repositories
             // Sắp xếp trong bộ nhớ
             return teachers.OrderBy(u => u.FullName != null ? u.FullName.Substring(u.FullName.LastIndexOf(' ') + 1) : string.Empty).ToList();
         }
+
+        public async Task<List<UserResponseTeachingAssignment>> GetTeacherBySubjectIdAsync(int subjectId)
+        {
+            // Sửa lại cách truy vấn và quan hệ
+            var teachers = await _context.Users
+                .Where(u => u.RoleId == 2 &&
+                           u.TeacherStatusId == 1 &&
+                           (u.IsDelete == false || u.IsDelete == null))
+                .Where(u => u.SubjectGroup != null &&
+                           u.SubjectGroup.SubjectGroupSubjects
+                             .Any(sgs => sgs.Subject != null && sgs.Subject.Id == subjectId))
+                .Select(u => new UserResponseTeachingAssignment
+                {
+                    Id = u.Id,
+                    FullName = u.FullName ?? string.Empty // Xử lý null
+                })
+                .ToListAsync();
+
+            // Sắp xếp trong bộ nhớ với xử lý null an toàn
+            return teachers
+                .OrderBy(u =>
+                {
+                    if (string.IsNullOrEmpty(u.FullName))
+                        return string.Empty;
+
+                    int lastSpaceIndex = u.FullName.LastIndexOf(' ');
+                    return lastSpaceIndex >= 0 ?
+                        u.FullName.Substring(lastSpaceIndex + 1) :
+                        u.FullName;
+                })
+                .ToList();
+        }
     }
 }

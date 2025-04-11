@@ -69,19 +69,16 @@ public class StudentService : IStudentService
         string password = await GenerateSecurePassword(10);
         student.Password = BCrypt.Net.BCrypt.HashPassword(password);
 
-        Console.WriteLine(request.UserCode + "usercode");
         if (string.IsNullOrEmpty(request.UserCode))
         {
-            Console.WriteLine("UserCode null");
             student.UserCode = await _codeGeneratorService.GenerateCodeAsync("HS", async code =>
                 await _studentRepository.FindStudentByUserCode(code) != null);
-            Console.WriteLine(student.UserCode + "usercode sau khi gen code");
         }
         else
         {
-            Console.WriteLine("UserCode không null");
             student.UserCode = request.UserCode;
         }
+
         var valids = await ValidateStudentRequest(request);
         if (await _studentRepository.FindStudentByUserCode(request.UserCode) != null)
         {
@@ -92,26 +89,39 @@ public class StudentService : IStudentService
         {
             Data = valids
         };
+
         try
         {
+            // Kiểm tra số lượng học viên trong lớp
+            var classInfo = await _classRepository.FindClassById(request.ClassId);
+            if (classInfo == null)
+            {
+                return new ApiResponse<object>(1, "Không tìm thấy lớp học.");
+            }
+            
+             var studentCount = await _classStudentRepository.CountByClassId(request.ClassId);
+            if (classInfo.StudentCount.HasValue && studentCount >= classInfo.StudentCount.Value)
+            {
+                 return new ApiResponse<object>(1, $"Số lượng học viên trong lớp {classInfo.Name} đã đạt giới hạn {classInfo.StudentCount.Value} học viên. Không thể thêm học viên mới.");
+            }
+
             if (request.Image != null)
             {
-                Console.WriteLine("Url Đã chạy vào");
                 string url = await _cloudinaryService.UploadImageAsync(request.Image);
                 student.Image = url;
             }
-            Console.WriteLine(student.Image + " ảnh sau khi upload");
+
             var user = await _studentRepository.AddAsync(student);
             Task.Run(async () =>
             {
                 await ExecuteEmail(user.Email, user.FullName, user.Username, password);
             });
+
             await _classStudentRepository.AddAsync(new ClassStudentRequest()
             {
                 UserId = user.Id,
                 ClassId = request.ClassId
             });
-
 
             _logger.LogInformation("Thêm học viên thành công.");
             return new ApiResponse<object>(0, "Thêm học viên thành công.");
@@ -126,7 +136,6 @@ public class StudentService : IStudentService
             _logger.LogError(ex, "Lỗi không xác định khi thêm học viên. Dữ liệu: {@Student}", student);
             return new ApiResponse<object>(1, "Đã xảy ra lỗi không xác định khi thêm học viên. Vui lòng thử lại sau: " + ex.Message);
         }
-
     }
 
     public async Task<ApiResponse<object>> DeleteAsync(List<string> userCodes)
@@ -1097,9 +1106,10 @@ public class StudentService : IStudentService
     {
         // Tìm học viên theo UserCode
         var studentFind = await _studentRepository.FindStudentByUserCode(request.UserCode);
+
         if (studentFind == null)
             return new ApiResponse<object>(1, "Học viên không tồn tại.");
-
+        var latestClassStudent = await _classStudentRepository.FindStudentByIdIsActive(studentFind.Id);
         request.UserCode = studentFind.UserCode;
         string url = studentFind.Image;
 
@@ -1119,6 +1129,14 @@ public class StudentService : IStudentService
             {
                 return new ApiResponse<object>(1, "Lớp học không tồn tại.");
             }
+            if (latestClassStudent.ClassId != request.ClassId)
+            {
+                var studentCount = await _classStudentRepository.CountByClassId(request.ClassId);
+                if (classInfo.StudentCount.HasValue && studentCount >= classInfo.StudentCount.Value)
+                {
+                     return new ApiResponse<object>(1, $"Số lượng học viên trong lớp {classInfo.Name} đã đạt giới hạn {classInfo.StudentCount.Value} học viên. Không thể thêm học viên mới.");
+                }
+            }
 
             if (classInfo.AcademicYearId != request.SchoolYear)
             {
@@ -1126,7 +1144,6 @@ public class StudentService : IStudentService
             }
 
             // Kiểm tra niên khóa và xử lý cập nhật lùi
-            var latestClassStudent = await _classStudentRepository.FindStudentByIdIsActive(studentFind.Id);
             bool isUpdatingBackwards = false;
             if (latestClassStudent != null && latestClassStudent.Class != null && latestClassStudent.Class.AcademicYear != null)
             {
@@ -1267,7 +1284,7 @@ public class StudentService : IStudentService
                     await ExecuteEmail(request.Email, request.FullName, student.Username, password);
                 });
             }
-            Console.WriteLine("Email ================================="+studentFind.Email+" - "+request.Email);
+            Console.WriteLine("Email =================================" + studentFind.Email + " - " + request.Email);
             var user = await _studentRepository.UpdateAsync(student);
             _logger.LogInformation("Cập nhật học viên thành công.");
             return new ApiResponse<object>(0, "Cập nhật học viên thành công.");

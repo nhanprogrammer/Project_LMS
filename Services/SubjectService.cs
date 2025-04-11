@@ -3,7 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using Project_LMS.Data;
 using Project_LMS.DTOs.Request;
 using Project_LMS.DTOs.Response;
+using Project_LMS.Exceptions;
 using Project_LMS.Interfaces;
+using Project_LMS.Interfaces.Responsitories;
 using Project_LMS.Interfaces.Services;
 using Project_LMS.Models;
 
@@ -14,12 +16,16 @@ namespace Project_LMS.Services
         private readonly ApplicationDbContext _context;
         private readonly IMapper _mapper;
         private readonly IAuthService _authService;
+        private readonly IStudentRepository _studentRepository;
+        private readonly IClassStudentRepository _classStudentRepository;
 
-        public SubjectService(ApplicationDbContext context, IMapper mapper, IAuthService authService)
+        public SubjectService(ApplicationDbContext context, IMapper mapper, IAuthService authService, IStudentRepository studentRepository, IClassStudentRepository classStudentRepository)
         {
             _context = context;
             _mapper = mapper;
             _authService = authService;
+            _studentRepository = studentRepository;
+            _classStudentRepository = classStudentRepository;
         }
 
         public async Task<ApiResponse<PaginatedResponse<SubjectResponse>>> GetAllSubjectsAsync(string? keyword, int pageNumber, int pageSize)
@@ -478,6 +484,41 @@ namespace Project_LMS.Services
                 })
                 .Distinct()
                 .ToListAsync();
+
+            return subjects;
+        }
+
+        public async Task<List<SubjectDropdownResponse>> GetSubjectDropdownByStudentAsync()
+        {
+            // Lấy thông tin học sinh từ AuthService
+            var user = await _authService.GetUserAsync();
+            if (user == null)
+            {
+                throw new UnauthorizedAccessException("Token không hợp lệ hoặc đã hết hạn!");
+            }
+
+            var student = await _studentRepository.FindStudentById(user.Id);
+            if (student == null)
+            {
+                throw new NotFoundException("Không tìm thấy học sinh.");
+            }
+
+            // Lấy danh sách ClassStudent của học sinh
+            var classStudents = await _classStudentRepository.FindAllClassStudentByUserId(student.Id);
+
+            // Lấy danh sách môn học từ các lớp mà học sinh đã học
+            var subjects = classStudents
+                .Where(cs => cs.Class != null && cs.Class.ClassSubjects != null)
+                .SelectMany(cs => cs.Class.ClassSubjects)
+                .Select(cs => cs.Subject)
+                .Where(subject => subject != null)
+                .Distinct()
+                .Select(subject => new SubjectDropdownResponse
+                {
+                    Id = subject.Id,
+                    Name = subject.SubjectName ?? "Không có tên"
+                })
+                .ToList();
 
             return subjects;
         }

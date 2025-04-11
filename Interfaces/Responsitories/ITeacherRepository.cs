@@ -17,6 +17,7 @@ namespace Project_LMS.Interfaces.Responsitories
         public Task<List<User>> GetAllByIds(List<int> ids, bool orderBy,string column,string search);
         public Task<int> CountByClasses(List<int> ids,string search);
         Task<List<UserResponseTeachingAssignment>> GetTeachersAsync();
+        Task<List<UserResponseTeachingAssignment>> GetTeacherBySubjectIdAsync(int subjectId);
 
 
     }
