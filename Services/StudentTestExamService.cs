@@ -337,6 +337,8 @@ public class StudentTestExamService : IStudentTestExamService
         {
             UserId = UserId,
             TestExamId = request.TestExamId,
+            IsSubmit = true,
+            SubmissionDate = DateTime.Now,
         };
 
         _context.Assignments.Add(assignment);
@@ -353,43 +355,63 @@ public class StudentTestExamService : IStudentTestExamService
         }
 
         double totalScore = 0;
-
-        // Iterate over the answer IDs provided in the request
-        foreach (var answerId in request.AnswerIds)
-        {
-            var answer = await _context.Answers
-                .Include(a => a.Question)
-                .FirstOrDefaultAsync(a => a.Id == answerId);
-
-            if (answer != null && answer.Question != null)
-            {
-                bool isCorrect = answer.IsCorrect ?? false;
-
-                // If the answer is correct, add the question's mark to the total score
-                if (isCorrect)
-                {
-                    totalScore += answer.Question.Mark ?? 0;
-                }
-
-                // Create and add AssignmentDetail for each answer
-                _context.AssignmentDetails.Add(new AssignmentDetail
-                {
-                    AssignmentId = assignment.Id, // Use the ID of the newly created assignment
-                    AnswerId = answerId,
-                    IsCorrect = isCorrect,
-                    CreateAt = DateTime.Now,
-                    UpdateAt = DateTime.Now
-                });
-            }
-        }
-
-        // Update the total score for the Assignment
-        assignment.TotalScore = totalScore;
-
-        // Save changes (this will also save the AssignmentDetails)
-        await _context.SaveChangesAsync();
-
-        return new ApiResponse<object>(0, "Nộp bài thành công!", new { TotalScore = totalScore });
+           int correctCount = 0;
+           int incorrectCount = 0;
+           int totalQuestions = questions.Count;
+           var reviewList = new List<object>();
+           foreach (var answerId in request.AnswerIds)
+           {
+               var answer = await _context.Answers
+                   .Include(a => a.Question)
+                   .FirstOrDefaultAsync(a => a.Id == answerId);
+               bool isCorrect = answer.IsCorrect ?? false;
+               if (answer != null && answer.Question != null)
+               {
+               
+       
+                   if (isCorrect)
+                   {
+                       totalScore += answer.Question.Mark ?? 0;
+                       correctCount++;
+                   }
+                   else
+                   {
+                       incorrectCount++;
+                   }
+       
+                   _context.AssignmentDetails.Add(new AssignmentDetail
+                   {
+                       AssignmentId = assignment.Id,
+                       AnswerId = answerId,
+                       IsCorrect = isCorrect,
+                       CreateAt = DateTime.Now,
+                       UpdateAt = DateTime.Now
+                   });
+                   
+               }
+               reviewList.Add(new
+               {
+                   QuestionId = answer.Question.Id,
+                   QuestionContent = answer.Question.QuestionText,
+                   SelectedAnswerId = answer.Id,
+                   SelectedAnswerContent = answer.Answer1,
+                   IsCorrect =  isCorrect
+               });
+           }
+       
+           assignment.TotalScore = totalScore;
+       
+           await _context.SaveChangesAsync();
+       
+           return new ApiResponse<object>(0, "Nộp bài thành công!", new
+           {
+               TotalQuestions = totalQuestions,
+               TotalScore = totalScore,
+               CorrectCount = correctCount,
+               IncorrectCount = incorrectCount,
+               Review = reviewList
+               
+           });
     }
 public async Task<ApiResponse<object>> SaveEssay(int UserId, SaveEssayRequest request)
 {
